@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pedido de ficheiro | GARC – Soluções Técnicas</title>
+<meta name="description" content="Envie a leitura da centralina com os dados da viatura e os módulos pretendidos.">
+<meta property="og:title" content="Pedido de ficheiro | GARC – Soluções Técnicas">
+<meta property="og:description" content="Envie a leitura da centralina com os dados da viatura e os módulos pretendidos.">
+<meta property="og:locale" content="pt_PT">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/styles.css">
+<script src="/assets/main.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="GARC – Soluções Técnicas, página inicial">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+      <span class="brand-text"><span class="brand-name">GARC</span><span class="brand-sub">Soluções Técnicas</span></span>
+    </a>
+    <nav class="nav" aria-label="Principal" data-open="false">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-list"><span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>Menu</button>
+      <ul class="nav-list" id="nav-list">
+        <li><a href="/">Início</a></li>
+        <li><a href="/servicos">Serviços</a></li>
+        <li><a href="/loja">Loja</a></li>
+        <li><a href="/noticias">Notícias</a></li>
+        <li><a href="/#sobre">Sobre</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li class="nav-cta"><a href="/pedido" aria-current="page">Enviar ficheiro</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+<section class="page-head">
+  <div class="wrap">
+    <h1>Pedido de ficheiro</h1>
+    <p class="lead">Preencha os dados da viatura, escolha os módulos e anexe a leitura original. Respondemos por email.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap pedido">
+    <form class="form" id="form-pedido" action="/api/pedido" method="post" enctype="multipart/form-data">
+      <p class="hint">Os campos com <span class="req">*</span> são obrigatórios.</p>
+      <fieldset class="fieldset">
+        <legend>Contacto</legend>
+        <div class="grid-2">
+          <div class="field"><label for="f-nome">Nome completo <span class="req" aria-hidden="true">*</span></label><input id="f-nome" name="nome" type="text" required autocomplete="name"></div>
+          <div class="field"><label for="f-oficina">Oficina ou empresa</label><input id="f-oficina" name="oficina" type="text" autocomplete="organization"></div>
+          <div class="field"><label for="f-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-email" name="email" type="email" required autocomplete="email"></div>
+          <div class="field"><label for="f-telefone">Telefone <span class="req" aria-hidden="true">*</span></label><input id="f-telefone" name="telefone" type="tel" required autocomplete="tel"></div>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Viatura e centralina</legend>
+        <div class="grid-2">
+          <div class="field"><label for="f-viatura">Marca e modelo <span class="req" aria-hidden="true">*</span></label><input id="f-viatura" name="viatura" type="text" placeholder="ex.: Volkswagen Golf VII" required></div>
+          <div class="field"><label for="f-motor">Motor</label><input id="f-motor" name="motor" type="text" placeholder="ex.: 2.0 TDI 150 cv"></div>
+          <div class="field"><label for="f-ano">Ano</label><input id="f-ano" name="ano" type="text" placeholder="ex.: 2017" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" title="Ano com 4 dígitos"></div>
+          <div class="field"><label for="f-ecu">ECU <span class="req" aria-hidden="true">*</span></label><input id="f-ecu" name="ecu" type="text" placeholder="ex.: Bosch EDC17C64" required></div>
+          <div class="field"><label for="f-ferramenta">Ferramenta de leitura</label><input id="f-ferramenta" name="ferramenta" type="text" placeholder="ex.: KESS3, Autotuner, Flex"></div>
+          <div class="field"><label for="f-metodo">Método de leitura</label><select id="f-metodo" name="metodo"><option value="">Escolher</option><option>OBD</option><option>Bancada</option><option>Boot</option><option>Outro</option></select></div>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Módulos pretendidos <span class="req" aria-hidden="true">*</span></legend>
+        <div class="modules">
+          <div class="module-group"><h3>Chiptuning</h3><div class="check"><input type="checkbox" id="m-stage-1-2" name="modulos" value="STAGE 1/2"><label for="m-stage-1-2">Stage 1/2</label></div><div class="check"><input type="checkbox" id="m-tcu-stage-1" name="modulos" value="TCU STAGE 1"><label for="m-tcu-stage-1">TCU Stage 1</label></div><div class="check"><input type="checkbox" id="m-pop-bangs" name="modulos" value="POP &amp; BANGS"><label for="m-pop-bangs">Pop &amp; bangs</label></div><div class="check"><input type="checkbox" id="m-torque-monitoring" name="modulos" value="TORQUE MONITORING"><label for="m-torque-monitoring">Torque monitoring</label></div><div class="check"><input type="checkbox" id="m-sport-display-calibration" name="modulos" value="SPORT DISPLAY CALIBRATION"><label for="m-sport-display-calibration">Sport display</label></div></div>
+          <div class="module-group"><h3>Admissão e escape</h3><div class="check"><input type="checkbox" id="m-flaps-off" name="modulos" value="FLAPS OFF"><label for="m-flaps-off">Flaps off</label></div><div class="check"><input type="checkbox" id="m-exhaust-flap-off" name="modulos" value="EXHAUST FLAP OFF"><label for="m-exhaust-flap-off">Exhaust flap off</label></div><div class="check"><input type="checkbox" id="m-tva-off" name="modulos" value="TVA OFF"><label for="m-tva-off">TVA off</label></div><div class="check"><input type="checkbox" id="m-maf-off" name="modulos" value="MAF OFF"><label for="m-maf-off">MAF off</label></div></div>
+          <div class="module-group"><h3>Correções</h3><div class="check"><input type="checkbox" id="m-oil-pressure-fix" name="modulos" value="OIL PRESSURE FIX"><label for="m-oil-pressure-fix">Oil pressure fix</label></div><div class="check"><input type="checkbox" id="m-hot-start-fix" name="modulos" value="HOT START FIX"><label for="m-hot-start-fix">Hot start fix</label></div><div class="check"><input type="checkbox" id="m-start-stop-off" name="modulos" value="START STOP OFF"><label for="m-start-stop-off">Start-stop off</label></div></div>
+          <div class="module-group emissions"><h3>Sistemas de emissões</h3><p class="small">Uso exclusivo em competição ou fora da via pública.</p><div class="check"><input type="checkbox" id="m-dpf-off" name="modulos" value="DPF OFF" data-emissions><label for="m-dpf-off">DPF off</label></div><div class="check"><input type="checkbox" id="m-egr-off" name="modulos" value="EGR OFF" data-emissions><label for="m-egr-off">EGR off</label></div><div class="check"><input type="checkbox" id="m-adblue-scr-off" name="modulos" value="ADBLUE/SCR OFF" data-emissions><label for="m-adblue-scr-off">AdBlue/SCR off</label></div><div class="check"><input type="checkbox" id="m-lambda-o2-off" name="modulos" value="LAMBDA/O2 OFF" data-emissions><label for="m-lambda-o2-off">Lambda/O2 off</label></div></div>
+        </div>
+        <div class="declaration" id="decl-wrap" hidden>
+          <div class="check"><input type="checkbox" id="f-declaracao" name="declaracao_emissoes" value="sim"><label for="f-declaracao">Declaro que os módulos de sistemas de emissões se destinam a um veículo de competição ou a uso fora da via pública.</label></div>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Ficheiro e observações</legend>
+        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Máximo 25 MB.</p></div>
+        <div class="field"><label for="f-mensagem">Observações</label><textarea id="f-mensagem" name="mensagem" placeholder="Sintomas, peças alteradas, códigos de erro…"></textarea></div>
+      </fieldset>
+      <div class="check"><input id="f-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-rgpd">Li a <a href="/privacidade">política de privacidade</a>.</label></div>
+      <div class="actions"><button class="btn btn-primary" type="submit">Enviar pedido</button></div>
+      <p class="status" role="status" aria-live="polite" hidden></p>
+    </form>
+    <aside class="aside">
+      <div class="aside-block">
+        <h2>Antes de enviar</h2>
+        <ul class="checklist">
+          <li>Guarde o ficheiro original em mais de um sítio.</li>
+          <li>Mantenha a tensão estável durante a leitura, com carregador ou estabilizador ligado.</li>
+          <li>Indique a ferramenta e o método usados.</li>
+          <li>Se a viatura tem avarias registadas, refira-as nas observações.</li>
+        </ul>
+      </div>
+      <div class="aside-block">
+        <h2>Depois do envio</h2>
+        <ol class="aside-steps">
+          <li>Recebemos o pedido e o ficheiro.</li>
+          <li>Confirmamos por email o que é possível para essa ECU e o preço.</li>
+          <li>Enviamos o ficheiro modificado.</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+</section>
+</main>
+<footer class="site-footer" id="contacto">
+  <div class="wrap footer-main">
+    <div>
+      <h2>Envie uma mensagem</h2>
+      <form class="form" id="form-contacto" action="/api/contacto" method="post">
+        <div class="grid-2">
+          <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
+          <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
+          <div class="field"><label for="f-c-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-c-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="f-c-telefone">Telefone</label><input id="f-c-telefone" name="telefone" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
+        <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
+        <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="/privacidade">política de privacidade</a>.</label></div>
+        <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
+        <p class="status" role="status" aria-live="polite" hidden></p>
+      </form>
+    </div>
+    <div>
+      <h2>Contactos</h2>
+      <dl class="contact-info">
+        <div><dt>Morada</dt><dd><span class="ph">[rua e código postal]</span><br>Arcozelo, Vila Nova de Gaia</dd></div>
+        <div><dt>Telefone e WhatsApp</dt><dd><span class="ph">[telefone]</span></dd></div>
+        <div><dt>Email</dt><dd><span class="ph">[email da empresa]</span></dd></div>
+        <div><dt>Horário</dt><dd><span class="ph">[dias e horas de atendimento]</span></dd></div>
+        <div><dt>Redes sociais</dt><dd><span class="ph">[redes sociais]</span></dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <div class="wrap">
+      <p>GARC – Soluções Técnicas, Unipessoal Lda. Sede: <span class="ph">[rua e código postal]</span>, Arcozelo, Vila Nova de Gaia. NIPC <span class="ph">[NIPC]</span>, matriculada na Conservatória do Registo Comercial de <span class="ph">[conservatória]</span> sob o mesmo número.</p>
+      <ul class="legal-links">
+        <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
+        <li><a href="/privacidade">Política de privacidade</a></li>
+        <li><a href="/termos">Termos de utilização</a></li>
+      </ul>
+      <p>© 2026 GARC – Soluções Técnicas</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>
