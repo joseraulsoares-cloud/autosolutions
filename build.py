@@ -28,13 +28,16 @@ UPDATED = ("2026-11-01", "1 de novembro de 2026")
 MAX_MB = 25
 
 # Dados da empresa. O que ficar vazio aparece a amarelo no site e é listado no fim da geração.
-# A morada, a conservatória e o capital social não são mostrados, por decisão da empresa.
+# A morada da sede e a conservatória aparecem só na identificação legal (rodapé, privacidade e termos),
+# não nos contactos, porque o serviço é prestado online. O capital social não é mostrado, por decisão da empresa.
 DADOS = {
     "telefone": "913 027 543",
     "whatsapp": True,       # o mesmo número atende WhatsApp
     "email": "fileservice@autosolutions.pt",  # email da empresa (contactos, pedidos e privacidade)
     "horario": "8h30–17h00",
     "nipc": "505743973",
+    "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
+    "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
     "prazo_ficheiros": "1 mês",  # conservação dos ficheiros de centralina (apagados automaticamente)
     "entrega": "Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento",
@@ -87,6 +90,13 @@ def asset(path):
 def email_html():
     email = DADOS["email"]
     return f'<a href="mailto:{esc(email)}">{esc(email)}</a>' if email else ph("email da empresa")
+
+
+def registo_html(inicio=False):
+    """Matrícula no registo comercial (o número de matrícula é o NIPC). `inicio`: começa a frase."""
+    return (f"{'M' if inicio else 'm'}atriculada na Conservatória do Registo Comercial de "
+            f"{val('conservatoria', 'conservatória do registo comercial')} "
+            f"com o número único de matrícula e de pessoa coletiva {val('nipc', 'NIPC')}")
 
 
 def telefone_digitos():
@@ -253,7 +263,7 @@ def footer(preview):
   </div>
   <div class="footer-legal">
     <div class="wrap">
-      <p>{esc(FIRMA)}. NIPC {val('nipc', 'NIPC')}.</p>
+      <p>{esc(FIRMA)}. Sede: {val('morada', 'morada da sede')}. {registo_html(inicio=True)}.</p>
       <ul class="legal-links">
         <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
         <li><a href="{url('privacidade')}">Política de privacidade</a></li>
@@ -998,7 +1008,7 @@ def body_privacidade(preview):
 <section class="section">
   <div class="wrap prose">
     <h2>Responsável pelo tratamento</h2>
-    <p>{esc(FIRMA)}, NIPC {val('nipc', 'NIPC')}. Contacto para questões de privacidade: {email_html()}.</p>
+    <p>{esc(FIRMA)}, NIPC {val('nipc', 'NIPC')}, com sede na {val('morada', 'morada da sede')}. Contacto para questões de privacidade: {email_html()}.</p>
     <h2>Dados recolhidos</h2>
     <p>No formulário de contacto: nome, email, telefone e a mensagem escrita.</p>
     <p>Na área de cliente: nome da oficina, NIF, nome do responsável, email, telefone e WhatsApp; dados das viaturas (incluindo a matrícula) e das centralinas; ficheiros enviados e entregues; movimentos de saldo; e registos de acesso (códigos de entrada e sessões). Os ficheiros de centralina podem conter o número de identificação da viatura (VIN).</p>
@@ -1030,7 +1040,7 @@ def body_termos(preview):
 <section class="section">
   <div class="wrap prose">
     <h2>Identificação</h2>
-    <p>Este site pertence à {esc(FIRMA)}, NIPC {val('nipc', 'NIPC')}. Contacto: {email_html()}.</p>
+    <p>Este site pertence à {esc(FIRMA)}, com sede na {val('morada', 'morada da sede')}, {registo_html()}. Contacto: {email_html()}.</p>
     <h2>Destinatários</h2>
     <p>Os serviços de ficheiros destinam-se a oficinas e a profissionais do setor automóvel.</p>
     <h2>Pedidos e ficheiros</h2>
