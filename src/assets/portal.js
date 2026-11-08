@@ -93,6 +93,7 @@
       acoes.push('<button class="btn btn-secondary btn-sm" type="button" data-cancelar="' + p.id + '">Cancelar pedido</button>');
     }
     var kv = [
+      ['Matrícula', esc(p.matricula || '—')],
       ['ECU', esc(p.ecu)],
       ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))],
       ['Enviado', esc(G.data(p.criado_em))],
@@ -263,7 +264,7 @@
       var el = form.elements;
       var ent = entregaEscolhida();
       var corpo = {
-        viatura: el.viatura.value, motor: el.motor.value, ano: el.ano.value, ecu: el.ecu.value,
+        viatura: el.viatura.value, matricula: el.matricula.value, motor: el.motor.value, ano: el.ano.value, ecu: el.ecu.value,
         ferramenta: el.ferramenta.value, metodo: el.metodo.value,
         modulos: marcados().map(function (i) { return i.value; }),
         observacoes: el.observacoes.value,

@@ -575,6 +575,8 @@ def form_novo_pedido():
 
     vehicle = "\n          ".join([
         field("f-viatura", "viatura", "Marca e modelo", True, placeholder="ex.: Volkswagen Golf VII"),
+        field("f-matricula", "matricula", "Matrícula", True, placeholder="ex.: AA-00-AA",
+              extra=' maxlength="15" autocomplete="off" autocapitalize="characters" spellcheck="false"'),
         field("f-motor", "motor", "Motor", placeholder="ex.: 2.0 TDI 150 cv"),
         field("f-ano", "ano", "Ano", placeholder="ex.: 2017",
               extra=' inputmode="numeric" pattern="[0-9]{4}" maxlength="4" title="Ano com 4 dígitos"'),
@@ -1020,7 +1022,7 @@ def body_privacidade(preview):
     <p>{esc(FIRMA)}, com sede em {morada_html(', ')}, NIPC {val('nipc', 'NIPC')}. Contacto para questões de privacidade: {email_html()}.</p>
     <h2>Dados recolhidos</h2>
     <p>No formulário de contacto: nome, email, telefone e a mensagem escrita.</p>
-    <p>Na área de cliente: nome da oficina, NIF, nome do responsável, email, telefone e WhatsApp; dados das viaturas e das centralinas; ficheiros enviados e entregues; movimentos de saldo; e registos de acesso (códigos de entrada e sessões). Os ficheiros de centralina podem conter o número de identificação da viatura (VIN).</p>
+    <p>Na área de cliente: nome da oficina, NIF, nome do responsável, email, telefone e WhatsApp; dados das viaturas (incluindo a matrícula) e das centralinas; ficheiros enviados e entregues; movimentos de saldo; e registos de acesso (códigos de entrada e sessões). Os ficheiros de centralina podem conter o número de identificação da viatura (VIN).</p>
     <p>Para proteger os formulários contra abusos, o registo, o contacto e o pedido de código de entrada guardam durante 24 horas um código derivado do endereço IP, que não é usado para mais nada.</p>
     <h2>Finalidades</h2>
     <p>Gerir as contas das oficinas, responder a contactos, prestar o serviço pedido, gerir o saldo de tokens e cumprir obrigações legais, como a faturação.</p>

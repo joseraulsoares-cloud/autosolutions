@@ -98,12 +98,16 @@
 
   /* ---------------------------------------------------------------- Pedidos */
 
+  function viaturaTxt(p) {
+    return p.viatura + (p.matricula ? ' · ' + p.matricula : '');
+  }
+
   function itemPedido(p) {
     var atual = String(est.pedido) === String(p.id) ? ' aria-current="true"' : '';
     return '<a class="list-item" href="#pedido-' + p.id + '"' + atual + '>' +
       '<span class="row"><strong>N.º ' + p.id + '</strong>' + G.pill(p.estado) + '</span>' +
       '<span class="row"><span>' + esc(p.oficina_nome) + '</span><span>' + esc(G.tokens(p.tokens)) + '</span></span>' +
-      '<span class="row"><span>' + esc(p.viatura) + ', ' + esc(p.ecu) + '</span><span>' + esc(G.data(p.criado_em)) + '</span></span>' +
+      '<span class="row"><span>' + esc(viaturaTxt(p)) + ', ' + esc(p.ecu) + '</span><span>' + esc(G.data(p.criado_em)) + '</span></span>' +
       '</a>';
   }
 
@@ -140,6 +144,7 @@
       ['Oficina', '<a href="#oficina-' + o.id + '">' + esc(o.nome) + '</a>'],
       ['Contacto', esc(o.email) + '<br>' + esc(o.telefone)],
       ['Viatura', esc(p.viatura) + (p.motor ? ', ' + esc(p.motor) : '') + (p.ano ? ', ' + esc(p.ano) : '')],
+      ['Matrícula', esc(p.matricula || '—')],
       ['ECU', esc(p.ecu)],
       ['Ferramenta e método', esc([p.ferramenta, p.metodo].filter(Boolean).join(', ') || 'Não indicados')],
       ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))],
@@ -314,7 +319,7 @@
     if (r.pedidos.length) {
       h += '<div class="stack"><h3>Pedidos</h3><div class="list">' + r.pedidos.map(function (p) {
         return '<a class="list-item" href="#pedido-' + p.id + '"><span class="row"><strong>N.º ' + p.id + '</strong>' + G.pill(p.estado) + '</span>' +
-          '<span class="row"><span>' + esc(p.viatura) + ', ' + esc(p.ecu) + '</span><span>' + esc(G.tokens(p.tokens)) + '</span></span></a>';
+          '<span class="row"><span>' + esc(viaturaTxt(p)) + ', ' + esc(p.ecu) + '</span><span>' + esc(G.tokens(p.tokens)) + '</span></span></a>';
       }).join('') + '</div></div>';
     }
     h += '<p class="status" role="status" aria-live="polite" hidden></p>';

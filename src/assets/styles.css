@@ -239,6 +239,8 @@ ul, ol { margin: 0; }
 .brand-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .brand-logo { display: block; width: auto; height: 46px; }
 .brand-logo-curto { display: none; }
+#f-matricula { text-transform: uppercase; }
+#f-matricula::placeholder { text-transform: none; }
 @media (max-width: 560px) {
   .brand-logo-largo { display: none; }
   .brand-logo-curto { display: block; height: 34px; }

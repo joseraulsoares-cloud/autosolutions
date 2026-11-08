@@ -17,7 +17,7 @@ function link_whatsapp(array $p): ?string
     if ($p['entrega'] !== 'whatsapp' || !$p['whatsapp']) {
         return null;
     }
-    $msg = "Olá! O ficheiro do pedido n.º {$p['id']} ({$p['viatura']}) está pronto. Segue em anexo.";
+    $msg = "Olá! O ficheiro do pedido n.º {$p['id']} (" . viatura_txt($p) . ") está pronto. Segue em anexo.";
     return 'https://wa.me/' . numero_whatsapp($p['whatsapp']) . '?text=' . rawurlencode($msg);
 }
 
@@ -111,7 +111,7 @@ function api_admin_pedido_estado(string $id): array
     $area = site_url() . '/area-cliente#pedidos';
     if ($acao === 'concluir') {
         $anexo = $p['entrega'] === 'email' ? anexo_se_couber($p['modificado_chave'], $p['modificado_nome']) : null;
-        $texto = "O ficheiro do pedido n.º {$p['id']} ({$p['viatura']}) está pronto.\n\n"
+        $texto = "O ficheiro do pedido n.º {$p['id']} (" . viatura_txt($p) . ") está pronto.\n\n"
             . ($anexo ? "Segue em anexo e fica também disponível na área de cliente:\n$area" : "Pode descarregá-lo na área de cliente:\n$area")
             . ($p['nota'] ? "\n\nNota:\n{$p['nota']}" : '')
             . assinatura_email();
@@ -123,7 +123,7 @@ function api_admin_pedido_estado(string $id): array
         notificar(
             $o['email'],
             "Pedido n.º {$p['id']} recusado",
-            "Não foi possível tratar o pedido n.º {$p['id']} ({$p['viatura']}).\n\nMotivo:\n{$p['nota']}\n\n$devolvidos\n$area" . assinatura_email()
+            "Não foi possível tratar o pedido n.º {$p['id']} (" . viatura_txt($p) . ").\n\nMotivo:\n{$p['nota']}\n\n$devolvidos\n$area" . assinatura_email()
         );
     }
     return ['pedido' => pedido_admin($p)];

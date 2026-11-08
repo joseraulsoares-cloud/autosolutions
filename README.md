@@ -40,6 +40,7 @@ Depois copiar `logo-cabecalho.html` para `src/` e os restantes ficheiros para `s
 
 - As oficinas registam-se com NIF e só entram depois de aprovadas no painel (`/admin`).
 - A entrada faz-se com um código de 6 dígitos enviado por email, válido 10 minutos. Não há palavras-passe.
+- Cada pedido exige a matrícula da viatura, portuguesa ou estrangeira (até 15 carateres: letras, números, espaços e hífenes). Fica em maiúsculas, e as portuguesas sem hífenes ficam no formato AA-00-AA. A matrícula aparece no painel, na área de cliente e nos emails e mensagens de WhatsApp do pedido.
 - Os tokens são carregados no painel, com o número da fatura. Cada pedido desconta os tokens dos módulos escolhidos; os tokens voltam ao saldo se o pedido for recusado ou cancelado antes do envio do ficheiro.
 - O ficheiro modificado é entregue pela área de cliente, por email com anexo ou por WhatsApp (o painel abre a conversa com a mensagem escrita).
 - A API só usa GET e POST e só aceita POST vindos do próprio site.

@@ -4,12 +4,38 @@ declare(strict_types=1);
 // Pedidos de ficheiro das oficinas.
 
 const CAMPOS_PEDIDO = [
-    'id', 'estado', 'viatura', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'tokens', 'observacoes',
+    'id', 'estado', 'viatura', 'matricula', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'tokens', 'observacoes',
     'entrega', 'whatsapp', 'original_nome', 'original_tamanho', 'modificado_nome', 'modificado_tamanho',
     'nota', 'criado_em', 'recebido_em', 'concluido_em',
 ];
 
 const METODOS = ['OBD', 'Bancada', 'Boot', 'Outro'];
+
+/**
+ * Matrícula obrigatória, portuguesa ou de outro país. Fica em maiúsculas; as de três pares
+ * (formato português, ex.: aa00aa) ficam com hífenes: AA-00-AA.
+ */
+function matricula($valor): string
+{
+    $m = is_scalar($valor) ? strtoupper(trim(preg_replace('/\s+/', ' ', (string) $valor))) : '';
+    if ($m === '') {
+        throw new ErroHttp(400, 'Indique a matrícula da viatura.');
+    }
+    if (!preg_match('/^[A-Z0-9][A-Z0-9 .\-]{0,13}[A-Z0-9]$/', $m)) {
+        throw new ErroHttp(400, 'A matrícula só pode ter letras, números, espaços e hífenes, até 15 caracteres.');
+    }
+    $so = preg_replace('/[^A-Z0-9]/', '', $m);
+    if (strlen($so) === 6 && preg_match('/^(?:[A-Z]{2}|\d{2}){3}$/', $so)) {
+        return implode('-', str_split($so, 2));
+    }
+    return $m;
+}
+
+/** Viatura e matrícula, para títulos e mensagens: "Volkswagen Golf VII, AA-00-AA". */
+function viatura_txt(array $p): string
+{
+    return $p['viatura'] . (!empty($p['matricula']) ? ", {$p['matricula']}" : '');
+}
 
 function pedido_publico(array $p): array
 {
@@ -103,6 +129,7 @@ function api_pedido_criar(): Resposta
 
     $p = [
         'viatura' => texto($c['viatura'] ?? '', 'marca e modelo', 120, true),
+        'matricula' => matricula($c['matricula'] ?? ''),
         'motor' => texto($c['motor'] ?? '', 'motor', 80),
         'ano' => texto($c['ano'] ?? '', 'ano', 4),
         'ecu' => texto($c['ecu'] ?? '', 'ECU', 80, true),
@@ -136,10 +163,10 @@ function api_pedido_criar(): Resposta
             );
         }
         executar(
-            'INSERT INTO pedidos (oficina_id, viatura, motor, ano, ecu, ferramenta, metodo, modulos, tokens, declaracao_emissoes, observacoes, entrega, whatsapp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, tokens, declaracao_emissoes, observacoes, entrega, whatsapp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
-                $oid, $p['viatura'], $p['motor'] ?: null, $p['ano'] ?: null, $p['ecu'], $p['ferramenta'] ?: null,
+                $oid, $p['viatura'], $p['matricula'], $p['motor'] ?: null, $p['ano'] ?: null, $p['ecu'], $p['ferramenta'] ?: null,
                 $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $custo, $emissoes ? 1 : 0,
                 $p['observacoes'] ?: null, $p['entrega'], $p['whatsapp'] ?: null,
             ]
@@ -187,8 +214,9 @@ function api_pedido_original_enviar(string $id): array
     $p = um('SELECT * FROM pedidos WHERE id = ?', [$p['id']]);
     $anexo = anexo_se_couber($p['original_chave'], $p['original_nome']);
     notificar_admins(
-        "Novo pedido n.º {$p['id']}: {$p['viatura']}",
+        "Novo pedido n.º {$p['id']}: " . viatura_txt($p),
         "Oficina: {$o['nome']}\nViatura: {$p['viatura']}" . ($p['motor'] ? " ({$p['motor']})" : '')
+        . "\nMatrícula: " . ($p['matricula'] ?: '-')
         . "\nECU: {$p['ecu']}\nMódulos: " . nomes_modulos($p) . "\nTokens: {$p['tokens']}\nEntrega: " . nome_entrega($p['entrega'])
         . ($p['observacoes'] ? "\n\nObservações:\n{$p['observacoes']}" : '')
         . "\n\nAbrir no painel:\n" . site_url() . "/admin#pedido-{$p['id']}"

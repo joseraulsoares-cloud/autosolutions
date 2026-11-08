@@ -107,7 +107,7 @@ r = sa.get(B + "/api/admin/oficinas?filtro=todas")
 check(r.status_code == 403, "oficina não acede à API de administração (403)")
 
 # ---------------------------------------------------------------- saldo e pedidos
-pedido = {"viatura": "Volkswagen Golf VII", "motor": "2.0 TDI", "ano": "2017", "ecu": "Bosch EDC17C64",
+pedido = {"viatura": "Volkswagen Golf VII", "matricula": "aa 00aa", "motor": "2.0 TDI", "ano": "2017", "ecu": "Bosch EDC17C64",
           "ferramenta": "KESS3", "metodo": "OBD", "modulos": ["STAGE 1/2"], "observacoes": "", "entrega": "email",
           "whatsapp": "", "declaracao": False, "tamanho": 100000}
 r = sa.post(B + "/api/pedidos", json=pedido)
@@ -123,9 +123,16 @@ r = sa.post(B + "/api/pedidos", json=dict(pedido, modulos=["STAGE 1/2", "EGR OFF
 check(r.status_code == 400 and "declaração" in r.json()["erro"], "módulo de emissões sem declaração: recusado")
 r = sa.post(B + "/api/pedidos", json=dict(pedido, modulos=["STAGE 1/2", "EGR OFF", "NAO EXISTE"], declaracao=True))
 check(r.status_code == 400, "módulo desconhecido: recusado")
+r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="  "))
+check(r.status_code == 400 and "matrícula" in r.json()["erro"], "pedido sem matrícula: recusado")
+r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="AA@00#AA"))
+check(r.status_code == 400 and "matrícula" in r.json()["erro"], "matrícula com carateres inválidos: recusada")
+r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="A" * 16))
+check(r.status_code == 400, "matrícula com mais de 15 carateres: recusada")
 r = sa.post(B + "/api/pedidos", json=dict(pedido, modulos=["STAGE 1/2", "EGR OFF"], declaracao=True))
 check(r.status_code == 201 and r.json()["saldo"] == 5 and r.json()["pedido"]["tokens"] == 5, "pedido Stage 1 + EGR off criado: 5 tokens, saldo 5")
 P1 = r.json()["pedido"]["id"]
+check(r.json()["pedido"]["matricula"] == "AA-00-AA", "matrícula portuguesa normalizada: 'aa 00aa' fica AA-00-AA")
 
 original = os.urandom(150_000)
 r = sa.post(B + f"/api/pedidos/{P1}/original", files={"ficheiro": ("golf ori.bin", original, "application/octet-stream")})
@@ -133,6 +140,7 @@ check(r.status_code == 200 and r.json()["pedido"]["estado"] == "recebido", "fich
 check(r.json()["pedido"]["original_nome"] == "golf_ori.bin" or r.json()["pedido"]["original_nome"] == "golf ori.bin", "nome do ficheiro limpo: " + r.json()["pedido"]["original_nome"])
 e = ultimo_email("admin@teste.pt", f"Novo pedido n.º {P1}")
 check(e is not None and "golf" in (e["anexos"] or ""), "administrador recebe o pedido por email com o original em anexo")
+check(e is not None and "AA-00-AA" in e["assunto"] and "Matrícula: AA-00-AA" in e["texto"], "email do novo pedido indica a matrícula")
 r = sa.post(B + f"/api/pedidos/{P1}/original", files={"ficheiro": ("outro.bin", b"x" * 10)})
 check(r.status_code == 409, "segundo envio de ficheiro no mesmo pedido: 409")
 
@@ -159,9 +167,10 @@ r = sa.get(B + f"/api/pedidos/{P1}/modificado")
 check(r.status_code == 200 and r.content == modificado and "attachment" in r.headers.get("Content-Disposition", ""), "oficina descarrega o ficheiro modificado (bytes iguais)")
 
 # Cancelamento antes do ficheiro: devolve os tokens uma só vez
-r = sa.post(B + "/api/pedidos", json=pedido)
+r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="1234 bcd"))
 P2 = r.json()["pedido"]["id"]
 check(r.status_code == 201 and r.json()["saldo"] == 1, "novo pedido de 4 tokens: saldo 1")
+check(r.json()["pedido"]["matricula"] == "1234 BCD", "matrícula estrangeira aceite como está, em maiúsculas: 1234 BCD")
 r = sa.post(B + f"/api/pedidos/{P2}/cancelar", json={})
 check(r.status_code == 200 and r.json()["saldo"] == 5, "cancelado antes do ficheiro: tokens devolvidos (saldo 5)")
 r = sa.post(B + f"/api/pedidos/{P2}/cancelar", json={})

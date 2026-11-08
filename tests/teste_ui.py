@@ -76,6 +76,7 @@ async def main():
         check((await pg.text_content("#p-saldo")).strip() == "12", "saldo de 12 tokens no topo")
 
         await pg.fill("#f-viatura", "Seat Leon III")
+        await pg.fill("#f-matricula", "aa-00-aa")
         await pg.fill("#f-motor", "1.6 TDI 110 cv")
         await pg.fill("#f-ano", "2016")
         await pg.fill("#f-ecu", "Bosch EDC17C64")
@@ -102,6 +103,7 @@ async def main():
         check("enviado" in aviso, "aviso de pedido enviado: " + aviso.strip()[:60])
         check((await pg.text_content("#p-saldo")).strip() == "6", "saldo desce para 6")
         check("Recebido" in await pg.text_content(".order"), "pedido aparece na lista como Recebido")
+        check("AA-00-AA" in await pg.text_content(".order"), "a lista de pedidos mostra a matrícula")
         await pg.click('a[data-tab="saldo"]')
         await pg.wait_for_selector(".ledger")
         check("FT 2026/9" in await pg.text_content(".ledger"), "extrato mostra o carregamento com a fatura")
@@ -118,6 +120,7 @@ async def main():
         await ap.click("#a-pedidos .list-item:has-text('Seat Leon III')")
         await ap.wait_for_selector("#a-pedido h2")
         check("Declaração" in await ap.text_content("#a-pedido"), "painel mostra a declaração de emissões do pedido")
+        check("AA-00-AA" in await ap.text_content("#a-pedido"), "painel mostra a matrícula do pedido")
         await ap.set_input_files("#a-pedido input[data-modificado]", modificado)
         await ap.wait_for_selector("#a-pedido [data-acao=concluir]")
         await ap.fill("#a-nota", "Ficheiro testado em banco.")

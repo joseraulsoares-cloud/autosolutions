@@ -35,7 +35,7 @@
 
   function base(extra) {
     var p = {
-      motor: null, ano: null, ferramenta: null, metodo: null, observacoes: null, whatsapp: null,
+      matricula: null, motor: null, ano: null, ferramenta: null, metodo: null, observacoes: null, whatsapp: null,
       original_nome: null, original_tamanho: null, modificado_nome: null, modificado_tamanho: null,
       nota: null, recebido_em: null, concluido_em: null, devolvido: false, declaracao_emissoes: false
     };
@@ -44,16 +44,16 @@
   }
 
   var pedidos = [
-    base({ id: 1043, oficina_id: 1, estado: 'concluido', viatura: 'Volkswagen Golf VII', motor: '2.0 TDI 150 cv', ano: '2017',
+    base({ id: 1043, oficina_id: 1, estado: 'concluido', viatura: 'Volkswagen Golf VII', matricula: 'AA-00-AA', motor: '2.0 TDI 150 cv', ano: '2017',
       ecu: 'Bosch EDC17C64', ferramenta: 'KESS3', metodo: 'OBD', modulos: ['STAGE 1/2', 'EGR OFF'], tokens: 5,
       declaracao_emissoes: true, entrega: 'portal', original_nome: 'golf7_edc17c64_original.bin', original_tamanho: 4194304,
       modificado_nome: 'golf7_edc17c64_stage1.bin', modificado_tamanho: 4194304,
       criado_em: haMinutos(20 * DIA), recebido_em: haMinutos(20 * DIA), concluido_em: haMinutos(20 * DIA - 150) }),
-    base({ id: 1051, oficina_id: 1, estado: 'em_curso', viatura: 'BMW 320d F30', motor: '2.0d 184 cv', ano: '2015',
+    base({ id: 1051, oficina_id: 1, estado: 'em_curso', viatura: 'BMW 320d F30', matricula: '00-AA-00', motor: '2.0d 184 cv', ano: '2015',
       ecu: 'Bosch EDC17C50', ferramenta: 'Autotuner', metodo: 'Bancada', modulos: ['STAGE 1/2'], tokens: 4,
       entrega: 'portal', original_nome: '320d_f30_edc17c50.bin', original_tamanho: 2097152,
       criado_em: haMinutos(300), recebido_em: haMinutos(299) }),
-    base({ id: 1052, oficina_id: 2, estado: 'recebido', viatura: 'Renault Clio IV', motor: '1.5 dCi 90 cv', ano: '2018',
+    base({ id: 1052, oficina_id: 2, estado: 'recebido', viatura: 'Renault Clio IV', matricula: '00-00-AA', motor: '1.5 dCi 90 cv', ano: '2018',
       ecu: 'Continental SID310', ferramenta: 'Flex', metodo: 'OBD', modulos: ['DPF OFF', 'START STOP OFF'], tokens: 3,
       declaracao_emissoes: true, entrega: 'whatsapp', whatsapp: '923 456 789',
       observacoes: 'Filtro de partículas retirado; luz de avaria acesa com P2002.',
@@ -106,7 +106,7 @@
     var r = copia(p);
     r.oficina = oficina(p.oficina_id);
     r.whatsapp_url = p.entrega === 'whatsapp' && p.whatsapp
-      ? 'https://wa.me/351' + p.whatsapp.replace(/\D/g, '') + '?text=' + encodeURIComponent('Olá! O ficheiro do pedido n.º ' + p.id + ' (' + p.viatura + ') está pronto. Segue em anexo.')
+      ? 'https://wa.me/351' + p.whatsapp.replace(/\D/g, '') + '?text=' + encodeURIComponent('Olá! O ficheiro do pedido n.º ' + p.id + ' (' + p.viatura + (p.matricula ? ', ' + p.matricula : '') + ') está pronto. Segue em anexo.')
       : null;
     return r;
   }
@@ -157,7 +157,8 @@
         return falha(402, 'Saldo insuficiente: o pedido custa ' + tokensTxt(custo) + ' e o saldo é de ' + tokensTxt(s) + '.', { saldo: s, custo: custo });
       }
       var novo = base({
-        id: proximoPedido++, oficina_id: 1, estado: 'a_aguardar_ficheiro', viatura: corpo.viatura, motor: corpo.motor || null,
+        id: proximoPedido++, oficina_id: 1, estado: 'a_aguardar_ficheiro', viatura: corpo.viatura,
+        matricula: (corpo.matricula || '').trim().toUpperCase() || null, motor: corpo.motor || null,
         ano: corpo.ano || null, ecu: corpo.ecu, ferramenta: corpo.ferramenta || null, metodo: corpo.metodo || null,
         modulos: corpo.modulos, tokens: custo, declaracao_emissoes: emissoes, observacoes: corpo.observacoes || null,
         entrega: corpo.entrega, whatsapp: corpo.entrega === 'whatsapp' ? corpo.whatsapp : null, criado_em: haMinutos(0)
