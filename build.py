@@ -18,6 +18,10 @@ SRC = ROOT / "src"
 
 COMPANY = "GARC – Soluções Técnicas"
 FIRMA = "GARC – Soluções Técnicas, Unipessoal Lda"
+MARCA = "GARC – AutoSolutions & Consulting"  # texto do logótipo
+# Logótipo do cabeçalho em SVG (gerado por ferramentas/logo/compor.py): versão larga, com o lema,
+# e versão curta para ecrãs estreitos. As cores vêm das variáveis --logo-* do styles.css.
+LOGO_CABECALHO = (SRC / "logo-cabecalho.html").read_text(encoding="utf-8").strip()
 YEAR = "2026"
 UPDATED = ("2026-11-01", "1 de novembro de 2026")
 MAX_MB = 25
@@ -230,9 +234,8 @@ def header(active):
     return f"""<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
 <header class="site-header">
   <div class="wrap">
-    <a class="brand" href="{url('index')}" aria-label="{esc(COMPANY)}, página inicial">
-      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
-      <span class="brand-text"><span class="brand-name">GARC</span><span class="brand-sub">Soluções Técnicas</span></span>
+    <a class="brand" href="{url('index')}" aria-label="{esc(MARCA)}, página inicial">
+      {LOGO_CABECALHO}
     </a>
     <nav class="nav" aria-label="Principal" data-open="false">
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-list"><span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>Menu</button>
@@ -312,7 +315,9 @@ def head_tags(title, desc, preview, bare, noindex=False, scripts=()):
         f'<meta property="og:title" content="{esc(title)}">',
         f'<meta property="og:description" content="{esc(desc)}">',
         '<meta property="og:locale" content="pt_PT">',
+        f'<link rel="icon" href="{asset("assets/favicon.ico")}" sizes="32x32">',
         f'<link rel="icon" href="{asset("assets/favicon.svg")}" type="image/svg+xml">',
+        f'<link rel="apple-touch-icon" href="{asset("assets/apple-touch-icon.png")}">',
         f'<link rel="preload" href="{asset("assets/fonts/barlow-latin-400-normal.woff2")}" as="font" type="font/woff2" crossorigin>',
         f'<link rel="preload" href="{asset("assets/fonts/barlow-condensed-latin-700-normal.woff2")}" as="font" type="font/woff2" crossorigin>',
         f'<link rel="stylesheet" href="{asset("assets/styles.css")}">',
@@ -1167,6 +1172,7 @@ def build(out_dir, preview):
         (out_dir / page["file"]).write_text(document(page, preview), encoding="utf-8")
     if not preview:
         shutil.copytree(SRC / "api", out_dir / "api")
+        shutil.copy(SRC / "assets" / "favicon.ico", out_dir / "favicon.ico")  # pedido por omissão dos browsers
         (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")
         (ROOT / "app").mkdir(exist_ok=True)
         (ROOT / "app" / "catalogo.php").write_text(catalogo_php(), encoding="utf-8")

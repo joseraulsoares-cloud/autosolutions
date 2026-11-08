@@ -15,16 +15,20 @@
   --ink-2: #4B5A68;
   --line: #CDD5DD;
   --accent: #1F5BD6;
-  --btn: #101C27;
-  --btn-hover: #263A4D;
+  /* Azul-marinho e cinzentos do logótipo da GARC */
+  --logo-azul: #012559;
+  --logo-cinza: #414548;
+  --logo-prata: #9AA0A7;
+  --btn: #012559;
+  --btn-hover: #133C7C;
   --btn-fg: #FFFFFF;
   --field-bg: #FFFFFF;
   --field-line: #7D8B99;
-  --band-bg: #101C27;
+  --band-bg: #012559;
   --band-fg: #F1F5F8;
-  --band-muted: #AFC0CE;
+  --band-muted: #B4C3D9;
   --band-btn: #FFFFFF;
-  --band-btn-fg: #101C27;
+  --band-btn-fg: #012559;
   --warn-bg: #FFF4D6;
   --warn-line: #E2B23C;
   --warn-ink: #4A3600;
@@ -89,6 +93,9 @@
     --h3-bg: #5A4C12; --h3-fg: #F7EBB8;
     --h4-bg: #8A4A1C; --h4-fg: #FFE2CB;
     --h5-bg: #C2381F; --h5-fg: #FFFFFF;
+    --logo-azul: #E5ECF2;
+    --logo-cinza: #AFC0CE;
+    --logo-prata: #6B7F91;
     color-scheme: dark;
   }
 }
@@ -125,6 +132,9 @@
   --h3-bg: #5A4C12; --h3-fg: #F7EBB8;
   --h4-bg: #8A4A1C; --h4-fg: #FFE2CB;
   --h5-bg: #C2381F; --h5-fg: #FFFFFF;
+  --logo-azul: #E5ECF2;
+  --logo-cinza: #AFC0CE;
+  --logo-prata: #6B7F91;
   color-scheme: dark;
 }
 
@@ -225,17 +235,14 @@ ul, ol { margin: 0; }
   display: flex; align-items: center; justify-content: space-between; gap: 24px;
   min-height: var(--header-h);
 }
-.brand { display: inline-flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
-.brand-mark { display: grid; grid-template-columns: repeat(5, 5px); gap: 2px; flex: none; }
-.brand-mark span { height: 22px; border-radius: 1px; }
-.brand-mark span:nth-child(1) { background: var(--h1-bg); }
-.brand-mark span:nth-child(2) { background: var(--h2-bg); }
-.brand-mark span:nth-child(3) { background: var(--h3-bg); }
-.brand-mark span:nth-child(4) { background: var(--h4-bg); }
-.brand-mark span:nth-child(5) { background: var(--h5-bg); }
-.brand-text { display: grid; line-height: 1; gap: 3px; }
-.brand-name { font-family: var(--font-display); font-weight: 700; font-size: 1.65rem; letter-spacing: 0.03em; }
-.brand-sub { font-size: 0.78rem; color: var(--ink-2); }
+.brand { display: inline-flex; align-items: center; flex: none; color: var(--ink); text-decoration: none; }
+.brand-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.brand-logo { display: block; width: auto; height: 46px; }
+.brand-logo-curto { display: none; }
+@media (max-width: 560px) {
+  .brand-logo-largo { display: none; }
+  .brand-logo-curto { display: block; height: 34px; }
+}
 
 .nav { display: flex; align-items: center; }
 .nav-list { display: flex; align-items: center; gap: 2px; list-style: none; padding: 0; }

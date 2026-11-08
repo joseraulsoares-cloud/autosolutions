@@ -10,6 +10,24 @@ Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: 
 - `app/` é o código do servidor da área de cliente (PHP 8.1 ou mais recente, MySQL), que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`.
 - `preview/` é uma versão de revisão, com a área de cliente em modo de demonstração. Não entra no repositório.
 - `tests/` tem os testes da API e do browser.
+- `ferramentas/logo/` tem o logótipo original (PNG) e os scripts que o passam a vetor.
+
+## Logótipo
+
+O logótipo da GARC foi vetorizado a partir de `ferramentas/logo/logo-original.png` (PNG de 640×640, com compressão), por isso as letras pequenas do lema ficam ligeiramente arredondadas em tamanhos grandes. Se houver o logótipo original em vetor (SVG, PDF ou AI), deve substituir estes ficheiros.
+
+- `src/logo-cabecalho.html`: SVG do cabeçalho, com uma versão larga (com o lema) e uma curta (só a marca e GARC, abaixo de 560 px de largura). As cores vêm das variáveis `--logo-azul`, `--logo-cinza` e `--logo-prata` do `styles.css`, que mudam no tema escuro.
+- `src/assets/logo-garc.svg`: logótipo completo, com as cores originais.
+- `src/assets/favicon.svg`, `favicon.ico` e `apple-touch-icon.png`: ícones do separador e do ecrã inicial.
+
+Para gerar de novo (precisa de `potrace`, `rsvg-convert`, Pillow, NumPy e SciPy):
+
+```
+python3 ferramentas/logo/vetorizar.py ferramentas/logo/logo-original.png /tmp/logo
+python3 ferramentas/logo/compor.py /tmp/logo/pecas.json /tmp/logo/final
+```
+
+Depois copiar `logo-cabecalho.html` para `src/` e os restantes ficheiros para `src/assets/`.
 
 ## Alterar o site
 
