@@ -10,6 +10,7 @@ require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/auth.php';
 require __DIR__ . '/lib/email.php';
 require __DIR__ . '/lib/ficheiros.php';
+require __DIR__ . '/lib/limites.php';
 require __DIR__ . '/api/conta.php';
 require __DIR__ . '/api/pedidos.php';
 require __DIR__ . '/api/admin.php';

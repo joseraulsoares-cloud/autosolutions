@@ -25,6 +25,7 @@ Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: 
 - Os tokens são carregados no painel, com o número da fatura. Cada pedido desconta os tokens dos módulos escolhidos; os tokens voltam ao saldo se o pedido for recusado ou cancelado antes do envio do ficheiro.
 - O ficheiro modificado é entregue pela área de cliente, por email com anexo ou por WhatsApp (o painel abre a conversa com a mensagem escrita).
 - A API só usa GET e POST e só aceita POST vindos do próprio site.
+- Os formulários que enviam emails têm limites por endereço IP (`app/lib/limites.php`): registo e contacto, 5 por hora; códigos de entrada, 10 em 15 minutos. O IP não fica guardado, só um código derivado dele, apagado ao fim de 24 horas. O registo e o contacto têm também um campo-armadilha para robôs.
 
 ## Instalação no cPanel (Dominios.pt)
 

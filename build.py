@@ -266,6 +266,7 @@ def footer(preview):
         <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
         <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
         <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="{url('privacidade')}">política de privacidade</a>.</label></div>
+        <div class="hp" aria-hidden="true"><label for="f-c-site">Não preencher</label><input id="f-c-site" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
         <p class="status" role="status" aria-live="polite" hidden></p>
       </form>
@@ -1015,10 +1016,11 @@ def body_privacidade(preview):
     <h2>Dados recolhidos</h2>
     <p>No formulário de contacto: nome, email, telefone e a mensagem escrita.</p>
     <p>Na área de cliente: nome da oficina, NIF, nome do responsável, email, telefone e WhatsApp; dados das viaturas e das centralinas; ficheiros enviados e entregues; movimentos de saldo; e registos de acesso (códigos de entrada e sessões). Os ficheiros de centralina podem conter o número de identificação da viatura (VIN).</p>
+    <p>Para proteger os formulários contra abusos, o registo, o contacto e o pedido de código de entrada guardam durante 24 horas um código derivado do endereço IP, que não é usado para mais nada.</p>
     <h2>Finalidades</h2>
     <p>Gerir as contas das oficinas, responder a contactos, prestar o serviço pedido, gerir o saldo de tokens e cumprir obrigações legais, como a faturação.</p>
     <h2>Fundamento legal</h2>
-    <p>Diligências pré-contratuais e execução do contrato (artigo 6.º, n.º 1, alínea b), do Regulamento Geral sobre a Proteção de Dados) e cumprimento de obrigações legais (alínea c) da mesma norma).</p>
+    <p>Diligências pré-contratuais e execução do contrato (artigo 6.º, n.º 1, alínea b), do Regulamento Geral sobre a Proteção de Dados) e cumprimento de obrigações legais (alínea c) da mesma norma). A proteção dos formulários contra abusos assenta no interesse legítimo da empresa na segurança do site (alínea f) da mesma norma).</p>
     <h2>Prazos de conservação</h2>
     <ul>
       <li>Pedidos sem seguimento: {val('prazo_pedidos', 'prazo dos pedidos sem seguimento, ex.: 12 meses')}.</li>

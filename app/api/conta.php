@@ -28,6 +28,7 @@ function api_entrar_codigo(): array
 {
     $c = ler_json();
     $email = normalizar_email($c['email'] ?? '');
+    limitar('codigo');
     $t = time();
     limpar_registos_antigos();
     $recentes = (int) valor('SELECT COUNT(*) FROM codigos WHERE email = ? AND criado_em > ?', [$email, $t - 900]);
@@ -116,6 +117,7 @@ function api_registo(): Resposta
             ? 'Já existe uma conta com este email. Entre na área de cliente.'
             : 'Já existe uma conta com este NIF. Contacte-nos se precisar de outro acesso.');
     }
+    limitar('registo');
     try {
         executar(
             'INSERT INTO oficinas (nome, nif, responsavel, email, telefone, whatsapp, entrega) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -176,6 +178,9 @@ function api_saldo(): array
 
 function api_contacto(): array
 {
+    if (!empty($_POST['website'])) {
+        return ['ok' => true]; // campo-armadilha preenchido: robô
+    }
     if (($_POST['privacidade'] ?? '') !== 'sim') {
         throw new ErroHttp(400, 'Confirme que leu a política de privacidade.');
     }
@@ -188,6 +193,7 @@ function api_contacto(): array
     if ($destino === '') {
         throw new RuntimeException('Configuração: sem destino para o formulário de contacto.');
     }
+    limitar('contacto');
     try {
         enviar_email(
             $destino,

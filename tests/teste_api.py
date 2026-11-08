@@ -243,5 +243,33 @@ check(r.status_code == 200 and sa.get(B + "/api/sessao").json()["email"] is None
 movs = adm.get(B + f"/api/admin/oficinas/{ID_A}").json()
 check(sum(m["tokens"] for m in movs["movimentos"]) == movs["saldo"], f"extrato soma o saldo ({movs['saldo']} tokens)")
 
+# ---------------------------------------------------------------- limites por IP
+# Em desenvolvimento só há limite quando o pedido indica um IP no cabeçalho X-Teste-IP.
+def com_ip(ip):
+    s = sessao()
+    s.headers["X-Teste-IP"] = ip
+    return s
+
+
+s_ip = com_ip("203.0.113.10")
+regs = [s_ip.post(B + "/api/registo", json=dict(reg, email=f"lim{i}@teste.pt", nome=f"Oficina L{i}", nif=nif(f"5200000{i}"))).status_code
+        for i in range(5)]
+r = s_ip.post(B + "/api/registo", json=dict(reg, email="lim9@teste.pt", nome="Oficina L9", nif=nif("52000009")))
+check(regs == [201] * 5 and r.status_code == 429, f"registo: 5 por hora por IP, o sexto recebe 429 {regs + [r.status_code]}")
+r = com_ip("203.0.113.11").post(B + "/api/registo", json=dict(reg, email="lim9@teste.pt", nome="Oficina L9", nif=nif("52000009")))
+check(r.status_code == 201, "registo a partir de outro IP continua aceite")
+
+dados_c = {"nome": "Robô", "apelido": "", "email": "r@teste.pt", "telefone": "", "assunto": "", "mensagem": "Olá", "privacidade": "sim"}
+s_c = com_ip("203.0.113.20")
+cs = [s_c.post(B + "/api/contacto", data=dados_c).status_code for _ in range(6)]
+check(cs == [200] * 5 + [429], f"contacto: 5 por hora por IP, a sexta mensagem recebe 429 {cs}")
+antes = [e["id"] for e in emails()]
+r = com_ip("203.0.113.21").post(B + "/api/contacto", data=dict(dados_c, website="http://spam.example"))
+check(r.status_code == 200 and [e["id"] for e in emails()] == antes, "contacto com o campo-armadilha preenchido: resposta normal, sem email")
+
+s_k = com_ip("203.0.113.30")
+ks = [s_k.post(B + "/api/entrar/codigo", json={"email": f"k{i}@teste.pt"}).status_code for i in range(11)]
+check(ks == [200] * 10 + [429], f"códigos de entrada: 10 em 15 minutos por IP, o 11.º recebe 429 {ks}")
+
 print(f"\n{sum(RES)}/{len(RES)} verificações passaram")
 sys.exit(0 if all(RES) else 1)
