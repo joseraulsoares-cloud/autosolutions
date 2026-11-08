@@ -14,6 +14,7 @@
   var VAZIO_PEDIDOS = {
     tratar: 'Não há pedidos por tratar.',
     a_aguardar_ficheiro: 'Não há pedidos à espera do ficheiro.',
+    a_aguardar_saldo: 'Não há pedidos à espera de saldo.',
     concluido: 'Ainda não há pedidos concluídos.',
     fechado: 'Não há pedidos recusados nem cancelados.',
     todos: 'Ainda não há pedidos.'
@@ -130,16 +131,18 @@
     var info = nome
       ? esc(nome) + ' <span class="muted">(' + G.tamanho(p[tipo + '_tamanho']) + ')</span>'
       : '<span class="muted">' + (tipo === 'original' ? 'Ainda não enviado' : 'Ainda não carregado') + '</span>';
-    var botoes = nome ? '<a class="btn btn-secondary btn-sm" data-download href="/api/pedidos/' + p.id + '/' + tipo + '">Descarregar</a>' : '';
+    if (nome && p.ficheiros_apagados) info = esc(nome) + ' <span class="muted">(apagado)</span>';
+    var botoes = nome && !p.ficheiros_apagados ? '<a class="btn btn-secondary btn-sm" data-download href="/api/pedidos/' + p.id + '/' + tipo + '">Descarregar</a>' : '';
     return '<div class="file-row"><div><strong>' + rotulo + '</strong><br>' + info + '</div><div class="actions">' + botoes + (extra || '') + '</div></div>';
   }
 
   function desenharPedido(p) {
     var el = $('a-pedido');
     var o = p.oficina || {};
-    var podeCarregar = ['recebido', 'em_curso', 'concluido'].indexOf(p.estado) >= 0;
-    var podeConcluir = podeCarregar && !!p.modificado_nome;
-    var podeRecusar = ['a_aguardar_ficheiro', 'recebido', 'em_curso'].indexOf(p.estado) >= 0;
+    var podeCarregar = ['recebido', 'em_curso', 'a_aguardar_saldo', 'concluido'].indexOf(p.estado) >= 0 && !p.ficheiros_apagados;
+    var podeConcluir = ['recebido', 'em_curso', 'concluido'].indexOf(p.estado) >= 0 && !!p.modificado_nome && !p.ficheiros_apagados;
+    var podeRecusar = ['a_aguardar_ficheiro', 'recebido', 'em_curso', 'a_aguardar_saldo'].indexOf(p.estado) >= 0;
+    var podeCusto = ['recebido', 'em_curso', 'a_aguardar_saldo'].indexOf(p.estado) >= 0;
     var pares = [
       ['Oficina', '<a href="#oficina-' + o.id + '">' + esc(o.nome) + '</a>'],
       ['Contacto', esc(o.email) + '<br>' + esc(o.telefone)],
@@ -148,7 +151,9 @@
       ['ECU', esc(p.ecu)],
       ['Ferramenta e método', esc([p.ferramenta, p.metodo].filter(Boolean).join(', ') || 'Não indicados')],
       ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))],
-      ['Tokens', esc(G.tokens(p.tokens)) + (p.devolvido ? ' <span class="muted">(devolvidos)</span>' : '')],
+      ['Custo', (p.custo_definido ? esc(G.tokens(p.tokens)) : esc(G.tokens(p.tokens)) + ' <span class="muted">(provisório: ainda não definiu o custo final)</span>') +
+        '<br><span class="muted">Pagos: ' + esc(G.tokens(p.pagos)) + (p.falta ? ', faltam ' + esc(G.tokens(p.falta)) : '') +
+        (p.devolvido ? ' (devolvidos)' : '') + '</span>'],
       ['Entrega', esc(G.ENTREGAS[p.entrega] || p.entrega) + (p.entrega === 'whatsapp' && p.whatsapp ? ', ' + esc(p.whatsapp) : '')],
       ['Enviado', esc(G.data(p.criado_em))]
     ];
@@ -160,6 +165,14 @@
       : '';
 
     var h = '<div class="detail-head"><h2>Pedido n.º ' + p.id + '</h2>' + G.pill(p.estado) + '</div>' + kv(pares);
+    if (podeCusto) {
+      h += '<div class="stack"><h3>Custo final</h3>' +
+        '<p class="hint">Depois de analisar a ECU. A diferença para o que já foi pago é descontada do saldo da oficina; se o saldo não chegar, o pedido fica à espera e avança sozinho quando carregar tokens.</p>' +
+        '<div class="inline-form"><div class="field"><label for="a-custo">Tokens</label>' +
+        '<input id="a-custo" type="number" inputmode="numeric" min="' + (G.CAT.minimo || 5) + '" max="1000" step="1" value="' + p.tokens + '"></div>' +
+        '<button class="btn btn-secondary" type="button" data-custo>Definir custo</button></div></div>';
+    }
+    if (p.ficheiros_apagados) h += '<p class="note">Os ficheiros deste pedido foram apagados automaticamente, um mês depois de o pedido ser fechado.</p>';
     if (p.observacoes) h += '<div class="stack"><h3>Observações da oficina</h3><p class="note">' + esc(p.observacoes) + '</p></div>';
     h += '<div class="stack"><h3>Ficheiros</h3>' + linhaFicheiro('Original', p, 'original') + linhaFicheiro('Modificado', p, 'modificado', carregar) + '</div>';
 
@@ -176,7 +189,8 @@
     if (p.estado === 'concluido' && p.whatsapp_url) acoes.push('<a class="btn btn-secondary" href="' + esc(p.whatsapp_url) + '" target="_blank" rel="noopener">Abrir WhatsApp</a>');
     if (podeRecusar) acoes.push('<button class="btn btn-secondary" type="button" data-acao="recusar">Recusar e devolver tokens</button>');
     if (acoes.length) h += '<div class="actions">' + acoes.join('') + '</div>';
-    if (podeCarregar && !p.modificado_nome) h += '<p class="hint">Para concluir, carregue primeiro o ficheiro modificado.</p>';
+    if (p.estado === 'a_aguardar_saldo') h += '<p class="hint">Para concluir, a oficina tem de carregar a diferença do custo final.</p>';
+    else if (podeCarregar && !p.modificado_nome) h += '<p class="hint">Para concluir, carregue primeiro o ficheiro modificado.</p>';
     h += '<p class="status" role="status" aria-live="polite" hidden></p>';
 
     el.innerHTML = h;
@@ -186,10 +200,37 @@
 
   var MSG_ACAO = {
     em_curso: 'Pedido marcado como em curso.',
-    recusar: 'Pedido recusado. Os tokens voltaram ao saldo da oficina e a oficina foi avisada por email.'
+    recusar: 'Pedido recusado. Os tokens pagos voltaram ao saldo da oficina e a oficina foi avisada por email.'
   };
 
   $('a-pedido').addEventListener('click', function (e) {
+    var bc = e.target.closest('[data-custo]');
+    if (bc) {
+      var painelC = this;
+      var idC = painelC.getAttribute('data-id');
+      var stC = painelC.querySelector('.status');
+      var n = Number($('a-custo').value);
+      var minimo = G.CAT.minimo || 5;
+      if (!(n >= minimo && n <= 1000 && Math.floor(n) === n)) {
+        G.status(stC, 'err', 'Indique um custo entre ' + G.tokens(minimo) + ' e 1000 tokens.');
+        return;
+      }
+      bc.disabled = true;
+      G.api('/api/admin/pedidos/' + idC + '/custo', { json: { tokens: n } }).then(function (r) {
+        desenharPedido(r.pedido);
+        var msg = r.pedido.estado === 'a_aguardar_saldo'
+          ? 'Custo final de ' + G.tokens(r.pedido.tokens) + ' definido. O saldo da oficina não chega para a diferença: o pedido fica à espera e a oficina foi avisada por email.'
+          : 'Custo final de ' + G.tokens(r.pedido.tokens) + ' definido e pago.';
+        G.status($('a-pedido').querySelector('.status'), 'ok', msg);
+        carregarPedidos();
+        atualizarContagens();
+      }).catch(function (err) {
+        bc.disabled = false;
+        if (err.status === 401) { est.sessao = null; rota(); return; }
+        G.status(stC, 'err', err.message);
+      });
+      return;
+    }
     var b = e.target.closest('[data-acao]');
     if (!b) return;
     var painel = this;

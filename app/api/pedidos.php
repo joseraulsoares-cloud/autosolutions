@@ -4,10 +4,18 @@ declare(strict_types=1);
 // Pedidos de ficheiro das oficinas.
 
 const CAMPOS_PEDIDO = [
-    'id', 'estado', 'viatura', 'matricula', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'tokens', 'observacoes',
-    'entrega', 'whatsapp', 'original_nome', 'original_tamanho', 'modificado_nome', 'modificado_tamanho',
+    'id', 'estado', 'viatura', 'matricula', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'tokens', 'pagos',
+    'observacoes', 'entrega', 'whatsapp', 'original_nome', 'original_tamanho', 'modificado_nome', 'modificado_tamanho',
     'nota', 'criado_em', 'recebido_em', 'concluido_em',
 ];
+
+const DIAS_CONSERVACAO = 30; // ficheiros e pedidos sem seguimento: 1 mês
+
+/** Tokens descontados no envio de um pedido (o custo final é definido depois, no painel). */
+function tokens_minimo(): int
+{
+    return (int) (catalogo()['minimo'] ?? 5);
+}
 
 const METODOS = ['OBD', 'Bancada', 'Boot', 'Outro'];
 
@@ -45,6 +53,10 @@ function pedido_publico(array $p): array
     }
     $r['id'] = (int) $p['id'];
     $r['tokens'] = (int) $p['tokens'];
+    $r['pagos'] = (int) $p['pagos'];
+    $r['falta'] = max(0, (int) $p['tokens'] - (int) $p['pagos']);
+    $r['custo_definido'] = (bool) $p['custo_definido'];
+    $r['ficheiros_apagados'] = (bool) $p['ficheiros_apagados'];
     foreach (['original_tamanho', 'modificado_tamanho'] as $k) {
         $r[$k] = $p[$k] !== null ? (int) $p[$k] : null;
     }
@@ -74,22 +86,87 @@ function pedido_da_oficina(int $id, int $oficinaId, bool $bloquear = false): arr
     return $p;
 }
 
-// Devolve os tokens de um pedido uma única vez. Chamar dentro de uma transação.
+// Devolve ao saldo os tokens já descontados de um pedido, uma única vez. Chamar dentro de uma transação.
 function devolver_tokens(array $p, string $referencia): bool
 {
     if (executar('UPDATE pedidos SET devolvido = 1 WHERE id = ? AND devolvido = 0', [$p['id']]) !== 1) {
         return false;
     }
-    executar(
-        "INSERT INTO movimentos (oficina_id, tokens, tipo, pedido_id, referencia) VALUES (?, ?, 'devolucao', ?, ?)",
-        [$p['oficina_id'], (int) $p['tokens'], $p['id'], $referencia]
-    );
+    if ((int) $p['pagos'] > 0) {
+        executar(
+            "INSERT INTO movimentos (oficina_id, tokens, tipo, pedido_id, referencia) VALUES (?, ?, 'devolucao', ?, ?)",
+            [$p['oficina_id'], (int) $p['pagos'], $p['id'], $referencia]
+        );
+    }
     return true;
+}
+
+/**
+ * Desconta do saldo a diferença entre o custo final e o já pago, se o saldo chegar.
+ * Devolve os tokens descontados (0 se não havia nada a descontar), ou null se o saldo não chega.
+ * Chamar dentro de uma transação, com a oficina bloqueada (SELECT ... FOR UPDATE).
+ */
+function cobrar_diferenca(array $p): ?int
+{
+    $falta = (int) $p['tokens'] - (int) $p['pagos'];
+    if ($falta <= 0) {
+        return 0;
+    }
+    if (saldo((int) $p['oficina_id']) < $falta) {
+        return null;
+    }
+    executar(
+        "INSERT INTO movimentos (oficina_id, tokens, tipo, pedido_id, referencia) VALUES (?, ?, 'pedido', ?, 'Custo final')",
+        [$p['oficina_id'], -$falta, $p['id']]
+    );
+    executar('UPDATE pedidos SET pagos = tokens WHERE id = ?', [$p['id']]);
+    return $falta;
+}
+
+/**
+ * Prazos de conservação (1 mês): apaga os ficheiros dos pedidos fechados há mais de um mês e cancela,
+ * com devolução dos tokens, os pedidos que ficaram sem ficheiro. Corre no máximo uma vez por hora.
+ */
+function limpar_pedidos_antigos(): void
+{
+    $marca = rtrim((string) cfg('ficheiros_dir'), '/') . '/.limpeza';
+    if (is_file($marca) && filemtime($marca) > time() - 3600) {
+        return;
+    }
+    @touch($marca);
+    $limite = gmdate('Y-m-d H:i:s', time() - DIAS_CONSERVACAO * 86400);
+
+    $velhos = todos(
+        "SELECT * FROM pedidos WHERE estado IN ('concluido', 'recusado', 'cancelado') AND ficheiros_apagados = 0
+         AND COALESCE(fechado_em, concluido_em, criado_em) < ? LIMIT 200",
+        [$limite]
+    );
+    foreach ($velhos as $p) {
+        foreach (['original_chave', 'modificado_chave'] as $k) {
+            if ($p[$k]) {
+                apagar_ficheiro($p[$k]);
+            }
+        }
+        executar('UPDATE pedidos SET ficheiros_apagados = 1, original_chave = NULL, modificado_chave = NULL WHERE id = ?', [$p['id']]);
+    }
+
+    $parados = todos("SELECT id FROM pedidos WHERE estado = 'a_aguardar_ficheiro' AND criado_em < ? LIMIT 200", [$limite]);
+    foreach ($parados as $linha) {
+        transacao(function () use ($linha) {
+            $p = um('SELECT * FROM pedidos WHERE id = ? FOR UPDATE', [$linha['id']]);
+            if ($p && $p['estado'] === 'a_aguardar_ficheiro') {
+                executar("UPDATE pedidos SET estado = 'cancelado', fechado_em = UTC_TIMESTAMP(), nota = ? WHERE id = ?",
+                    ['Cancelado automaticamente: o ficheiro não foi enviado no prazo de um mês.', $p['id']]);
+                devolver_tokens($p, 'Pedido sem ficheiro há mais de um mês');
+            }
+        });
+    }
 }
 
 function api_pedidos(): array
 {
     $o = exigir_cliente();
+    limpar_pedidos_antigos();
     $linhas = todos('SELECT * FROM pedidos WHERE oficina_id = ? ORDER BY id DESC LIMIT 200', [$o['id']]);
     return ['pedidos' => array_map('pedido_publico', $linhas)];
 }
@@ -111,16 +188,13 @@ function api_pedido_criar(): Resposta
         throw new ErroHttp(400, 'Escolha pelo menos um módulo.');
     }
     $cat = catalogo()['modulos'];
-    $custo = 0;
+    // No envio desconta-se o mínimo; o custo final depende da ECU e é definido no painel.
+    $custo = tokens_minimo();
     $emissoes = false;
     foreach ($mods as $k) {
         if (!isset($cat[$k])) {
             throw new ErroHttp(400, 'Módulo desconhecido.');
         }
-        if ($cat[$k]['tokens'] === null) {
-            throw new ErroHttp(400, "O módulo {$cat[$k]['nome']} ainda não tem preço. Contacte-nos.");
-        }
-        $custo += (int) $cat[$k]['tokens'];
         $emissoes = $emissoes || $cat[$k]['emissoes'];
     }
     if ($emissoes && ($c['declaracao'] ?? null) !== true) {
@@ -158,16 +232,16 @@ function api_pedido_criar(): Resposta
         if ($saldo < $custo) {
             throw new ErroHttp(
                 402,
-                'Saldo insuficiente: o pedido custa ' . tokens_txt($custo) . ' e o saldo é de ' . tokens_txt($saldo) . '.',
+                'Saldo insuficiente: para enviar um pedido precisa de pelo menos ' . tokens_txt($custo) . ' e o saldo é de ' . tokens_txt($saldo) . '.',
                 ['saldo' => $saldo, 'custo' => $custo]
             );
         }
         executar(
-            'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, tokens, declaracao_emissoes, observacoes, entrega, whatsapp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, tokens, pagos, declaracao_emissoes, observacoes, entrega, whatsapp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $oid, $p['viatura'], $p['matricula'], $p['motor'] ?: null, $p['ano'] ?: null, $p['ecu'], $p['ferramenta'] ?: null,
-                $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $custo, $emissoes ? 1 : 0,
+                $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $custo, $custo, $emissoes ? 1 : 0,
                 $p['observacoes'] ?: null, $p['entrega'], $p['whatsapp'] ?: null,
             ]
         );
@@ -187,7 +261,7 @@ function api_pedido_cancelar(string $id): array
         if ($p['estado'] !== 'a_aguardar_ficheiro') {
             throw new ErroHttp(409, 'Só pode cancelar um pedido antes de enviar o ficheiro. Para outros casos, contacte-nos.');
         }
-        executar("UPDATE pedidos SET estado = 'cancelado' WHERE id = ?", [$p['id']]);
+        executar("UPDATE pedidos SET estado = 'cancelado', fechado_em = UTC_TIMESTAMP() WHERE id = ?", [$p['id']]);
         devolver_tokens($p, 'Pedido cancelado pelo cliente');
         return saldo((int) $o['id']);
     });
@@ -217,7 +291,7 @@ function api_pedido_original_enviar(string $id): array
         "Novo pedido n.º {$p['id']}: " . viatura_txt($p),
         "Oficina: {$o['nome']}\nViatura: {$p['viatura']}" . ($p['motor'] ? " ({$p['motor']})" : '')
         . "\nMatrícula: " . ($p['matricula'] ?: '-')
-        . "\nECU: {$p['ecu']}\nMódulos: " . nomes_modulos($p) . "\nTokens: {$p['tokens']}\nEntrega: " . nome_entrega($p['entrega'])
+        . "\nECU: {$p['ecu']}\nMódulos: " . nomes_modulos($p) . "\nTokens descontados: {$p['pagos']} (defina o custo final no painel depois de analisar a ECU)\nEntrega: " . nome_entrega($p['entrega'])
         . ($p['observacoes'] ? "\n\nObservações:\n{$p['observacoes']}" : '')
         . "\n\nAbrir no painel:\n" . site_url() . "/admin#pedido-{$p['id']}"
         . ($anexo ? '' : "\n\nO ficheiro original está no painel (grande demais para seguir em anexo)."),
@@ -239,6 +313,9 @@ function api_pedido_ficheiro(string $id, string $tipo): ?array
     }
     if ($tipo === 'modificado' && !$s['admin'] && $p['estado'] !== 'concluido') {
         throw new ErroHttp(409, 'O ficheiro ainda não está pronto.');
+    }
+    if ($p['ficheiros_apagados']) {
+        throw new ErroHttp(410, 'O ficheiro já foi apagado: os ficheiros ficam guardados durante um mês depois de o pedido ser fechado.');
     }
     if (!$p[$tipo . '_chave']) {
         throw new ErroHttp(404, 'Ficheiro não encontrado.');

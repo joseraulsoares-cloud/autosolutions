@@ -17,10 +17,10 @@ return [
     'nome' => 'GARC – Soluções Técnicas',
 
     // Emails com acesso ao painel de administração, separados por vírgulas
-    'admin_emails' => '',
+    'admin_emails' => 'fileservice@autosolutions.pt',
 
     // Remetente dos emails (conta de email criada no cPanel)
-    'email_de' => 'GARC – Soluções Técnicas <pedidos@autosolutions.pt>',
+    'email_de' => 'GARC – Soluções Técnicas <fileservice@autosolutions.pt>',
 
     // Destino das mensagens do formulário de contacto (vazio = primeiro email de administração)
     'email_contacto' => '',

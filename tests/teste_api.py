@@ -107,11 +107,16 @@ r = sa.get(B + "/api/admin/oficinas?filtro=todas")
 check(r.status_code == 403, "oficina não acede à API de administração (403)")
 
 # ---------------------------------------------------------------- saldo e pedidos
+# Modelo: no envio descontam-se 5 tokens; o administrador define o custo final depois de analisar a ECU.
+def saldo_a():
+    return sa.get(B + "/api/saldo").json()["saldo"]
+
+
 pedido = {"viatura": "Volkswagen Golf VII", "matricula": "aa 00aa", "motor": "2.0 TDI", "ano": "2017", "ecu": "Bosch EDC17C64",
           "ferramenta": "KESS3", "metodo": "OBD", "modulos": ["STAGE 1/2"], "observacoes": "", "entrega": "email",
           "whatsapp": "", "declaracao": False, "tamanho": 100000}
 r = sa.post(B + "/api/pedidos", json=pedido)
-check(r.status_code == 402 and r.json().get("saldo") == 0 and r.json().get("custo") == 4, "sem saldo: pedido recusado com 402 (custo 4, saldo 0)")
+check(r.status_code == 402 and r.json().get("saldo") == 0 and r.json().get("custo") == 5, "sem saldo: pedido recusado com 402 (mínimo 5, saldo 0)")
 
 r = adm.post(B + f"/api/admin/oficinas/{ID_A}/tokens", json={"tokens": 10, "referencia": "FT 2026/1"})
 check(r.status_code == 200 and r.json()["saldo"] == 10, "administrador carrega 10 tokens (saldo 10)")
@@ -130,72 +135,112 @@ check(r.status_code == 400 and "matrícula" in r.json()["erro"], "matrícula com
 r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="A" * 16))
 check(r.status_code == 400, "matrícula com mais de 15 carateres: recusada")
 r = sa.post(B + "/api/pedidos", json=dict(pedido, modulos=["STAGE 1/2", "EGR OFF"], declaracao=True))
-check(r.status_code == 201 and r.json()["saldo"] == 5 and r.json()["pedido"]["tokens"] == 5, "pedido Stage 1 + EGR off criado: 5 tokens, saldo 5")
-P1 = r.json()["pedido"]["id"]
-check(r.json()["pedido"]["matricula"] == "AA-00-AA", "matrícula portuguesa normalizada: 'aa 00aa' fica AA-00-AA")
+j = r.json().get("pedido", {})
+check(r.status_code == 201 and r.json()["saldo"] == 5 and j["tokens"] == 5 and j["pagos"] == 5 and j["custo_definido"] is False,
+      "pedido criado: descontados 5 tokens, custo final por definir, saldo 5")
+P1 = j["id"]
+check(j["matricula"] == "AA-00-AA", "matrícula portuguesa normalizada: 'aa 00aa' fica AA-00-AA")
 
 original = os.urandom(150_000)
 r = sa.post(B + f"/api/pedidos/{P1}/original", files={"ficheiro": ("golf ori.bin", original, "application/octet-stream")})
 check(r.status_code == 200 and r.json()["pedido"]["estado"] == "recebido", "ficheiro original recebido, estado 'recebido'")
-check(r.json()["pedido"]["original_nome"] == "golf_ori.bin" or r.json()["pedido"]["original_nome"] == "golf ori.bin", "nome do ficheiro limpo: " + r.json()["pedido"]["original_nome"])
+check(r.json()["pedido"]["original_nome"] in ("golf_ori.bin", "golf ori.bin"), "nome do ficheiro limpo: " + r.json()["pedido"]["original_nome"])
 e = ultimo_email("admin@teste.pt", f"Novo pedido n.º {P1}")
 check(e is not None and "golf" in (e["anexos"] or ""), "administrador recebe o pedido por email com o original em anexo")
-check(e is not None and "AA-00-AA" in e["assunto"] and "Matrícula: AA-00-AA" in e["texto"], "email do novo pedido indica a matrícula")
+check(e is not None and "AA-00-AA" in e["assunto"] and "Matrícula: AA-00-AA" in e["texto"] and "Tokens descontados: 5" in e["texto"],
+      "email do novo pedido indica a matrícula e os tokens descontados")
 r = sa.post(B + f"/api/pedidos/{P1}/original", files={"ficheiro": ("outro.bin", b"x" * 10)})
 check(r.status_code == 409, "segundo envio de ficheiro no mesmo pedido: 409")
+r = sa.post(B + f"/api/pedidos/{P1}/cancelar", json={})
+check(r.status_code == 409 and saldo_a() == 5, "depois de enviado o ficheiro, a oficina já não pode cancelar")
 
 check(sb.get(B + f"/api/pedidos/{P1}").status_code == 404, "outra oficina não vê o pedido (404)")
 check(sb.get(B + f"/api/pedidos/{P1}/original").status_code == 404, "outra oficina não descarrega o ficheiro (404)")
 check(sa.get(B + f"/api/pedidos/{P1}/modificado").status_code == 409, "modificado indisponível antes de concluído (409)")
+check(sa.post(B + f"/api/admin/pedidos/{P1}/custo", json={"tokens": 12}).status_code == 403, "oficina não define o custo (403)")
 
 r = adm.get(B + "/api/admin/pedidos?filtro=tratar")
 check(any(p["id"] == P1 for p in r.json()["pedidos"]), "pedido aparece em 'Por tratar'")
 r = adm.get(B + f"/api/pedidos/{P1}/original")
 check(r.status_code == 200 and r.content == original, "administrador descarrega o original (bytes iguais)")
-r = adm.post(B + f"/api/admin/pedidos/{P1}/estado", json={"acao": "concluir"})
-check(r.status_code == 409, "concluir sem ficheiro modificado: 409")
 r = adm.post(B + f"/api/admin/pedidos/{P1}/estado", json={"acao": "em_curso"})
 check(r.status_code == 200 and r.json()["pedido"]["estado"] == "em_curso", "pedido passa a em curso")
+
+# Custo final maior do que o saldo: o pedido fica à espera de saldo
+r = adm.post(B + f"/api/admin/pedidos/{P1}/custo", json={"tokens": 4})
+check(r.status_code == 400, "custo abaixo do mínimo (4): recusado")
+r = adm.post(B + f"/api/admin/pedidos/{P1}/custo", json={"tokens": 12})
+j = r.json()["pedido"]
+check(r.status_code == 200 and j["estado"] == "a_aguardar_saldo" and j["falta"] == 7 and j["pagos"] == 5 and saldo_a() == 5,
+      "custo final 12 com saldo 5: pedido à espera de saldo, faltam 7, nada descontado")
+e = ultimo_email("a@teste.pt", f"Pedido n.º {P1}: falta saldo")
+check(e is not None and "Faltam 7 tokens" in e["texto"] and "pelo menos 2 tokens" in e["texto"], "oficina avisada: faltam 7, carregar pelo menos 2")
+r = adm.get(B + "/api/admin/pedidos?filtro=a_aguardar_saldo")
+check(any(p["id"] == P1 for p in r.json()["pedidos"]), "pedido aparece no filtro 'Falta saldo'")
 modificado = os.urandom(150_000)
 r = adm.post(B + f"/api/admin/pedidos/{P1}/modificado", files={"ficheiro": ("golf_stage1.bin", modificado)})
-check(r.status_code == 200 and r.json()["pedido"]["modificado_nome"] == "golf_stage1.bin", "administrador carrega o ficheiro modificado")
+check(r.status_code == 200 and r.json()["pedido"]["modificado_nome"] == "golf_stage1.bin", "ficheiro modificado carregado enquanto espera o saldo")
+r = adm.post(B + f"/api/admin/pedidos/{P1}/estado", json={"acao": "concluir"})
+check(r.status_code == 409 and "faltam 7" in r.json()["erro"], "não se conclui sem o custo final pago (409)")
+j = sa.get(B + f"/api/pedidos/{P1}").json()["pedido"]
+check(j["estado"] == "a_aguardar_saldo" and j["falta"] == 7, "a oficina vê o pedido à espera de saldo, com a falta")
+
+# Carregar 2 tokens liquida a diferença e o pedido avança sozinho
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/tokens", json={"tokens": 2, "referencia": "FT 2026/3"})
+j = sa.get(B + f"/api/pedidos/{P1}").json()["pedido"]
+check(r.status_code == 200 and j["estado"] == "em_curso" and j["pagos"] == 12 and j["falta"] == 0 and saldo_a() == 0,
+      "carregamento de 2 tokens: diferença de 7 descontada, pedido em curso, saldo 0")
+e = ultimo_email("a@teste.pt", "Saldo carregado: 2 tokens")
+check(e is not None and f"Pedido n.º {P1}" in e["texto"] and "avançou" in e["texto"], "email do carregamento diz que o pedido avançou")
+
+# Baixar o custo devolve a diferença
+r = adm.post(B + f"/api/admin/pedidos/{P1}/custo", json={"tokens": 10})
+j = r.json()["pedido"]
+check(r.status_code == 200 and j["tokens"] == 10 and j["pagos"] == 10 and j["estado"] == "em_curso" and saldo_a() == 2,
+      "custo baixado para 10: 2 tokens voltam ao saldo")
 r = adm.post(B + f"/api/admin/pedidos/{P1}/estado", json={"acao": "concluir", "nota": "Testar em estrada."})
 check(r.status_code == 200 and r.json()["pedido"]["estado"] == "concluido", "pedido concluído")
+check(adm.post(B + f"/api/admin/pedidos/{P1}/custo", json={"tokens": 15}).status_code == 409, "custo de um pedido concluído não se altera (409)")
 e = ultimo_email("a@teste.pt", f"Ficheiro pronto: pedido n.º {P1}")
 check(e is not None and "golf_stage1.bin" in (e["anexos"] or ""), "entrega por email: o ficheiro modificado segue em anexo")
 r = sa.get(B + f"/api/pedidos/{P1}/modificado")
 check(r.status_code == 200 and r.content == modificado and "attachment" in r.headers.get("Content-Disposition", ""), "oficina descarrega o ficheiro modificado (bytes iguais)")
 
-# Cancelamento antes do ficheiro: devolve os tokens uma só vez
+# Cancelamento antes do ficheiro: devolve os 5 tokens uma só vez
+adm.post(B + f"/api/admin/oficinas/{ID_A}/tokens", json={"tokens": 10, "referencia": "FT 2026/4"})
 r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="1234 bcd"))
 P2 = r.json()["pedido"]["id"]
-check(r.status_code == 201 and r.json()["saldo"] == 1, "novo pedido de 4 tokens: saldo 1")
+check(r.status_code == 201 and r.json()["saldo"] == 7, "novo pedido: descontados 5, saldo 7")
 check(r.json()["pedido"]["matricula"] == "1234 BCD", "matrícula estrangeira aceite como está, em maiúsculas: 1234 BCD")
 r = sa.post(B + f"/api/pedidos/{P2}/cancelar", json={})
-check(r.status_code == 200 and r.json()["saldo"] == 5, "cancelado antes do ficheiro: tokens devolvidos (saldo 5)")
+check(r.status_code == 200 and r.json()["saldo"] == 12, "cancelado antes do ficheiro: 5 tokens devolvidos (saldo 12)")
 r = sa.post(B + f"/api/pedidos/{P2}/cancelar", json={})
-check(r.status_code == 409 and sa.get(B + "/api/saldo").json()["saldo"] == 5, "segundo cancelamento recusado, sem devolução duplicada")
+check(r.status_code == 409 and saldo_a() == 12, "segundo cancelamento recusado, sem devolução duplicada")
 
-# Recusa pelo administrador: devolve os tokens uma só vez
+# Recusa pelo administrador: devolve todos os tokens pagos, uma só vez
 r = sa.post(B + "/api/pedidos", json=pedido)
 P3 = r.json()["pedido"]["id"]
 sa.post(B + f"/api/pedidos/{P3}/original", files={"ficheiro": ("c.bin", b"abc" * 1000)})
+r = adm.post(B + f"/api/admin/pedidos/{P3}/custo", json={"tokens": 8})
+check(r.status_code == 200 and r.json()["pedido"]["pagos"] == 8 and saldo_a() == 4, "custo final 8 com saldo suficiente: diferença descontada logo (saldo 4)")
+check(ultimo_email("a@teste.pt", f"Pedido n.º {P3}: custo final") is not None, "oficina avisada do custo final")
 r = adm.post(B + f"/api/admin/pedidos/{P3}/estado", json={"acao": "recusar"})
 check(r.status_code == 400, "recusar sem motivo: 400")
 r = adm.post(B + f"/api/admin/pedidos/{P3}/estado", json={"acao": "recusar", "nota": "ECU sem suporte."})
-check(r.status_code == 200 and r.json()["pedido"]["estado"] == "recusado", "pedido recusado com motivo")
+check(r.status_code == 200 and r.json()["pedido"]["estado"] == "recusado" and saldo_a() == 12, "pedido recusado: os 8 tokens pagos voltam ao saldo (12)")
 r = adm.post(B + f"/api/admin/pedidos/{P3}/estado", json={"acao": "recusar", "nota": "outra vez"})
-check(r.status_code == 409 and sa.get(B + "/api/saldo").json()["saldo"] == 5, "segunda recusa recusada; saldo volta a 5, sem duplicar")
+check(r.status_code == 409 and saldo_a() == 12, "segunda recusa recusada, sem devolução duplicada")
 check(ultimo_email("a@teste.pt", f"Pedido n.º {P3} recusado") is not None, "oficina avisada da recusa com o motivo")
 
-# Concorrência: dois pedidos de 4 tokens ao mesmo tempo com saldo 5
+# Concorrência: dois pedidos ao mesmo tempo com saldo 7 (só chega para um)
+adm.post(B + f"/api/admin/oficinas/{ID_A}/tokens", json={"tokens": -5, "referencia": "Acerto de teste"})
 resultados = []
 def criar():
     resultados.append(sa.post(B + "/api/pedidos", json=pedido).status_code)
 ts = [threading.Thread(target=criar) for _ in range(2)]
 [t.start() for t in ts]
 [t.join() for t in ts]
-check(sorted(resultados) == [201, 402] and sa.get(B + "/api/saldo").json()["saldo"] == 1, f"dois pedidos em simultâneo: só um passa {sorted(resultados)}, saldo 1")
+check(sorted(resultados) == [201, 402] and saldo_a() == 2, f"dois pedidos em simultâneo: só um passa {sorted(resultados)}, saldo 2")
 
 # Limites de ficheiro
 r = sa.get(B + "/api/pedidos").json()["pedidos"]
@@ -205,7 +250,7 @@ check(r.status_code == 400, "ficheiro vazio: 400")
 r = sa.post(B + f"/api/pedidos/{P4}/original", files={"ficheiro": ("grande.bin", b"0" * (26 * 1024 * 1024))})
 check(r.status_code == 413, "ficheiro com mais de 25 MB: 413 (" + r.json()["erro"][:60] + ")")
 
-# Entrega por WhatsApp
+# Entrega por WhatsApp; concluir sem definir o custo aceita os 5 tokens pagos
 adm.post(B + f"/api/admin/oficinas/{ID_B}/tokens", json={"tokens": 5, "referencia": "FT 2026/2"})
 r = sb.post(B + "/api/pedidos", json=dict(pedido, modulos=["DPF OFF"], declaracao=True, entrega="whatsapp", whatsapp=""))
 PB = r.json()["pedido"]["id"]
@@ -213,8 +258,34 @@ check(r.status_code == 201 and r.json()["pedido"]["whatsapp"] == "923 456 789", 
 sb.post(B + f"/api/pedidos/{PB}/original", files={"ficheiro": ("clio.bin", b"1" * 5000)})
 adm.post(B + f"/api/admin/pedidos/{PB}/modificado", files={"ficheiro": ("clio_mod.bin", b"2" * 5000)})
 r = adm.post(B + f"/api/admin/pedidos/{PB}/estado", json={"acao": "concluir"})
-url = r.json()["pedido"].get("whatsapp_url") or ""
+j = r.json()["pedido"]
+url = j.get("whatsapp_url") or ""
 check(url.startswith("https://wa.me/351923456789?text="), "concluído por WhatsApp: ligação wa.me com o número e a mensagem")
+check(j["custo_definido"] is True and j["tokens"] == 5, "concluir sem definir o custo: fica o custo de 5 tokens já pago")
+
+# Prazos de conservação (1 mês). Precisa de acesso direto à base de dados de teste, para recuar as datas:
+# GARC_TESTE_SQL="mysql garc_teste" e GARC_TESTE_FICHEIROS=<pasta dos ficheiros da configuração de teste>.
+SQL = os.environ.get("GARC_TESTE_SQL")
+PASTA = os.environ.get("GARC_TESTE_FICHEIROS")
+if SQL and PASTA:
+    import shlex
+    import subprocess
+    subprocess.run(shlex.split(SQL) + ["-e",
+        f"UPDATE pedidos SET fechado_em = UTC_TIMESTAMP() - INTERVAL 40 DAY WHERE id = {P1};"
+        f"UPDATE pedidos SET criado_em = UTC_TIMESTAMP() - INTERVAL 40 DAY WHERE id = {P4};"], check=True)
+    marca = os.path.join(PASTA, ".limpeza")
+    if os.path.exists(marca):
+        os.remove(marca)
+    antes = saldo_a()
+    check(adm.get(B + "/api/admin/resumo").status_code == 200, "painel aberto: corre a limpeza dos prazos")
+    j = sa.get(B + f"/api/pedidos/{P1}").json()["pedido"]
+    restantes = [f for _, _, fs in os.walk(os.path.join(PASTA, "pedidos", str(P1))) for f in fs]
+    check(j["ficheiros_apagados"] is True and restantes == [], "um mês depois de fechado, os ficheiros do pedido são apagados do disco")
+    check(sa.get(B + f"/api/pedidos/{P1}/modificado").status_code == 410, "descarregar um ficheiro já apagado: 410")
+    j4 = sa.get(B + f"/api/pedidos/{P4}").json()["pedido"]
+    check(j4["estado"] == "cancelado" and saldo_a() == antes + 5, "pedido sem ficheiro há um mês: cancelado e os 5 tokens devolvidos")
+else:
+    print("(prazos de conservação não testados: definir GARC_TESTE_SQL e GARC_TESTE_FICHEIROS)")
 
 # Códigos de acesso: tentativas e limite de pedidos
 sx = sessao()

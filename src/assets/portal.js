@@ -84,17 +84,24 @@
 
   function linhaPedido(p) {
     var acoes = [];
-    if (p.estado === 'concluido' && p.modificado_nome) {
+    if (p.estado === 'concluido' && p.modificado_nome && !p.ficheiros_apagados) {
       acoes.push('<a class="btn btn-primary btn-sm" data-download href="/api/pedidos/' + p.id + '/modificado">Descarregar ficheiro</a>');
+    }
+    if (p.estado === 'a_aguardar_saldo') {
+      acoes.push('<a class="btn btn-primary btn-sm" href="#saldo">Carregar saldo</a>');
     }
     if (p.estado === 'a_aguardar_ficheiro') {
       acoes.push('<label class="btn btn-primary btn-sm file-pick">Enviar ficheiro<input type="file" data-reenviar="' + p.id +
         '" aria-label="Escolher o ficheiro do pedido n.º ' + p.id + '"></label>');
       acoes.push('<button class="btn btn-secondary btn-sm" type="button" data-cancelar="' + p.id + '">Cancelar pedido</button>');
     }
+    var custo = p.custo_definido
+      ? esc(G.tokens(p.tokens)) + (p.falta ? ' <span class="muted">(pagos ' + esc(G.tokens(p.pagos)) + ')</span>' : '')
+      : esc(G.tokens(p.pagos)) + ' descontados <span class="muted">(custo final por confirmar)</span>';
     var kv = [
       ['Matrícula', esc(p.matricula || '—')],
       ['ECU', esc(p.ecu)],
+      ['Custo', custo],
       ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))],
       ['Enviado', esc(G.data(p.criado_em))],
       ['Entrega', esc(G.ENTREGAS[p.entrega] || p.entrega)]
@@ -105,12 +112,17 @@
     if (p.estado === 'a_aguardar_ficheiro') {
       notas += '<p class="note">O pedido está criado, mas o ficheiro ainda não chegou. Envie-o, ou cancele o pedido para recuperar os tokens.</p>';
     }
+    if (p.estado === 'a_aguardar_saldo') {
+      notas += '<p class="note">O custo final é de ' + esc(G.tokens(p.tokens)) + '. Faltam ' + esc(G.tokens(p.falta)) +
+        ': carregue o saldo e a diferença é descontada automaticamente para o pedido avançar.</p>';
+    }
+    if (p.ficheiros_apagados) notas += '<p class="note">Os ficheiros deste pedido já foram apagados. Ficam guardados durante um mês depois de o pedido ser fechado.</p>';
     if (p.nota) notas += '<p class="note">' + esc(p.nota) + '</p>';
     var titulo = esc(p.viatura) + (p.motor ? ' <span class="muted">' + esc(p.motor) + '</span>' : '') +
       (p.ano ? ' <span class="muted">' + esc(p.ano) + '</span>' : '');
     return '<article class="order" data-pedido="' + p.id + '">' +
       '<div class="order-top"><span class="order-id">N.º ' + p.id + '</span>' + G.pill(p.estado) +
-      '<span class="order-cost">' + esc(G.tokens(p.tokens)) + '</span></div>' +
+      '<span class="order-cost">' + esc(G.tokens(p.tokens)) + (p.custo_definido ? '' : ' (provisório)') + '</span></div>' +
       '<h3>' + titulo + '</h3>' +
       '<dl class="kv">' + kv.map(function (x) { return '<div><dt>' + x[0] + '</dt><dd>' + x[1] + '</dd></div>'; }).join('') + '</dl>' +
       notas +
@@ -178,8 +190,9 @@
     return Array.prototype.slice.call(form.querySelectorAll('input[name="modulos"]:checked'));
   }
 
+  // No envio desconta-se sempre o mínimo; o custo final depende da ECU e é confirmado depois.
   function custoAtual() {
-    return marcados().reduce(function (s, i) { return s + (Number(i.getAttribute('data-tokens')) || 0); }, 0);
+    return G.CAT.minimo || 5;
   }
 
   function entregaEscolhida(f) {
@@ -196,19 +209,20 @@
     var btn = $('f-enviar');
     $('f-total').textContent = G.tokens(custo);
     $('f-saldo-atual').textContent = est.sessao ? G.tokens(saldo) : '–';
-    if (!marcados().length) {
-      resumo.setAttribute('data-estado', 'vazio');
-      msg.textContent = 'Escolha os módulos para ver o custo.';
-      btn.textContent = 'Enviar pedido';
-      btn.disabled = false;
-    } else if (custo > saldo) {
+    if (est.sessao && custo > saldo) {
       resumo.setAttribute('data-estado', 'falta');
-      msg.innerHTML = 'Saldo insuficiente: faltam ' + esc(G.tokens(custo - saldo)) + '. <a href="#saldo">Carregar saldo</a>';
+      msg.innerHTML = 'Para enviar um pedido precisa de pelo menos ' + esc(G.tokens(custo)) + '. Faltam ' +
+        esc(G.tokens(custo - saldo)) + '. <a href="#saldo">Carregar saldo</a>';
       btn.textContent = 'Enviar pedido';
       btn.disabled = true;
+    } else if (!marcados().length) {
+      resumo.setAttribute('data-estado', 'vazio');
+      msg.textContent = 'Escolha os módulos pretendidos.';
+      btn.textContent = 'Enviar pedido';
+      btn.disabled = false;
     } else {
       resumo.setAttribute('data-estado', 'ok');
-      msg.textContent = 'Depois do pedido, o saldo fica em ' + G.tokens(saldo - custo) + '.';
+      msg.textContent = 'No envio, o saldo fica em ' + G.tokens(saldo - custo) + '.';
       btn.textContent = 'Enviar pedido (' + G.tokens(custo) + ')';
       btn.disabled = false;
     }
@@ -285,7 +299,8 @@
       }).then(function () {
         form.reset();
         prepararNovo();
-        G.status($('p-aviso'), 'ok', 'Pedido n.º ' + idCriado + ' enviado. Os tokens foram descontados e vai ser avisado quando o ficheiro estiver pronto.');
+        G.status($('p-aviso'), 'ok', 'Pedido n.º ' + idCriado + ' enviado. Foram descontados ' + G.tokens(custoAtual()) +
+          '; depois de analisarmos a ECU confirmamos o custo final, e avisamos quando o ficheiro estiver pronto.');
         location.hash = 'pedidos';
       }).catch(function (err) {
         if (err.status === 401) { sessaoTerminada(); return; }

@@ -12,6 +12,7 @@ import json
 import re
 import shutil
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
@@ -27,24 +28,29 @@ UPDATED = ("2026-11-01", "1 de novembro de 2026")
 MAX_MB = 25
 
 # Dados da empresa. O que ficar vazio aparece a amarelo no site e é listado no fim da geração.
+# A morada, a conservatória e o capital social não são mostrados, por decisão da empresa.
 DADOS = {
-    "morada": "",           # morada completa da sede, ex.: "Rua ..., n.º ..., 4410-... Arcozelo, Vila Nova de Gaia"
-    "telefone": "",         # ex.: "+351 912 345 678"
+    "telefone": "913 027 543",
     "whatsapp": True,       # o mesmo número atende WhatsApp
-    "email": "",            # email da empresa (contactos e privacidade)
-    "horario": "",          # ex.: "Segunda a sexta, 9h00–18h00"
-    "redes": [],            # ex.: [("Facebook", "https://www.facebook.com/..."), ("Instagram", "https://www.instagram.com/...")]
-    "nipc": "",
-    "conservatoria": "",    # ex.: "Vila Nova de Gaia"
-    "prazo_pedidos": "",    # conservação de pedidos sem seguimento, ex.: "12 meses"
-    "prazo_ficheiros": "",  # conservação dos ficheiros de centralina
-    "condicoes": "",        # condições de pagamento e prazos (página Termos)
-    "iban": "",             # IBAN para carregamentos de saldo
-    "mbway": "",            # número MB WAY para carregamentos de saldo
-    "iva": "",              # ex.: "Preços com IVA incluído" ou "Aos preços acresce IVA à taxa legal em vigor"
-    "validade_tokens": "",  # ex.: "os tokens não têm prazo de validade"
-    "reembolso": "",        # regra para o saldo não usado (página Termos)
+    "email": "fileservice@autosolutions.pt",  # email da empresa (contactos, pedidos e privacidade)
+    "horario": "8h30–17h00",
+    "nipc": "505743973",
+    "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
+    "prazo_ficheiros": "1 mês",  # conservação dos ficheiros de centralina (apagados automaticamente)
+    "entrega": "Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento",
+    "mbway": "913 027 543",      # número MB WAY para carregamentos de saldo
+    "stripe": "",                # ligação de pagamento do Stripe (Payment Link), ex.: "https://buy.stripe.com/..."
+    "paypal": "",                # conta PayPal para pagamentos entre amigos e familiares, ex.: "nome@exemplo.pt"
+    "iva": "IVA incluído à taxa legal em vigor",
+    "validade_tokens": "12 meses a contar do carregamento",
+    "reembolso": "não é reembolsado; os tokens ficam em crédito na conta até ao fim da validade",
 }
+
+# Preço e regras dos tokens. O custo de cada pedido depende da ECU e é definido no painel depois de analisado o ficheiro.
+TOKEN_EUR = 6.0       # preço de 1 token, com IVA
+TOKENS_MINIMO = 5     # carregamento mínimo e tokens descontados no envio de cada pedido
+SOB_CONSULTA = "SID321, SID212, SID213 e outras unidades posteriores a 2018"
+EXEMPLOS_CARREGAMENTO = [5, 10, 12, 20]  # quantidades mostradas na tabela de preços
 
 PREVIEW = False  # definido por build()
 MISSING = []     # campos por preencher encontrados na geração
@@ -78,39 +84,43 @@ def asset(path):
     return path if PREVIEW else f"/{path}"
 
 
-def morada_html(sep):
-    if DADOS["morada"]:
-        return esc(DADOS["morada"])
-    return f"{ph('rua e código postal')}{sep}Arcozelo, Vila Nova de Gaia"
-
-
 def email_html():
     email = DADOS["email"]
     return f'<a href="mailto:{esc(email)}">{esc(email)}</a>' if email else ph("email da empresa")
+
+
+def telefone_digitos():
+    """Número com indicativo, só algarismos (ex.: 351913027543)."""
+    digits = re.sub(r"\D", "", DADOS["telefone"])
+    if digits.startswith("00"):
+        digits = digits[2:]
+    if len(digits) == 9:  # número português sem indicativo
+        digits = "351" + digits
+    return digits
+
+
+def whatsapp_url(texto="Olá! Tenho uma questão sobre os serviços da GARC."):
+    return f"https://wa.me/{telefone_digitos()}?text={quote(texto)}"
 
 
 def telefone_html():
     tel = DADOS["telefone"]
     if not tel:
         return ph("telefone")
-    digits = re.sub(r"\D", "", tel)
-    if digits.startswith("00"):
-        digits = digits[2:]
-    if len(digits) == 9:  # número português sem indicativo
-        digits = "351" + digits
-    out = f'<a href="tel:+{digits}">{esc(tel)}</a>'
+    out = f'<a href="tel:+{telefone_digitos()}">{esc(tel)}</a>'
     if DADOS["whatsapp"]:
-        out += f'<br><a href="https://wa.me/{digits}" target="_blank" rel="noopener">Falar no WhatsApp</a>'
+        out += f'<br><a href="{esc(whatsapp_url())}" target="_blank" rel="noopener">Falar no WhatsApp</a>'
     return out
 
 
-def redes_html():
-    redes = DADOS["redes"]
-    if not redes:
-        return ph("redes sociais")
-    return "<br>".join(
-        f'<a href="{esc(link)}" target="_blank" rel="noopener">{esc(nome)}</a>' for nome, link in redes
-    )
+def whatsapp_flutuante():
+    """Botão fixo no canto do ecrã para abrir uma conversa no WhatsApp."""
+    if not DADOS["whatsapp"] or not DADOS["telefone"]:
+        return ""
+    return (f'<a class="wa-float" href="{esc(whatsapp_url())}" target="_blank" rel="noopener" '
+            f'aria-label="Falar connosco pelo WhatsApp">'
+            '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.6 3.7a.6.6 0 0 1-1-.47V16H6.5A2.5 2.5 0 0 1 4 13.5z"/></svg>'
+            '<span>WhatsApp</span></a>')
 
 
 def slug(text):
@@ -158,38 +168,6 @@ EMISSIONS_NOTICE = (
 
 EMISSOES = {k for _a, _t, _i, keys, em in GROUPS if em for k in keys}
 
-# Custo de cada módulo em tokens. None = por definir (o módulo não pode ser pedido).
-TOKENS = {
-    "STAGE 1/2": None,
-    "TCU STAGE 1": None,
-    "POP & BANGS": None,
-    "TORQUE MONITORING": None,
-    "SPORT DISPLAY CALIBRATION": None,
-    "FLAPS OFF": None,
-    "EXHAUST FLAP OFF": None,
-    "TVA OFF": None,
-    "MAF OFF": None,
-    "OIL PRESSURE FIX": None,
-    "HOT START FIX": None,
-    "START STOP OFF": None,
-    "DPF OFF": None,
-    "EGR OFF": None,
-    "ADBLUE/SCR OFF": None,
-    "LAMBDA/O2 OFF": None,
-}
-
-# Pacotes de tokens: (tokens, preço em euros). Lista vazia = por definir.
-PACOTES = []
-
-# Valores de exemplo, usados só na pré-visualização enquanto TOKENS está por preencher.
-DEMO_TOKENS = {
-    "STAGE 1/2": 4, "TCU STAGE 1": 3, "POP & BANGS": 2, "TORQUE MONITORING": 1,
-    "SPORT DISPLAY CALIBRATION": 1, "FLAPS OFF": 1, "EXHAUST FLAP OFF": 1, "TVA OFF": 1,
-    "MAF OFF": 1, "OIL PRESSURE FIX": 1, "HOT START FIX": 1, "START STOP OFF": 1,
-    "DPF OFF": 2, "EGR OFF": 1, "ADBLUE/SCR OFF": 3, "LAMBDA/O2 OFF": 1,
-}
-
-
 def tokens_txt(n):
     return f"{n} token" if abs(n) == 1 else f"{n} tokens"
 
@@ -198,23 +176,12 @@ def eur(valor):
     return f"{valor:,.2f}".replace(",", " ").replace(".", ",") + " €"
 
 
-def custo(k):
-    """(tokens, html) de um módulo. Sem preço: exemplo a amarelo na pré-visualização, (None, marcador) no site."""
-    n = TOKENS.get(k)
-    if n is not None:
-        return n, esc(tokens_txt(n))
-    if PREVIEW:
-        d = DEMO_TOKENS[k]
-        return d, ph(tokens_txt(d), "tokens por módulo (TOKENS)")
-    return None, ph("tokens", "tokens por módulo (TOKENS)")
-
 # ---------------------------------------------------------------- moldura comum
 
 NAV = [
     ("index", "", "Início", "inicio"),
     ("servicos", "", "Serviços", "servicos"),
     ("precos", "", "Preços", "precos"),
-    ("loja", "", "Loja", "loja"),
     ("noticias", "", "Notícias", "noticias"),
     ("index", "#sobre", "Sobre", "sobre"),
     (None, "#contacto", "Contacto", "contacto"),
@@ -277,17 +244,16 @@ def footer(preview):
     <div>
       <h2>Contactos</h2>
       <dl class="contact-info">
-        <div><dt>Morada</dt><dd>{morada_html('<br>')}</dd></div>
         <div><dt>{'Telefone e WhatsApp' if DADOS['whatsapp'] else 'Telefone'}</dt><dd>{telefone_html()}</dd></div>
         <div><dt>Email</dt><dd>{email_html()}</dd></div>
         <div><dt>Horário</dt><dd>{val('horario', 'dias e horas de atendimento')}</dd></div>
-        <div><dt>Redes sociais</dt><dd>{redes_html()}</dd></div>
+        <div><dt>Prazo de entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
       </dl>
     </div>
   </div>
   <div class="footer-legal">
     <div class="wrap">
-      <p>{esc(FIRMA)}. Sede: {morada_html(', ')}. NIPC {val('nipc', 'NIPC')}, matriculada na Conservatória do Registo Comercial de {val('conservatoria', 'conservatória')} sob o mesmo número.</p>
+      <p>{esc(FIRMA)}. NIPC {val('nipc', 'NIPC')}.</p>
       <ul class="legal-links">
         <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
         <li><a href="{url('privacidade')}">Política de privacidade</a></li>
@@ -340,6 +306,7 @@ def document(page, preview):
         page["body"](preview),
         "</main>",
         footer(preview),
+        "" if page["file"] == "admin.html" else whatsapp_flutuante(),
     ])
     if bare:
         return f"{head}\n{body}\n"
@@ -452,8 +419,8 @@ def body_index(preview):
     </div>
     <ol class="steps">
       <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
-      <li><h3>Carregue tokens</h3><p>Pague um pacote por transferência ou MB WAY. Os tokens ficam no saldo da conta.</p></li>
-      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original.</p></li>
+      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por MB WAY, cartão ou PayPal.</p></li>
+      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
       <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
     </ol>
   </div>
@@ -480,7 +447,7 @@ def body_index(preview):
     </div>
     <dl class="spec">
       <div><dt>Empresa</dt><dd>{esc(FIRMA)}</dd></div>
-      <div><dt>Sede</dt><dd>Arcozelo, Vila Nova de Gaia</dd></div>
+      <div><dt>Entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
     </dl>
@@ -491,7 +458,7 @@ def body_index(preview):
   <div class="wrap">
     <div class="band-text">
       <h2>Tem uma leitura pronta?</h2>
-      <p>Envie-a na área de cliente com os dados da viatura. O custo de cada módulo em tokens está na página de preços.</p>
+      <p>Envie-a na área de cliente com os dados da viatura. No envio descontam-se {TOKENS_MINIMO} tokens; o custo final depende da ECU e é confirmado depois de analisarmos o ficheiro.</p>
     </div>
     <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
   </div>
@@ -561,12 +528,9 @@ def form_novo_pedido():
         for k in keys:
             mid = "m-" + slug(k)
             em = " data-emissions" if emissions else ""
-            n, cost = custo(k)
-            dis = " disabled" if n is None else ""
             checks.append(
-                f'<div class="check mod"><input type="checkbox" id="{mid}" name="modulos" value="{esc(k)}" '
-                f'data-tokens="{"" if n is None else n}"{em}{dis}>'
-                f'<label for="{mid}"><span>{esc(MODULES[k][0])}</span><span class="mod-tokens">{cost}</span></label></div>'
+                f'<div class="check mod"><input type="checkbox" id="{mid}" name="modulos" value="{esc(k)}"{em}>'
+                f'<label for="{mid}"><span>{esc(MODULES[k][0])}</span></label></div>'
             )
         note = '<p class="small">Uso exclusivo em competição ou fora da via pública.</p>' if emissions else ""
         cls = "module-group emissions" if emissions else "module-group"
@@ -616,9 +580,10 @@ def form_novo_pedido():
         <p class="hint">O ficheiro fica sempre disponível em Pedidos.</p>
       </fieldset>
       <div class="resumo" id="f-resumo" data-estado="vazio" aria-live="polite">
-        <div><span class="small muted">Total do pedido</span><strong id="f-total">0 tokens</strong></div>
+        <div><span class="small muted">Desconto no envio</span><strong id="f-total">{tokens_txt(TOKENS_MINIMO)}</strong></div>
         <div><span class="small muted">Saldo atual</span><strong id="f-saldo-atual">–</strong></div>
-        <p class="resumo-msg" id="f-resumo-msg">Escolha os módulos para ver o custo.</p>
+        <p class="resumo-msg" id="f-resumo-msg">Escolha os módulos pretendidos.</p>
+        <p class="small muted resumo-nota">O custo final depende da ECU. Se for maior, avisamos e a diferença é descontada do saldo.</p>
       </div>
       <div class="actions"><button class="btn btn-primary" type="submit" id="f-enviar">Enviar pedido</button></div>
       <div class="progress" id="f-progresso" hidden><div class="progress-bar"><span id="f-progresso-barra"></span></div><p class="small" id="f-progresso-txt"></p></div>
@@ -637,9 +602,10 @@ def form_novo_pedido():
       <div class="aside-block">
         <h2>Depois do envio</h2>
         <ol class="aside-steps">
-          <li>Os tokens do pedido são descontados do saldo.</li>
-          <li>Preparamos o ficheiro para essa ECU. Se não for possível, recusamos o pedido e os tokens voltam ao saldo.</li>
-          <li>Entregamos o ficheiro pela via que escolheu. Fica também disponível em Pedidos.</li>
+          <li>Descontam-se {tokens_txt(TOKENS_MINIMO)} do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
+          <li>Analisamos a ECU e confirmamos o custo final. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido espera pelo carregamento.</li>
+          <li>Entregamos o ficheiro pela via que escolheu, normalmente em menos de 2 horas. Fica também disponível em Pedidos durante {esc(DADOS['prazo_ficheiros'])}.</li>
+          <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
         </ol>
       </div>
     </aside>
@@ -661,11 +627,8 @@ def entrega_radios(prefix, name="entrega"):
 
 
 def catalogo_dados():
-    modulos = {}
-    for k, (nome, _desc) in MODULES.items():
-        n, _ = custo(k)
-        modulos[k] = {"nome": nome, "tokens": n, "emissoes": k in EMISSOES}
-    return {"modulos": modulos, "maxMb": MAX_MB}
+    modulos = {k: {"nome": nome, "emissoes": k in EMISSOES} for k, (nome, _desc) in MODULES.items()}
+    return {"modulos": modulos, "maxMb": MAX_MB, "minimo": TOKENS_MINIMO}
 
 
 def catalogo_script():
@@ -680,66 +643,58 @@ def php_str(s):
 
 
 def catalogo_php():
-    """Catálogo usado pela API em PHP para calcular o custo dos pedidos (sempre com os preços reais)."""
-    linhas = []
-    for k, (nome, _d) in MODULES.items():
-        t = TOKENS.get(k)
-        linhas.append(
-            f"        {php_str(k)} => ['nome' => {php_str(nome)}, 'tokens' => {'null' if t is None else int(t)}, "
-            f"'emissoes' => {'true' if k in EMISSOES else 'false'}],"
-        )
-    return ("<?php\n// Gerado por build.py a partir de MODULES e TOKENS. Não editar à mão.\n"
-            f"return [\n    'max_mb' => {MAX_MB},\n    'modulos' => [\n" + "\n".join(linhas) + "\n    ],\n];\n")
+    """Catálogo usado pela API em PHP: módulos, tokens mínimos por pedido e tamanho máximo dos ficheiros."""
+    linhas = [
+        f"        {php_str(k)} => ['nome' => {php_str(nome)}, 'emissoes' => {'true' if k in EMISSOES else 'false'}],"
+        for k, (nome, _d) in MODULES.items()
+    ]
+    return ("<?php\n// Gerado por build.py a partir de MODULES e TOKENS_MINIMO. Não editar à mão.\n"
+            f"return [\n    'max_mb' => {MAX_MB},\n    'minimo' => {TOKENS_MINIMO},\n    'modulos' => [\n"
+            + "\n".join(linhas) + "\n    ],\n];\n")
 
 
 # ---------------------------------------------------------------- preços
 
-def pacotes_table():
-    if PACOTES:
-        linhas = "".join(
-            f'<tr><th scope="row">{esc(tokens_txt(t))}</th><td>{esc(eur(p))}</td><td>{esc(eur(p / t))}</td></tr>'
-            for t, p in PACOTES
-        )
-    else:
-        rep = "pacotes de tokens e preços (PACOTES)"
-        linhas = "".join(
-            f'<tr><th scope="row">{ph("tokens", rep)}</th><td>{ph("preço", rep)}</td><td>–</td></tr>' for _ in range(3)
-        )
+def tabela_tokens():
+    linhas = "".join(
+        f'<tr><th scope="row">{esc(tokens_txt(n))}</th><td>{esc(eur(n * TOKEN_EUR))}</td></tr>'
+        for n in EXEMPLOS_CARREGAMENTO
+    )
     return f"""<div class="table-wrap"><table class="price-table">
-          <thead><tr><th scope="col">Pacote</th><th scope="col">Preço</th><th scope="col">Por token</th></tr></thead>
+          <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
           <tbody>{linhas}</tbody>
         </table></div>
-        <p class="small muted">{val('iva', 'IVA incluído ou a acrescer')}</p>"""
+        <p class="small muted">1 token = {esc(eur(TOKEN_EUR))}. Pode carregar qualquer quantidade a partir de {tokens_txt(TOKENS_MINIMO)}. {val('iva', 'IVA incluído ou a acrescer')}. Validade: {val('validade_tokens', 'validade dos tokens')}.</p>"""
 
 
 def body_precos(preview):
     grupos = []
     for anchor, title, _intro, keys, emissions in GROUPS:
-        linhas = "".join(
-            f'<tr><th scope="row">{esc(MODULES[k][0])}</th><td>{custo(k)[1]}</td></tr>' for k in keys
-        )
+        itens = "".join(f"<li>{esc(MODULES[k][0])}</li>" for k in keys)
         nota = '<p><span class="tag">Uso exclusivo em competição ou fora da via pública</span></p>' if emissions else ""
         grupos.append(f"""<div class="price-group">
         <h3>{title}</h3>{nota}
-        <table class="price-table"><thead><tr><th scope="col">Módulo</th><th scope="col">Custo</th></tr></thead><tbody>{linhas}</tbody></table>
+        <ul class="mod-names">{itens}</ul>
       </div>""")
     grupos_html = "\n      ".join(grupos)
+    wa = (f'<a href="{esc(whatsapp_url("Olá! Quero saber o custo de um ficheiro para esta ECU:"))}" target="_blank" rel="noopener">WhatsApp</a>'
+          if DADOS["whatsapp"] else "telefone")
     return page_head(
         "Preços",
-        "Os ficheiros pagam-se com tokens. Carregue o saldo da conta e cada pedido desconta os tokens dos módulos escolhidos.",
+        f"Os ficheiros pagam-se com tokens pré-pagos. 1 token custa {esc(eur(TOKEN_EUR))}, com IVA incluído.",
     ) + f"""
 
 <section class="section">
   <div class="wrap saldo-grid">
     <div class="stack">
-      <h2>Pacotes de tokens</h2>
-      {pacotes_table()}
+      <h2>Tokens</h2>
+      {tabela_tokens()}
     </div>
     <div class="stack">
       <h2>Como carregar saldo</h2>
       <ol class="aside-steps">
         <li>Crie conta na área de cliente. Aprovamos a conta e avisamos por email.</li>
-        <li>Pague o pacote por transferência ou MB WAY. Os dados de pagamento estão na área de cliente, em Saldo.</li>
+        <li>Pague por MB WAY, cartão ou PayPal. Os dados de pagamento estão na área de cliente, em Saldo.</li>
         <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
       </ol>
       <div class="actions"><a class="btn btn-primary" href="{url('area-cliente', '#registo')}">Criar conta</a><a class="btn btn-secondary" href="{url('area-cliente')}">Entrar</a></div>
@@ -748,10 +703,31 @@ def body_precos(preview):
 </section>
 
 <section class="section">
+  <div class="wrap saldo-grid">
+    <div class="stack">
+      <h2>Quanto custa cada pedido</h2>
+      <p>O custo depende da ECU e dos módulos pedidos.</p>
+      <ol class="aside-steps">
+        <li>No envio do ficheiro descontam-se {tokens_txt(TOKENS_MINIMO)} do saldo.</li>
+        <li>Depois de analisarmos a ECU, confirmamos o custo final na área de cliente e por email. Se for maior, por exemplo 10 ou 12 tokens, a diferença é descontada do saldo. Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+        <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+      </ol>
+    </div>
+    <div class="stack">
+      <h2>Sob consulta</h2>
+      <p class="note">{esc(SOB_CONSULTA)}: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
+      <h2>Prazo de entrega</h2>
+      <p>{val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
+      <p>Também pode enviar o ficheiro pelo WhatsApp, desde que tenha tokens na conta.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
   <div class="wrap stack">
     <div class="section-head">
-      <h2>Tokens por módulo</h2>
-      <p class="lead">Num pedido com vários módulos, o custo é a soma de cada um. Se recusarmos um pedido, os tokens voltam ao saldo.</p>
+      <h2>Módulos disponíveis</h2>
+      <p class="lead">Num pedido pode escolher vários módulos. O custo de cada pedido é confirmado depois de analisada a ECU.</p>
     </div>
     <div class="price-grid">
       {grupos_html}
@@ -797,10 +773,12 @@ def body_area_cliente(preview):
         field("r-telefone", "telefone", "Telefone", True, "tel", extra=' autocomplete="tel"'),
         field("r-whatsapp", "whatsapp", "WhatsApp, se for outro número", kind="tel"),
     ])
+    cartao = (f'<a class="btn btn-secondary btn-sm" href="{esc(DADOS["stripe"])}" target="_blank" rel="noopener">Pagar com cartão</a>'
+              if DADOS["stripe"] else ph("ligação de pagamento do Stripe"))
     pagamento = f"""<dl class="spec">
-              <div><dt>IBAN</dt><dd>{val('iban', 'IBAN')}</dd></div>
               <div><dt>MB WAY</dt><dd>{val('mbway', 'número MB WAY')}</dd></div>
-              <div><dt>Titular</dt><dd>{esc(FIRMA)}</dd></div>
+              <div><dt>Cartão</dt><dd>{cartao}</dd></div>
+              <div><dt>PayPal</dt><dd>{val('paypal', 'conta PayPal')}<br><span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>
             </dl>"""
     return f"""<section class="page-head">
   <div class="wrap portal-top">
@@ -871,15 +849,15 @@ def body_area_cliente(preview):
           <div class="stack">
             <h3>Carregar saldo</h3>
             <ol class="aside-steps">
-              <li>Escolha um pacote e pague por transferência ou MB WAY.</li>
-              <li>No descritivo do pagamento, indique o NIF da oficina.</li>
+              <li>Escolha quantos tokens quer, a partir de {tokens_txt(TOKENS_MINIMO)}, e pague por MB WAY, cartão ou PayPal.</li>
+              <li>Na descrição do pagamento, indique o NIF da oficina.</li>
               <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
             </ol>
             {pagamento}
           </div>
           <div class="stack">
-            <h3>Pacotes</h3>
-            {pacotes_table()}
+            <h3>Preços</h3>
+            {tabela_tokens()}
           </div>
         </div>
         <h3>Extrato</h3>
@@ -926,6 +904,7 @@ def body_admin(preview):
         <div class="filters" role="group" aria-label="Filtrar pedidos" id="a-filtro-pedidos">
           <button type="button" data-filtro="tratar" aria-pressed="true">Por tratar</button>
           <button type="button" data-filtro="a_aguardar_ficheiro" aria-pressed="false">À espera do ficheiro</button>
+          <button type="button" data-filtro="a_aguardar_saldo" aria-pressed="false">Falta saldo</button>
           <button type="button" data-filtro="concluido" aria-pressed="false">Concluídos</button>
           <button type="button" data-filtro="fechado" aria-pressed="false">Recusados e cancelados</button>
           <button type="button" data-filtro="todos" aria-pressed="false">Todos</button>
@@ -1019,7 +998,7 @@ def body_privacidade(preview):
 <section class="section">
   <div class="wrap prose">
     <h2>Responsável pelo tratamento</h2>
-    <p>{esc(FIRMA)}, com sede em {morada_html(', ')}, NIPC {val('nipc', 'NIPC')}. Contacto para questões de privacidade: {email_html()}.</p>
+    <p>{esc(FIRMA)}, NIPC {val('nipc', 'NIPC')}. Contacto para questões de privacidade: {email_html()}.</p>
     <h2>Dados recolhidos</h2>
     <p>No formulário de contacto: nome, email, telefone e a mensagem escrita.</p>
     <p>Na área de cliente: nome da oficina, NIF, nome do responsável, email, telefone e WhatsApp; dados das viaturas (incluindo a matrícula) e das centralinas; ficheiros enviados e entregues; movimentos de saldo; e registos de acesso (códigos de entrada e sessões). Os ficheiros de centralina podem conter o número de identificação da viatura (VIN).</p>
@@ -1030,12 +1009,12 @@ def body_privacidade(preview):
     <p>Diligências pré-contratuais e execução do contrato (artigo 6.º, n.º 1, alínea b), do Regulamento Geral sobre a Proteção de Dados) e cumprimento de obrigações legais (alínea c) da mesma norma). A proteção dos formulários contra abusos assenta no interesse legítimo da empresa na segurança do site (alínea f) da mesma norma).</p>
     <h2>Prazos de conservação</h2>
     <ul>
-      <li>Pedidos sem seguimento: {val('prazo_pedidos', 'prazo dos pedidos sem seguimento, ex.: 12 meses')}.</li>
-      <li>Dados de clientes e de faturação: pelo prazo legal de conservação dos documentos contabilísticos.</li>
-      <li>Ficheiros de centralina: {val('prazo_ficheiros', 'prazo dos ficheiros de centralina')}.</li>
+      <li>Pedidos sem seguimento, em que o ficheiro não chegou a ser enviado: {val('prazo_pedidos', 'prazo dos pedidos sem seguimento')}. Depois são cancelados.</li>
+      <li>Ficheiros de centralina, originais e modificados: {val('prazo_ficheiros', 'prazo dos ficheiros de centralina')} depois de o pedido ser concluído, recusado ou cancelado. Depois são apagados automaticamente.</li>
+      <li>Dados de clientes, pedidos e faturação: pelo prazo legal de conservação dos documentos contabilísticos.</li>
     </ul>
     <h2>Destinatários</h2>
-    <p>Os dados são acessíveis aos fornecedores que prestam à empresa os serviços de alojamento do site, armazenamento de ficheiros e envio de email, apenas para esse fim e ao abrigo de contrato. Alguns destes fornecedores podem tratar dados fora do Espaço Económico Europeu, com as garantias previstas no RGPD. A empresa não vende nem cede dados para fins de marketing.</p>
+    <p>Os dados são acessíveis aos fornecedores que prestam à empresa os serviços de alojamento do site, armazenamento de ficheiros e envio de email, apenas para esse fim e ao abrigo de contrato. Os pagamentos por cartão e por PayPal são feitos nas plataformas Stripe e PayPal, que tratam os dados do pagamento segundo as suas próprias políticas. Alguns destes fornecedores podem tratar dados fora do Espaço Económico Europeu, com as garantias previstas no RGPD. A empresa não vende nem cede dados para fins de marketing.</p>
     <h2>Direitos dos titulares</h2>
     <p>Pode pedir o acesso, a retificação, o apagamento, a limitação ou a portabilidade dos seus dados, ou opor-se ao tratamento, através de {email_html()}. Pode também apresentar reclamação à Comissão Nacional de Proteção de Dados (<a href="https://www.cnpd.pt/" target="_blank" rel="noopener">www.cnpd.pt</a>).</p>
     <h2>Cookies</h2>
@@ -1051,7 +1030,7 @@ def body_termos(preview):
 <section class="section">
   <div class="wrap prose">
     <h2>Identificação</h2>
-    <p>Este site pertence à {esc(FIRMA)}, com sede em {morada_html(', ')}, NIPC {val('nipc', 'NIPC')}.</p>
+    <p>Este site pertence à {esc(FIRMA)}, NIPC {val('nipc', 'NIPC')}. Contacto: {email_html()}.</p>
     <h2>Destinatários</h2>
     <p>Os serviços de ficheiros destinam-se a oficinas e a profissionais do setor automóvel.</p>
     <h2>Pedidos e ficheiros</h2>
@@ -1061,13 +1040,15 @@ def body_termos(preview):
     <h2>Contas</h2>
     <p>A área de cliente é para oficinas e profissionais do setor automóvel. As contas são aprovadas pela empresa e o acesso faz-se com um código enviado para o email registado. A empresa pode suspender uma conta em caso de uso indevido.</p>
     <h2>Tokens e saldo</h2>
-    <p>Os ficheiros pagam-se com tokens pré-pagos. Os tokens são carregados na conta depois de confirmado o pagamento, e a fatura é enviada por email. Cada pedido desconta os tokens dos módulos escolhidos no momento do envio. Os tokens de um pedido recusado, ou cancelado antes do envio do ficheiro, voltam ao saldo.</p>
+    <p>Os ficheiros pagam-se com tokens pré-pagos: 1 token custa {esc(eur(TOKEN_EUR))}, com IVA incluído, e o carregamento mínimo é de {tokens_txt(TOKENS_MINIMO)}. Os tokens são carregados na conta depois de confirmado o pagamento, e a fatura é enviada por email.</p>
+    <p>No envio de um pedido descontam-se {tokens_txt(TOKENS_MINIMO)}. O custo final depende da ECU e é comunicado depois de analisado o ficheiro. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido fica suspenso até a diferença ser carregada. Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se a empresa recusar o pedido, os tokens voltam ao saldo.</p>
     <ul>
       <li>Validade dos tokens: {val('validade_tokens', 'validade dos tokens')}.</li>
       <li>Saldo não usado: {val('reembolso', 'regra para o saldo não usado')}.</li>
+      <li>{esc(SOB_CONSULTA)}: sob consulta.</li>
     </ul>
-    <h2>Preços e pagamento</h2>
-    <p>Os custos em tokens e os pacotes estão na página <a href="{url('precos')}">Preços</a>. {val('condicoes', 'condições de pagamento e prazos')}</p>
+    <h2>Preços, pagamento e prazos</h2>
+    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por MB WAY, por cartão, através do Stripe, ou por PayPal, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
     <h2>Responsabilidade</h2>
     <p>A empresa não responde por danos resultantes de leituras incorretas, de escrita interrompida, da utilização do ficheiro noutra viatura ou de avarias mecânicas preexistentes.</p>
     <h2>Reclamações</h2>
@@ -1088,13 +1069,13 @@ def body_404(preview):
 
 PAGES = [
     {"file": "index.html", "nav": "inicio", "title": COMPANY,
-     "desc": "Ficheiros de calibração, chiptuning e diagnóstico avançado para oficinas. GARC – Soluções Técnicas, Arcozelo, Vila Nova de Gaia.",
+     "desc": "Ficheiros de calibração, chiptuning e diagnóstico avançado para oficinas, com entrega em menos de 2 horas. GARC – AutoSolutions & Consulting.",
      "body": body_index},
     {"file": "servicos.html", "nav": "servicos", "title": f"Serviços | {COMPANY}",
      "desc": "Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.",
      "body": body_servicos},
     {"file": "precos.html", "nav": "precos", "title": f"Preços | {COMPANY}",
-     "desc": "Tokens por módulo, pacotes de tokens e como carregar saldo.",
+     "desc": "1 token = 6 €, com IVA, a partir de 5 tokens. O custo de cada ficheiro depende da ECU e é confirmado depois da análise.",
      "body": body_precos},
     {"file": "area-cliente.html", "nav": "area-cliente", "title": f"Área de cliente | {COMPANY}",
      "desc": "Envie ficheiros, acompanhe pedidos e consulte o saldo de tokens.",
@@ -1102,9 +1083,11 @@ PAGES = [
     {"file": "admin.html", "nav": "", "title": f"Administração | {COMPANY}",
      "desc": "Painel de administração da área de cliente.",
      "body": body_admin, "noindex": True, "scripts": ["assets/app.js", "assets/admin.js"]},
+    # Loja oculta por agora: a página não é gerada nem aparece no menu. Para a mostrar, tirar "oculta"
+    # e voltar a pôr ("loja", "", "Loja", "loja") em NAV.
     {"file": "loja.html", "nav": "loja", "title": f"Loja | {COMPANY}",
      "desc": "Produtos para oficinas da GARC – Soluções Técnicas.",
-     "body": body_loja},
+     "body": body_loja, "oculta": True},
     {"file": "noticias.html", "nav": "noticias", "title": f"Notícias | {COMPANY}",
      "desc": "Notas técnicas para oficinas e novidades da GARC – Soluções Técnicas.",
      "body": body_noticias},
@@ -1169,7 +1152,7 @@ def build(out_dir, preview):
     # O modo de demonstração (demo.js) só existe na pré-visualização.
     shutil.copytree(SRC / "assets", out_dir / "assets", ignore=None if preview else shutil.ignore_patterns("demo.js"))
     for page in PAGES:
-        if preview and page.get("site_only"):
+        if page.get("oculta") or (preview and page.get("site_only")):
             continue
         (out_dir / page["file"]).write_text(document(page, preview), encoding="utf-8")
     if not preview:

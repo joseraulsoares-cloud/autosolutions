@@ -41,7 +41,10 @@ Depois copiar `logo-cabecalho.html` para `src/` e os restantes ficheiros para `s
 - As oficinas registam-se com NIF e só entram depois de aprovadas no painel (`/admin`).
 - A entrada faz-se com um código de 6 dígitos enviado por email, válido 10 minutos. Não há palavras-passe.
 - Cada pedido exige a matrícula da viatura, portuguesa ou estrangeira (até 15 carateres: letras, números, espaços e hífenes). Fica em maiúsculas, e as portuguesas sem hífenes ficam no formato AA-00-AA. A matrícula aparece no painel, na área de cliente e nos emails e mensagens de WhatsApp do pedido.
-- Os tokens são carregados no painel, com o número da fatura. Cada pedido desconta os tokens dos módulos escolhidos; os tokens voltam ao saldo se o pedido for recusado ou cancelado antes do envio do ficheiro.
+- Os tokens são carregados no painel, com o número da fatura. 1 token = 6 € (IVA incluído), a partir de 5 tokens (`TOKEN_EUR` e `TOKENS_MINIMO` no `build.py`).
+- O custo de cada pedido depende da ECU. No envio descontam-se 5 tokens; depois de analisar a ECU, o administrador define o custo final no painel. Se o saldo chegar, a diferença é descontada logo; se não chegar, o pedido fica "à espera de saldo" e avança sozinho quando forem carregados tokens (por ordem de chegada). Baixar o custo devolve a diferença.
+- Depois de enviado o ficheiro, a oficina já não pode cancelar o pedido. Se o administrador o recusar, os tokens pagos voltam ao saldo. Antes de enviar o ficheiro, a oficina pode cancelar e recuperar os 5 tokens.
+- Prazos de conservação (1 mês): os ficheiros dos pedidos concluídos, recusados ou cancelados são apagados um mês depois de fechados, e os pedidos que ficaram sem ficheiro durante um mês são cancelados, com devolução dos tokens. A limpeza corre no máximo uma vez por hora, quando o painel ou a lista de pedidos são abertos.
 - O ficheiro modificado é entregue pela área de cliente, por email com anexo ou por WhatsApp (o painel abre a conversa com a mensagem escrita).
 - A API só usa GET e POST e só aceita POST vindos do próprio site.
 - Os formulários que enviam emails têm limites por endereço IP (`app/lib/limites.php`): registo e contacto, 5 por hora; códigos de entrada, 10 em 15 minutos. O IP não fica guardado, só um código derivado dele, apagado ao fim de 24 horas. O registo e o contacto têm também um campo-armadilha para robôs.
@@ -50,7 +53,7 @@ Depois copiar `logo-cabecalho.html` para `src/` e os restantes ficheiros para `s
 
 1. **PHP**: em MultiPHP Manager, PHP 8.1 ou mais recente para o domínio.
 2. **Base de dados**: em MySQL Database Wizard, criar a base de dados e um utilizador com todas as permissões.
-3. **Email**: criar a conta que envia os emails (ex.: pedidos@autosolutions.pt) e confirmar SPF e DKIM em Email Deliverability.
+3. **Email**: a conta fileservice@autosolutions.pt (já criada) envia e recebe os emails do site. Confirmar SPF e DKIM em Email Deliverability.
 4. **Código**: em Git Version Control, clonar `https://github.com/joseraulsoares-cloud/autosolutions` e usar "Deploy HEAD Commit". O `.cpanel.yml` copia `site/` para `public_html` e `app/` para `~/autosolutions-app`. Em alternativa, enviar as duas pastas pelo Gestor de Ficheiros.
 5. **Configuração**: em `~/autosolutions-app/`, copiar `config.exemplo.php` para `config.php` e preencher: base de dados, emails de administração, remetente, pasta dos ficheiros (`/home/UTILIZADOR/autosolutions-dados/ficheiros`) e um segredo com 64 caracteres aleatórios.
 6. **Limites de envio**: `site/api/.user.ini` sobe o limite de ficheiros para 32 MB. Se o alojamento o ignorar, definir `upload_max_filesize` e `post_max_size` no MultiPHP INI Editor.
@@ -66,4 +69,3 @@ Com PHP 8.1+, MariaDB ou MySQL e Python 3 (`requests`; `playwright` para o teste
 2. Arrancar o servidor: `GARC_APP=<app> SITE_ROOT=<site> php -d upload_max_filesize=32M -d post_max_size=40M -S 127.0.0.1:8790 -t <site> tests/router.php`.
 3. Correr `python3 tests/teste_api.py` e `python3 tests/teste_ui.py <pasta-de-saida>`.
 
-Os testes precisam de preços em `TOKENS`; sem preços, os módulos não podem ser pedidos.

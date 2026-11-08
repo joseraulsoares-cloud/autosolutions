@@ -23,6 +23,7 @@ const ROTAS = [
     ['GET', '#^/admin/pedidos/(\d+)$#', 'api_admin_pedido'],
     ['POST', '#^/admin/pedidos/(\d+)/estado$#', 'api_admin_pedido_estado'],
     ['POST', '#^/admin/pedidos/(\d+)/modificado$#', 'api_admin_pedido_modificado'],
+    ['POST', '#^/admin/pedidos/(\d+)/custo$#', 'api_admin_pedido_custo'],
     ['GET', '#^/admin/oficinas$#', 'api_admin_oficinas'],
     ['GET', '#^/admin/oficinas/(\d+)$#', 'api_admin_oficina'],
     ['POST', '#^/admin/oficinas/(\d+)/estado$#', 'api_admin_oficina_estado'],

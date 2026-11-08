@@ -563,6 +563,29 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 @media (max-width: 760px) { .price-grid { grid-template-columns: minmax(0, 1fr); } }
 .price-group { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .price-group h3 { font-family: var(--font-display); font-size: 1.45rem; }
+.mod-names { list-style: none; padding: 0; margin: 0; }
+.mod-names li { padding: 9px 0; border-top: 1px solid var(--line); }
+
+/* Botão fixo para o WhatsApp (ícone genérico de conversa) */
+.wa-float {
+  position: fixed; z-index: 40;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px 11px 14px;
+  background: #1F7A4D; color: #FFFFFF;
+  border-radius: 999px;
+  font-weight: 600; text-decoration: none;
+  box-shadow: 0 6px 18px rgba(1, 37, 89, 0.28);
+}
+.wa-float svg { width: 22px; height: 22px; fill: currentColor; flex: none; }
+.wa-float:hover { background: #17633E; color: #FFFFFF; }
+.wa-float:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 560px) {
+  .wa-float { padding: 13px; }
+  .wa-float span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media print { .wa-float { display: none; } }
 .price-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .price-table th, .price-table td { padding: 10px 0; border-top: 1px solid var(--line); text-align: left; vertical-align: baseline; }
 .price-table thead th { font-size: 0.85rem; font-weight: 500; color: var(--ink-2); border-top: 0; padding-top: 0; }
@@ -629,14 +652,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 .empty { padding: 28px 20px; text-align: center; color: var(--ink-2); background: var(--sheet); border: 1px dashed var(--field-line); border-radius: 6px; }
 
 .mod label { display: flex; flex: 1; justify-content: space-between; gap: 12px; }
-.mod-tokens { color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.module-group.emissions .mod-tokens { color: var(--warn-ink); }
 .check input:disabled + label { opacity: 0.6; }
 .choices { display: grid; gap: 10px; }
 .resumo { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 32px; padding: 16px 18px; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; }
 .resumo > div { display: grid; gap: 4px; }
 .resumo strong { font-family: var(--font-display); font-size: 1.7rem; line-height: 1; font-variant-numeric: tabular-nums; }
 .resumo-msg { flex: 1 1 14rem; }
+.resumo-nota { flex: 1 1 100%; }
 .resumo[data-estado="falta"] { border-color: var(--err); }
 .resumo[data-estado="falta"] .resumo-msg { color: var(--err); font-weight: 500; }
 .progress { display: grid; gap: 6px; }

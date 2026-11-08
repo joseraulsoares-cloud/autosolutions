@@ -43,6 +43,7 @@
     a_aguardar_ficheiro: ['À espera do ficheiro', 'warn'],
     recebido: ['Recebido', 'info'],
     em_curso: ['Em curso', 'accent'],
+    a_aguardar_saldo: ['Falta saldo', 'warn'],
     concluido: ['Concluído', 'ok'],
     recusado: ['Recusado', 'err'],
     cancelado: ['Cancelado', 'muted'],
@@ -67,8 +68,8 @@
   function movimentoTexto(m) {
     switch (m.tipo) {
       case 'carregamento': return 'Carregamento' + (m.referencia ? ' (' + m.referencia + ')' : '');
-      case 'pedido': return 'Pedido n.º ' + m.pedido_id;
-      case 'devolucao': return 'Devolução do pedido n.º ' + m.pedido_id;
+      case 'pedido': return 'Pedido n.º ' + m.pedido_id + (m.referencia ? ' (' + m.referencia + ')' : '');
+      case 'devolucao': return 'Devolução do pedido n.º ' + m.pedido_id + (m.referencia ? ' (' + m.referencia + ')' : '');
       default: return 'Acerto' + (m.referencia ? ' (' + m.referencia + ')' : '');
     }
   }

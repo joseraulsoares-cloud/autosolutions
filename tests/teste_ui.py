@@ -40,6 +40,7 @@ def preparar_oficina():
     oid = [o for o in a.get(B + "/api/admin/oficinas?filtro=todas").json()["oficinas"] if o["email"] == "c@teste.pt"][0]["id"]
     a.post(B + f"/api/admin/oficinas/{oid}/estado", json={"estado": "aprovada"})
     a.post(B + f"/api/admin/oficinas/{oid}/tokens", json={"tokens": 12, "referencia": "FT 2026/9"})
+    return a, oid
 
 
 async def entrar(pg, email):
@@ -52,7 +53,7 @@ async def entrar(pg, email):
 
 
 async def main():
-    preparar_oficina()
+    adm, oid = preparar_oficina()
     leitura = os.path.join(OUT, "leitura_original.bin")
     with open(leitura, "wb") as f:
         f.write(os.urandom(64_000))
@@ -84,15 +85,8 @@ async def main():
         await pg.check("#m-stage-1-2")
         await pg.check("#m-dpf-off")
         check(await pg.is_visible("#decl-wrap"), "módulo de emissões mostra a declaração")
-        check((await pg.text_content("#f-total")).strip() == "6 tokens", "total do pedido: 6 tokens")
-        await pg.check("#m-adblue-scr-off")
-        await pg.check("#m-pop-bangs")
-        await pg.check("#m-tcu-stage-1")
-        estado = await pg.get_attribute("#f-resumo", "data-estado")
-        check(estado == "falta" and await pg.is_disabled("#f-enviar"), "custo de 14 tokens com saldo 12: envio bloqueado e aviso de saldo")
-        await pg.uncheck("#m-adblue-scr-off")
-        await pg.uncheck("#m-pop-bangs")
-        await pg.uncheck("#m-tcu-stage-1")
+        check((await pg.text_content("#f-total")).strip() == "5 tokens", "desconto no envio: 5 tokens")
+        check((await pg.text_content("#f-enviar")).strip() == "Enviar pedido (5 tokens)", "botão indica os 5 tokens do envio")
         await pg.check("#f-declaracao")
         await pg.set_input_files("#f-ficheiro", leitura)
         await pg.screenshot(path=os.path.join(OUT, "ui-novo-pedido.png"), full_page=True)
@@ -101,9 +95,10 @@ async def main():
         await pg.wait_for_selector(".order")
         aviso = await pg.text_content("#p-aviso")
         check("enviado" in aviso, "aviso de pedido enviado: " + aviso.strip()[:60])
-        check((await pg.text_content("#p-saldo")).strip() == "6", "saldo desce para 6")
-        check("Recebido" in await pg.text_content(".order"), "pedido aparece na lista como Recebido")
-        check("AA-00-AA" in await pg.text_content(".order"), "a lista de pedidos mostra a matrícula")
+        check((await pg.text_content("#p-saldo")).strip() == "7", "saldo desce para 7")
+        cartao = await pg.text_content(".order")
+        check("Recebido" in cartao and "AA-00-AA" in cartao, "pedido na lista como Recebido, com a matrícula")
+        check("provisório" in cartao, "custo provisório até à análise da ECU")
         await pg.click('a[data-tab="saldo"]')
         await pg.wait_for_selector(".ledger")
         check("FT 2026/9" in await pg.text_content(".ledger"), "extrato mostra o carregamento com a fatura")
@@ -119,8 +114,29 @@ async def main():
         await ap.wait_for_selector("#a-pedidos .list-item")
         await ap.click("#a-pedidos .list-item:has-text('Seat Leon III')")
         await ap.wait_for_selector("#a-pedido h2")
-        check("Declaração" in await ap.text_content("#a-pedido"), "painel mostra a declaração de emissões do pedido")
-        check("AA-00-AA" in await ap.text_content("#a-pedido"), "painel mostra a matrícula do pedido")
+        texto = await ap.text_content("#a-pedido")
+        check("Declaração" in texto and "AA-00-AA" in texto, "painel mostra a declaração de emissões e a matrícula")
+        check("provisório" in texto, "painel indica que o custo final ainda não foi definido")
+
+        # Custo final de 15 com saldo 7: fica à espera de saldo
+        await ap.fill("#a-custo", "15")
+        await ap.click("#a-pedido [data-custo]")
+        await ap.wait_for_selector("#a-pedido .pill[data-kind=warn]")
+        check("Falta saldo" in await ap.text_content("#a-pedido .pill") and await ap.query_selector("#a-pedido [data-acao=concluir]") is None,
+              "custo 15 com saldo 7: pedido à espera de saldo, sem botão de concluir")
+        await ap.screenshot(path=os.path.join(OUT, "ui-admin-falta-saldo.png"), full_page=True)
+
+        # A oficina vê a falta de saldo
+        await pg.goto(B + "/area-cliente#pedidos", wait_until="networkidle")
+        await pg.wait_for_selector(".order")
+        cartao = await pg.text_content(".order")
+        check("Falta saldo" in cartao and "Faltam 10 tokens" in cartao, "oficina vê o pedido à espera de saldo: faltam 10 tokens")
+
+        # Carregar 3 tokens (saldo 10) liquida a diferença e o pedido avança
+        adm.post(B + f"/api/admin/oficinas/{oid}/tokens", json={"tokens": 3, "referencia": "FT 2026/10"})
+        await ap.reload(wait_until="networkidle")
+        await ap.wait_for_selector("#a-pedido h2")
+        check("Em curso" in await ap.text_content("#a-pedido .pill"), "depois do carregamento, o pedido passa a em curso")
         await ap.set_input_files("#a-pedido input[data-modificado]", modificado)
         await ap.wait_for_selector("#a-pedido [data-acao=concluir]")
         await ap.fill("#a-nota", "Ficheiro testado em banco.")
@@ -129,14 +145,23 @@ async def main():
         check("concluído" in (await ap.text_content("#a-pedido .status")).lower(), "pedido concluído no painel")
         await ap.screenshot(path=os.path.join(OUT, "ui-admin.png"), full_page=True)
 
-        # ---------------- De volta à oficina
-        await pg.goto(B + "/area-cliente#pedidos", wait_until="networkidle")
+        # ---------------- De volta à oficina (a página já estava em #pedidos: recarregar para ver o estado novo)
+        await pg.reload(wait_until="networkidle")
         await pg.wait_for_selector(".order a[data-download]")
         async with pg.expect_download() as dl:
             await pg.click(".order a[data-download]")
         d = await dl.value
         caminho = await d.path()
         check(open(caminho, "rb").read() == open(modificado, "rb").read(), "oficina descarrega o ficheiro modificado no browser")
+        check("15 tokens" in await pg.text_content(".order") and (await pg.text_content("#p-saldo")).strip() == "0",
+              "pedido concluído com o custo final de 15 tokens; saldo 0")
+
+        # Sem saldo para o mínimo: o envio fica bloqueado
+        await pg.click('a[data-tab="novo"]')
+        await pg.wait_for_selector("#f-resumo")
+        estado = await pg.get_attribute("#f-resumo", "data-estado")
+        check(estado == "falta" and await pg.is_disabled("#f-enviar") and "pelo menos 5 tokens" in await pg.text_content("#f-resumo-msg"),
+              "saldo 0: envio bloqueado, com aviso de que precisa de pelo menos 5 tokens")
 
         # Telemóvel
         mctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")

@@ -24,6 +24,7 @@ function link_whatsapp(array $p): ?string
 function api_admin_resumo(): array
 {
     exigir_admin();
+    limpar_pedidos_antigos();
     return [
         'pedidos_por_tratar' => (int) valor("SELECT COUNT(*) FROM pedidos WHERE estado IN ('recebido', 'em_curso')"),
         'oficinas_pendentes' => (int) valor("SELECT COUNT(*) FROM oficinas WHERE estado = 'pendente'"),
@@ -37,6 +38,7 @@ function api_admin_pedidos(): array
     $onde = match ($filtro) {
         'tratar' => "p.estado IN ('recebido', 'em_curso')",
         'a_aguardar_ficheiro' => "p.estado = 'a_aguardar_ficheiro'",
+        'a_aguardar_saldo' => "p.estado = 'a_aguardar_saldo'",
         'concluido' => "p.estado = 'concluido'",
         'fechado' => "p.estado IN ('recusado', 'cancelado')",
         'todos' => '1 = 1',
@@ -80,25 +82,31 @@ function api_admin_pedido_estado(string $id): array
                 executar("UPDATE pedidos SET estado = 'em_curso' WHERE id = ?", [$p['id']]);
                 break;
             case 'concluir':
+                if ($p['estado'] === 'a_aguardar_saldo') {
+                    throw new ErroHttp(409, 'A oficina ainda não pagou o custo final: faltam '
+                        . tokens_txt((int) $p['tokens'] - (int) $p['pagos']) . '. O pedido avança quando carregar o saldo.');
+                }
                 if (!in_array($p['estado'], ['recebido', 'em_curso', 'concluido'], true)) {
                     throw new ErroHttp(409, 'Este pedido não pode ser concluído.');
                 }
                 if (!$p['modificado_chave']) {
                     throw new ErroHttp(409, 'Carregue primeiro o ficheiro modificado.');
                 }
+                // Concluir sem definir o custo final aceita como final o que já foi pago.
                 executar(
-                    "UPDATE pedidos SET estado = 'concluido', concluido_em = UTC_TIMESTAMP(), nota = ? WHERE id = ?",
+                    "UPDATE pedidos SET estado = 'concluido', concluido_em = UTC_TIMESTAMP(), fechado_em = UTC_TIMESTAMP(),
+                     custo_definido = 1, nota = ? WHERE id = ?",
                     [$nota !== '' ? $nota : $p['nota'], $p['id']]
                 );
                 break;
             case 'recusar':
-                if (!in_array($p['estado'], ['a_aguardar_ficheiro', 'recebido', 'em_curso'], true)) {
+                if (!in_array($p['estado'], ['a_aguardar_ficheiro', 'recebido', 'em_curso', 'a_aguardar_saldo'], true)) {
                     throw new ErroHttp(409, 'Este pedido já não pode ser recusado.');
                 }
                 if ($nota === '') {
                     throw new ErroHttp(400, 'Escreva o motivo da recusa para o cliente.');
                 }
-                executar("UPDATE pedidos SET estado = 'recusado', nota = ? WHERE id = ?", [$nota, $p['id']]);
+                executar("UPDATE pedidos SET estado = 'recusado', fechado_em = UTC_TIMESTAMP(), nota = ? WHERE id = ?", [$nota, $p['id']]);
                 devolver_tokens($p, 'Pedido recusado');
                 break;
             default:
@@ -129,6 +137,79 @@ function api_admin_pedido_estado(string $id): array
     return ['pedido' => pedido_admin($p)];
 }
 
+/**
+ * Define o custo final de um pedido depois de analisada a ECU. A diferença para o que já foi pago é descontada
+ * do saldo; se o saldo não chegar, o pedido fica à espera de saldo e avança sozinho quando a oficina carregar.
+ * Baixar o custo devolve a diferença ao saldo. O custo nunca fica abaixo dos tokens mínimos do envio.
+ */
+function api_admin_pedido_custo(string $id): array
+{
+    exigir_admin();
+    $c = ler_json();
+    $novo = inteiro($c['tokens'] ?? null);
+    $minimo = tokens_minimo();
+    if ($novo < $minimo || $novo > 1000) {
+        throw new ErroHttp(400, 'Indique um custo entre ' . tokens_txt($minimo) . ' e 1000 tokens.');
+    }
+    $base = um('SELECT id, oficina_id FROM pedidos WHERE id = ?', [(int) $id]);
+    if (!$base) {
+        throw new ErroHttp(404, 'Pedido não encontrado.');
+    }
+    [$p, $cobrado, $devolvido] = transacao(function () use ($base, $novo) {
+        // Mesma ordem de bloqueio que nos carregamentos: primeiro a oficina, depois o pedido.
+        um('SELECT id FROM oficinas WHERE id = ? FOR UPDATE', [$base['oficina_id']]);
+        $p = um('SELECT * FROM pedidos WHERE id = ? FOR UPDATE', [$base['id']]);
+        if (!in_array($p['estado'], ['recebido', 'em_curso', 'a_aguardar_saldo'], true)) {
+            throw new ErroHttp(409, 'Só pode definir o custo de um pedido recebido, em curso ou à espera de saldo.');
+        }
+        $pagos = (int) $p['pagos'];
+        $devolvido = 0;
+        if ($novo < $pagos) {
+            $devolvido = $pagos - $novo;
+            executar(
+                "INSERT INTO movimentos (oficina_id, tokens, tipo, pedido_id, referencia) VALUES (?, ?, 'devolucao', ?, 'Acerto do custo final')",
+                [$p['oficina_id'], $devolvido, $p['id']]
+            );
+            $pagos = $novo;
+        }
+        executar('UPDATE pedidos SET tokens = ?, pagos = ?, custo_definido = 1 WHERE id = ?', [$novo, $pagos, $p['id']]);
+        $p = um('SELECT * FROM pedidos WHERE id = ?', [$p['id']]);
+        $cobrado = cobrar_diferenca($p);
+        if ($cobrado === null) {
+            executar("UPDATE pedidos SET estado = 'a_aguardar_saldo' WHERE id = ?", [$p['id']]);
+        } elseif ($p['estado'] === 'a_aguardar_saldo') {
+            executar("UPDATE pedidos SET estado = 'em_curso' WHERE id = ?", [$p['id']]);
+        }
+        return [um('SELECT * FROM pedidos WHERE id = ?', [$p['id']]), $cobrado, $devolvido];
+    });
+
+    $o = um('SELECT * FROM oficinas WHERE id = ?', [$p['oficina_id']]);
+    $pedido = "pedido n.º {$p['id']} (" . viatura_txt($p) . ')';
+    $custo = tokens_txt((int) $p['tokens']);
+    if ($cobrado === null) {
+        $falta = (int) $p['tokens'] - (int) $p['pagos'];
+        $saldo = saldo((int) $o['id']);
+        notificar(
+            $o['email'],
+            "Pedido n.º {$p['id']}: falta saldo",
+            "Analisámos a ECU do $pedido. O custo final é de $custo e já foram descontados " . tokens_txt((int) $p['pagos']) . ".\n\n"
+            . 'Faltam ' . tokens_txt($falta) . ' e o saldo atual é de ' . tokens_txt($saldo) . '. Carregue pelo menos '
+            . tokens_txt($falta - $saldo) . " para o pedido avançar. A diferença é descontada automaticamente.\n"
+            . site_url() . '/area-cliente#saldo' . assinatura_email()
+        );
+    } elseif ($cobrado > 0 || $devolvido > 0) {
+        $mov = $cobrado > 0
+            ? 'Foram descontados mais ' . tokens_txt($cobrado) . ' do saldo.'
+            : 'Voltaram ao saldo ' . tokens_txt($devolvido) . '.';
+        notificar(
+            $o['email'],
+            "Pedido n.º {$p['id']}: custo final",
+            "Analisámos a ECU do $pedido. O custo final é de $custo. $mov\n" . site_url() . '/area-cliente#pedidos' . assinatura_email()
+        );
+    }
+    return ['pedido' => pedido_admin($p)];
+}
+
 function api_admin_pedido_modificado(string $id): array
 {
     exigir_admin();
@@ -136,8 +217,8 @@ function api_admin_pedido_modificado(string $id): array
     if (!$p) {
         throw new ErroHttp(404, 'Pedido não encontrado.');
     }
-    if (!in_array($p['estado'], ['recebido', 'em_curso', 'concluido'], true)) {
-        throw new ErroHttp(409, 'Só pode carregar o ficheiro modificado de um pedido recebido, em curso ou concluído.');
+    if (!in_array($p['estado'], ['recebido', 'em_curso', 'a_aguardar_saldo', 'concluido'], true)) {
+        throw new ErroHttp(409, 'Só pode carregar o ficheiro modificado de um pedido recebido, em curso, à espera de saldo ou concluído.');
     }
     $f = guardar_upload('ficheiro', "pedidos/{$p['id']}/modificado");
     if ($p['modificado_chave'] && $p['modificado_chave'] !== $f['chave']) {
@@ -227,7 +308,7 @@ function api_admin_oficina_tokens(string $id): array
     if (!$o) {
         throw new ErroHttp(404, 'Oficina não encontrada.');
     }
-    $saldo = transacao(function () use ($o, $tokens, $ref) {
+    [$saldo, $liquidados] = transacao(function () use ($o, $tokens, $ref) {
         um('SELECT id FROM oficinas WHERE id = ? FOR UPDATE', [$o['id']]);
         $atual = saldo((int) $o['id']);
         if ($atual + $tokens < 0) {
@@ -237,14 +318,28 @@ function api_admin_oficina_tokens(string $id): array
             'INSERT INTO movimentos (oficina_id, tokens, tipo, referencia) VALUES (?, ?, ?, ?)',
             [$o['id'], $tokens, $tokens > 0 ? 'carregamento' : 'acerto', $ref !== '' ? $ref : null]
         );
-        return $atual + $tokens;
+        // Pedidos à espera de saldo avançam por ordem de chegada, enquanto o saldo chegar.
+        $liquidados = [];
+        if ($tokens > 0) {
+            $espera = todos("SELECT * FROM pedidos WHERE oficina_id = ? AND estado = 'a_aguardar_saldo' ORDER BY id FOR UPDATE", [$o['id']]);
+            foreach ($espera as $p) {
+                $cobrado = cobrar_diferenca($p);
+                if ($cobrado === null) {
+                    break;
+                }
+                executar("UPDATE pedidos SET estado = 'em_curso' WHERE id = ?", [$p['id']]);
+                $liquidados[] = "Pedido n.º {$p['id']} (" . viatura_txt($p) . '): descontados ' . tokens_txt($cobrado) . ' do custo final; o pedido avançou.';
+            }
+        }
+        return [saldo((int) $o['id']), $liquidados];
     });
     if ($tokens > 0) {
         notificar(
             $o['email'],
             'Saldo carregado: ' . tokens_txt($tokens),
             'Foram carregados ' . tokens_txt($tokens) . " na conta de {$o['nome']}" . ($ref !== '' ? " (referência: $ref)" : '')
-            . ".\n\nSaldo atual: " . tokens_txt($saldo) . ".\n" . site_url() . '/area-cliente#saldo' . assinatura_email()
+            . ".\n\n" . ($liquidados ? implode("\n", $liquidados) . "\n\n" : '')
+            . 'Saldo atual: ' . tokens_txt($saldo) . ".\n" . site_url() . '/area-cliente#saldo' . assinatura_email()
         );
     }
     return api_admin_oficina($id);
