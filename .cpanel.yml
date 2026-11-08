@@ -1,0 +1,10 @@
+---
+# Instalação pelo Git Version Control do cPanel ("Deploy HEAD Commit").
+# site/ vai para public_html; app/ fica fora da pasta pública. O config.php do servidor não é tocado.
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/
+    - export APPPATH=$HOME/autosolutions-app/
+    - /bin/mkdir -p $DEPLOYPATH $APPPATH
+    - /bin/cp -R site/. $DEPLOYPATH
+    - /bin/cp -R app/. $APPPATH

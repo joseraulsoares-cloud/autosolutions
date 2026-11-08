@@ -1157,12 +1157,14 @@ def build(out_dir, preview):
     MISSING.clear()
     if out_dir.exists():
         shutil.rmtree(out_dir)
-    shutil.copytree(SRC / "assets", out_dir / "assets")
+    # O modo de demonstração (demo.js) só existe na pré-visualização.
+    shutil.copytree(SRC / "assets", out_dir / "assets", ignore=None if preview else shutil.ignore_patterns("demo.js"))
     for page in PAGES:
         if preview and page.get("site_only"):
             continue
         (out_dir / page["file"]).write_text(document(page, preview), encoding="utf-8")
     if not preview:
+        shutil.copytree(SRC / "api", out_dir / "api")
         (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")
         (ROOT / "app").mkdir(exist_ok=True)
         (ROOT / "app" / "catalogo.php").write_text(catalogo_php(), encoding="utf-8")
