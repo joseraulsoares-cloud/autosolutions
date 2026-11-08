@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Área de cliente | GARC – Soluções Técnicas</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Envie ficheiros, acompanhe pedidos e consulte o saldo de tokens.">
+<meta property="og:title" content="Área de cliente | GARC – Soluções Técnicas">
+<meta property="og:description" content="Envie ficheiros, acompanhe pedidos e consulte o saldo de tokens.">
+<meta property="og:locale" content="pt_PT">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/styles.css">
+<script src="/assets/main.js" defer></script>
+<script src="/assets/app.js" defer></script>
+<script src="/assets/portal.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="GARC – Soluções Técnicas, página inicial">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+      <span class="brand-text"><span class="brand-name">GARC</span><span class="brand-sub">Soluções Técnicas</span></span>
+    </a>
+    <nav class="nav" aria-label="Principal" data-open="false">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-list"><span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>Menu</button>
+      <ul class="nav-list" id="nav-list">
+        <li><a href="/">Início</a></li>
+        <li><a href="/servicos">Serviços</a></li>
+        <li><a href="/precos">Preços</a></li>
+        <li><a href="/loja">Loja</a></li>
+        <li><a href="/noticias">Notícias</a></li>
+        <li><a href="/#sobre">Sobre</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li class="nav-account"><a href="/area-cliente" aria-current="page">Área de cliente</a></li>
+        <li class="nav-cta"><a href="/area-cliente#novo">Enviar ficheiro</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+<script type="application/json" id="catalogo">{"modulos": {"STAGE 1/2": {"nome": "Stage 1/2", "tokens": null, "emissoes": false}, "TCU STAGE 1": {"nome": "TCU Stage 1", "tokens": null, "emissoes": false}, "POP & BANGS": {"nome": "Pop & bangs", "tokens": null, "emissoes": false}, "TORQUE MONITORING": {"nome": "Torque monitoring", "tokens": null, "emissoes": false}, "SPORT DISPLAY CALIBRATION": {"nome": "Sport display", "tokens": null, "emissoes": false}, "FLAPS OFF": {"nome": "Flaps off", "tokens": null, "emissoes": false}, "EXHAUST FLAP OFF": {"nome": "Exhaust flap off", "tokens": null, "emissoes": false}, "TVA OFF": {"nome": "TVA off", "tokens": null, "emissoes": false}, "MAF OFF": {"nome": "MAF off", "tokens": null, "emissoes": false}, "OIL PRESSURE FIX": {"nome": "Oil pressure fix", "tokens": null, "emissoes": false}, "HOT START FIX": {"nome": "Hot start fix", "tokens": null, "emissoes": false}, "START STOP OFF": {"nome": "Start-stop off", "tokens": null, "emissoes": false}, "DPF OFF": {"nome": "DPF off", "tokens": null, "emissoes": true}, "EGR OFF": {"nome": "EGR off", "tokens": null, "emissoes": true}, "ADBLUE/SCR OFF": {"nome": "AdBlue/SCR off", "tokens": null, "emissoes": true}, "LAMBDA/O2 OFF": {"nome": "Lambda/O2 off", "tokens": null, "emissoes": true}}, "maxMb": 25, "urls": {"admin": "/admin", "areaCliente": "/area-cliente", "precos": "/precos"}}</script>
+<section class="page-head">
+  <div class="wrap portal-top">
+    <div class="portal-title">
+      <h1>Área de cliente</h1>
+      <p class="lead" id="p-sub">Envie ficheiros, acompanhe os pedidos e consulte o saldo de tokens.</p>
+    </div>
+    <div class="saldo-box" id="p-saldo-box" hidden>
+      <span class="small muted">Saldo</span>
+      <strong class="saldo-num" id="p-saldo">0</strong>
+      <span class="small">tokens</span>
+    </div>
+  </div>
+</section>
+
+<section class="section portal">
+  <div class="wrap">
+    <p class="muted" id="p-carregar">A carregar…</p>
+    <div class="auth" id="v-entrar" hidden>
+      <div class="auth-card">
+        <h2>Entrar</h2>
+        <form class="form" id="f-entrar-email">
+          <div class="field"><label for="e-email">Email da conta</label><input id="e-email" name="email" type="email" autocomplete="email" required></div>
+          <p class="hint">Enviamos um código de acesso para este email. Não há palavra-passe.</p>
+          <div class="actions"><button class="btn btn-primary" type="submit">Enviar código</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+        <form class="form" id="f-entrar-codigo" hidden>
+          <p>Se <strong data-email-mostra></strong> tiver uma conta ativa, recebe um código de 6 dígitos, válido durante 10 minutos.</p>
+          <div class="field"><label for="e-codigo">Código</label><input id="e-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Entrar</button><button class="btn btn-secondary" type="button" data-outro-email>Usar outro email</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+      <div class="auth-side">
+        <h2>Ainda não tem conta?</h2>
+        <p>A área de cliente é para oficinas e profissionais do setor automóvel. Depois do registo, aprovamos a conta e avisamos por email.</p>
+        <div class="actions"><a class="btn btn-secondary" href="#registo">Criar conta</a></div>
+      </div>
+    </div>
+    <div id="v-registo" hidden>
+      <div class="auth">
+        <div class="auth-card">
+          <h2>Criar conta</h2>
+          <form class="form" id="f-registo">
+            <div class="grid-2">
+            <div class="field"><label for="r-nome">Oficina ou empresa <span class="req" aria-hidden="true">*</span></label><input id="r-nome" name="nome" type="text" required autocomplete="organization" maxlength="120"></div>
+            <div class="field"><label for="r-nif">NIF <span class="req" aria-hidden="true">*</span></label><input id="r-nif" name="nif" type="text" required inputmode="numeric" maxlength="20"></div>
+            <div class="field"><label for="r-responsavel">Nome do responsável <span class="req" aria-hidden="true">*</span></label><input id="r-responsavel" name="responsavel" type="text" required autocomplete="name" maxlength="120"></div>
+            <div class="field"><label for="r-email">Email <span class="req" aria-hidden="true">*</span></label><input id="r-email" name="email" type="email" required autocomplete="email"></div>
+            <div class="field"><label for="r-telefone">Telefone <span class="req" aria-hidden="true">*</span></label><input id="r-telefone" name="telefone" type="tel" required autocomplete="tel"></div>
+            <div class="field"><label for="r-whatsapp">WhatsApp, se for outro número</label><input id="r-whatsapp" name="whatsapp" type="tel"></div>
+            </div>
+            <fieldset class="fieldset">
+              <legend>Entrega preferida dos ficheiros</legend>
+              <div class="choices"><div class="check"><input type="radio" id="r-entrega-portal" name="entrega" value="portal" checked><label for="r-entrega-portal">Na área de cliente, com aviso por email</label></div><div class="check"><input type="radio" id="r-entrega-email" name="entrega" value="email"><label for="r-entrega-email">Por email, com o ficheiro em anexo</label></div><div class="check"><input type="radio" id="r-entrega-whatsapp" name="entrega" value="whatsapp"><label for="r-entrega-whatsapp">Por WhatsApp</label></div></div>
+            </fieldset>
+            <div class="hp" aria-hidden="true"><label for="r-site">Não preencher</label><input id="r-site" name="website" tabindex="-1" autocomplete="off"></div>
+            <div class="check"><input id="r-termos" name="termos" type="checkbox" value="sim" required><label for="r-termos">Aceito os <a href="/termos">termos de utilização</a> e li a <a href="/privacidade">política de privacidade</a>.</label></div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Criar conta</button><a class="btn btn-secondary" href="#entrar">Já tenho conta</a></div>
+            <p class="status" role="status" aria-live="polite" hidden></p>
+          </form>
+        </div>
+        <div class="auth-side">
+          <h2>Depois do registo</h2>
+          <ol class="aside-steps">
+            <li>Aprovamos a conta e avisamos por email.</li>
+            <li>Entra com o email: enviamos um código de acesso.</li>
+            <li>Carrega tokens e envia o primeiro pedido.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+    <div id="v-painel" hidden>
+      <nav class="tabs" aria-label="Secções da área de cliente">
+        <a href="#pedidos" data-tab="pedidos">Pedidos</a>
+        <a href="#novo" data-tab="novo">Novo pedido</a>
+        <a href="#saldo" data-tab="saldo">Saldo</a>
+        <a href="#conta" data-tab="conta">Conta</a>
+        <button class="tab-out" type="button" data-sair>Sair</button>
+      </nav>
+      <div class="panel" data-panel="pedidos">
+        <div class="panel-head"><h2>Pedidos</h2><a class="btn btn-primary" href="#novo">Novo pedido</a></div>
+        <p class="status" id="p-aviso" role="status" aria-live="polite" hidden></p>
+        <div class="orders" id="p-pedidos"></div>
+      </div>
+      <div class="panel" data-panel="novo" hidden>
+        <div class="panel-head"><h2>Novo pedido</h2><a href="/precos">Ver preços</a></div>
+        <div class="pedido">
+    <form class="form" id="form-pedido">
+      <p class="hint">Os campos com <span class="req">*</span> são obrigatórios.</p>
+      <fieldset class="fieldset">
+        <legend>Viatura e centralina</legend>
+        <div class="grid-2">
+          <div class="field"><label for="f-viatura">Marca e modelo <span class="req" aria-hidden="true">*</span></label><input id="f-viatura" name="viatura" type="text" placeholder="ex.: Volkswagen Golf VII" required></div>
+          <div class="field"><label for="f-motor">Motor</label><input id="f-motor" name="motor" type="text" placeholder="ex.: 2.0 TDI 150 cv"></div>
+          <div class="field"><label for="f-ano">Ano</label><input id="f-ano" name="ano" type="text" placeholder="ex.: 2017" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" title="Ano com 4 dígitos"></div>
+          <div class="field"><label for="f-ecu">ECU <span class="req" aria-hidden="true">*</span></label><input id="f-ecu" name="ecu" type="text" placeholder="ex.: Bosch EDC17C64" required></div>
+          <div class="field"><label for="f-ferramenta">Ferramenta de leitura</label><input id="f-ferramenta" name="ferramenta" type="text" placeholder="ex.: KESS3, Autotuner, Flex"></div>
+          <div class="field"><label for="f-metodo">Método de leitura</label><select id="f-metodo" name="metodo"><option value="">Escolher</option><option>OBD</option><option>Bancada</option><option>Boot</option><option>Outro</option></select></div>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Módulos pretendidos <span class="req" aria-hidden="true">*</span></legend>
+        <div class="modules">
+          <div class="module-group"><h3>Chiptuning</h3><div class="check mod"><input type="checkbox" id="m-stage-1-2" name="modulos" value="STAGE 1/2" data-tokens="" disabled><label for="m-stage-1-2"><span>Stage 1/2</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-tcu-stage-1" name="modulos" value="TCU STAGE 1" data-tokens="" disabled><label for="m-tcu-stage-1"><span>TCU Stage 1</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-pop-bangs" name="modulos" value="POP &amp; BANGS" data-tokens="" disabled><label for="m-pop-bangs"><span>Pop &amp; bangs</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-torque-monitoring" name="modulos" value="TORQUE MONITORING" data-tokens="" disabled><label for="m-torque-monitoring"><span>Torque monitoring</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-sport-display-calibration" name="modulos" value="SPORT DISPLAY CALIBRATION" data-tokens="" disabled><label for="m-sport-display-calibration"><span>Sport display</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div></div>
+          <div class="module-group"><h3>Admissão e escape</h3><div class="check mod"><input type="checkbox" id="m-flaps-off" name="modulos" value="FLAPS OFF" data-tokens="" disabled><label for="m-flaps-off"><span>Flaps off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-exhaust-flap-off" name="modulos" value="EXHAUST FLAP OFF" data-tokens="" disabled><label for="m-exhaust-flap-off"><span>Exhaust flap off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-tva-off" name="modulos" value="TVA OFF" data-tokens="" disabled><label for="m-tva-off"><span>TVA off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-maf-off" name="modulos" value="MAF OFF" data-tokens="" disabled><label for="m-maf-off"><span>MAF off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div></div>
+          <div class="module-group"><h3>Correções</h3><div class="check mod"><input type="checkbox" id="m-oil-pressure-fix" name="modulos" value="OIL PRESSURE FIX" data-tokens="" disabled><label for="m-oil-pressure-fix"><span>Oil pressure fix</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-hot-start-fix" name="modulos" value="HOT START FIX" data-tokens="" disabled><label for="m-hot-start-fix"><span>Hot start fix</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-start-stop-off" name="modulos" value="START STOP OFF" data-tokens="" disabled><label for="m-start-stop-off"><span>Start-stop off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div></div>
+          <div class="module-group emissions"><h3>Sistemas de emissões</h3><p class="small">Uso exclusivo em competição ou fora da via pública.</p><div class="check mod"><input type="checkbox" id="m-dpf-off" name="modulos" value="DPF OFF" data-tokens="" data-emissions disabled><label for="m-dpf-off"><span>DPF off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-egr-off" name="modulos" value="EGR OFF" data-tokens="" data-emissions disabled><label for="m-egr-off"><span>EGR off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-adblue-scr-off" name="modulos" value="ADBLUE/SCR OFF" data-tokens="" data-emissions disabled><label for="m-adblue-scr-off"><span>AdBlue/SCR off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div><div class="check mod"><input type="checkbox" id="m-lambda-o2-off" name="modulos" value="LAMBDA/O2 OFF" data-tokens="" data-emissions disabled><label for="m-lambda-o2-off"><span>Lambda/O2 off</span><span class="mod-tokens"><span class="ph">[tokens]</span></span></label></div></div>
+        </div>
+        <div class="declaration" id="decl-wrap" hidden>
+          <div class="check"><input type="checkbox" id="f-declaracao" name="declaracao_emissoes" value="sim"><label for="f-declaracao">Declaro que os módulos de sistemas de emissões se destinam a um veículo de competição ou a uso fora da via pública.</label></div>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Ficheiro e observações</legend>
+        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Máximo 25 MB.</p></div>
+        <div class="field"><label for="f-mensagem">Observações</label><textarea id="f-mensagem" name="observacoes" maxlength="2000" placeholder="Sintomas, peças alteradas, códigos de erro…"></textarea></div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend>Entrega do ficheiro modificado</legend>
+        <div class="choices"><div class="check"><input type="radio" id="f-entrega-portal" name="entrega" value="portal" checked><label for="f-entrega-portal">Na área de cliente, com aviso por email</label></div><div class="check"><input type="radio" id="f-entrega-email" name="entrega" value="email"><label for="f-entrega-email">Por email, com o ficheiro em anexo</label></div><div class="check"><input type="radio" id="f-entrega-whatsapp" name="entrega" value="whatsapp"><label for="f-entrega-whatsapp">Por WhatsApp</label></div></div>
+        <div class="field" id="f-whatsapp-wrap" hidden><label for="f-whatsapp">Número de WhatsApp</label><input id="f-whatsapp" name="whatsapp" type="tel" autocomplete="tel" placeholder="ex.: 912 345 678"></div>
+        <p class="hint">O ficheiro fica sempre disponível em Pedidos.</p>
+      </fieldset>
+      <div class="resumo" id="f-resumo" data-estado="vazio" aria-live="polite">
+        <div><span class="small muted">Total do pedido</span><strong id="f-total">0 tokens</strong></div>
+        <div><span class="small muted">Saldo atual</span><strong id="f-saldo-atual">–</strong></div>
+        <p class="resumo-msg" id="f-resumo-msg">Escolha os módulos para ver o custo.</p>
+      </div>
+      <div class="actions"><button class="btn btn-primary" type="submit" id="f-enviar">Enviar pedido</button></div>
+      <div class="progress" id="f-progresso" hidden><div class="progress-bar"><span id="f-progresso-barra"></span></div><p class="small" id="f-progresso-txt"></p></div>
+      <p class="status" role="status" aria-live="polite" hidden></p>
+    </form>
+    <aside class="aside">
+      <div class="aside-block">
+        <h2>Antes de enviar</h2>
+        <ul class="checklist">
+          <li>Guarde o ficheiro original em mais de um sítio.</li>
+          <li>Mantenha a tensão estável durante a leitura, com carregador ou estabilizador ligado.</li>
+          <li>Indique a ferramenta e o método usados.</li>
+          <li>Se a viatura tem avarias registadas, refira-as nas observações.</li>
+        </ul>
+      </div>
+      <div class="aside-block">
+        <h2>Depois do envio</h2>
+        <ol class="aside-steps">
+          <li>Os tokens do pedido são descontados do saldo.</li>
+          <li>Preparamos o ficheiro para essa ECU. Se não for possível, recusamos o pedido e os tokens voltam ao saldo.</li>
+          <li>Entregamos o ficheiro pela via que escolheu. Fica também disponível em Pedidos.</li>
+        </ol>
+      </div>
+    </aside>
+  </div>
+      </div>
+      <div class="panel" data-panel="saldo" hidden>
+        <div class="panel-head"><h2>Saldo</h2></div>
+        <div class="saldo-grid">
+          <div class="stack">
+            <h3>Carregar saldo</h3>
+            <ol class="aside-steps">
+              <li>Escolha um pacote e pague por transferência ou MB WAY.</li>
+              <li>No descritivo do pagamento, indique o NIF da oficina.</li>
+              <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
+            </ol>
+            <dl class="spec">
+              <div><dt>IBAN</dt><dd><span class="ph">[IBAN]</span></dd></div>
+              <div><dt>MB WAY</dt><dd><span class="ph">[número MB WAY]</span></dd></div>
+              <div><dt>Titular</dt><dd>GARC – Soluções Técnicas, Unipessoal Lda</dd></div>
+            </dl>
+          </div>
+          <div class="stack">
+            <h3>Pacotes</h3>
+            <div class="table-wrap"><table class="price-table">
+          <thead><tr><th scope="col">Pacote</th><th scope="col">Preço</th><th scope="col">Por token</th></tr></thead>
+          <tbody><tr><th scope="row"><span class="ph">[tokens]</span></th><td><span class="ph">[preço]</span></td><td>–</td></tr><tr><th scope="row"><span class="ph">[tokens]</span></th><td><span class="ph">[preço]</span></td><td>–</td></tr><tr><th scope="row"><span class="ph">[tokens]</span></th><td><span class="ph">[preço]</span></td><td>–</td></tr></tbody>
+        </table></div>
+        <p class="small muted"><span class="ph">[IVA incluído ou a acrescer]</span></p>
+          </div>
+        </div>
+        <h3>Extrato</h3>
+        <div id="p-extrato"></div>
+      </div>
+      <div class="panel" data-panel="conta" hidden>
+        <div class="panel-head"><h2>Conta</h2></div>
+        <div class="about">
+          <dl class="spec" id="p-conta-dados"></dl>
+          <form class="form" id="f-conta">
+            <div class="field"><label for="c-telefone">Telefone <span class="req" aria-hidden="true">*</span></label><input id="c-telefone" name="telefone" type="tel" required autocomplete="tel"></div>
+            <div class="field"><label for="c-whatsapp">WhatsApp</label><input id="c-whatsapp" name="whatsapp" type="tel"></div>
+            <fieldset class="fieldset">
+              <legend>Entrega preferida dos ficheiros</legend>
+              <div class="choices"><div class="check"><input type="radio" id="c-entrega-portal" name="entrega" value="portal" checked><label for="c-entrega-portal">Na área de cliente, com aviso por email</label></div><div class="check"><input type="radio" id="c-entrega-email" name="entrega" value="email"><label for="c-entrega-email">Por email, com o ficheiro em anexo</label></div><div class="check"><input type="radio" id="c-entrega-whatsapp" name="entrega" value="whatsapp"><label for="c-entrega-whatsapp">Por WhatsApp</label></div></div>
+            </fieldset>
+            <p class="hint">Para alterar o nome, o NIF ou o email da conta, contacte-nos.</p>
+            <div class="actions"><button class="btn btn-primary" type="submit">Guardar alterações</button></div>
+            <p class="status" role="status" aria-live="polite" hidden></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer" id="contacto">
+  <div class="wrap footer-main">
+    <div>
+      <h2>Envie uma mensagem</h2>
+      <form class="form" id="form-contacto" action="/api/contacto" method="post">
+        <div class="grid-2">
+          <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
+          <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
+          <div class="field"><label for="f-c-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-c-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="f-c-telefone">Telefone</label><input id="f-c-telefone" name="telefone" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
+        <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
+        <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="/privacidade">política de privacidade</a>.</label></div>
+        <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
+        <p class="status" role="status" aria-live="polite" hidden></p>
+      </form>
+    </div>
+    <div>
+      <h2>Contactos</h2>
+      <dl class="contact-info">
+        <div><dt>Morada</dt><dd><span class="ph">[rua e código postal]</span><br>Arcozelo, Vila Nova de Gaia</dd></div>
+        <div><dt>Telefone e WhatsApp</dt><dd><span class="ph">[telefone]</span></dd></div>
+        <div><dt>Email</dt><dd><span class="ph">[email da empresa]</span></dd></div>
+        <div><dt>Horário</dt><dd><span class="ph">[dias e horas de atendimento]</span></dd></div>
+        <div><dt>Redes sociais</dt><dd><span class="ph">[redes sociais]</span></dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <div class="wrap">
+      <p>GARC – Soluções Técnicas, Unipessoal Lda. Sede: <span class="ph">[rua e código postal]</span>, Arcozelo, Vila Nova de Gaia. NIPC <span class="ph">[NIPC]</span>, matriculada na Conservatória do Registo Comercial de <span class="ph">[conservatória]</span> sob o mesmo número.</p>
+      <ul class="legal-links">
+        <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
+        <li><a href="/privacidade">Política de privacidade</a></li>
+        <li><a href="/termos">Termos de utilização</a></li>
+      </ul>
+      <p>© 2026 GARC – Soluções Técnicas</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

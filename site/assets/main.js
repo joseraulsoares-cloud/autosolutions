@@ -2,14 +2,16 @@
   'use strict';
 
   var PREVIEW = !!document.querySelector('meta[name="garc-preview"]');
-  var MAX_FILE = 25 * 1024 * 1024;
+  var DEMO = PREVIEW && !!document.getElementById('catalogo');
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* Preview notice */
   if (PREVIEW) {
     var bar = document.createElement('div');
     bar.className = 'preview-bar';
-    bar.innerHTML = '<div class="wrap">Pré-visualização. O texto a amarelo está por preencher e os formulários ainda não enviam.</div>';
+    bar.innerHTML = DEMO
+      ? '<div class="wrap">Demonstração com dados de exemplo: nada é gravado. Para entrar, use qualquer email e qualquer código de 6 dígitos.</div>'
+      : '<div class="wrap">Pré-visualização. O texto a amarelo está por preencher e os formulários ainda não enviam.</div>';
     document.body.insertBefore(bar, document.body.firstChild);
   }
 
@@ -117,43 +119,6 @@
         .then(function () {
           if (btn) { btn.disabled = false; btn.textContent = label; }
         });
-    });
-  }
-
-  /* File request form */
-  var pedido = document.getElementById('form-pedido');
-  function syncEmissions() {
-    if (!pedido) return;
-    var any = !!pedido.querySelector('input[data-emissions]:checked');
-    var wrap = document.getElementById('decl-wrap');
-    var box = document.getElementById('f-declaracao');
-    if (!wrap || !box) return;
-    wrap.hidden = !any;
-    box.required = any;
-    if (!any) box.checked = false;
-  }
-  if (pedido) {
-    pedido.addEventListener('change', function (e) {
-      if (e.target.matches('input[name="modulos"]')) syncEmissions();
-    });
-    syncEmissions();
-    wireForm(pedido, {
-      endpoint: '/api/pedido',
-      validate: function (f) {
-        if (!f.querySelector('input[name="modulos"]:checked')) {
-          return { msg: 'Escolha pelo menos um módulo.', focus: f.querySelector('input[name="modulos"]') };
-        }
-        var input = f.querySelector('#f-ficheiro');
-        var file = input && input.files && input.files[0];
-        if (file && file.size > MAX_FILE) {
-          return { msg: 'O ficheiro tem mais de 25 MB. Comprima-o em .zip ou contacte-nos.', focus: input };
-        }
-        return null;
-      },
-      afterReset: syncEmissions,
-      previewMsg: 'Pré-visualização: o pedido foi validado, mas não foi enviado. O envio fica ativo quando o site estiver no ar.',
-      okMsg: 'Pedido enviado. Vai receber a resposta por email.',
-      errMsg: 'Não foi possível enviar o pedido. Verifique a ligação e tente de novo; se o erro continuar, contacte-nos por telefone.'
     });
   }
 

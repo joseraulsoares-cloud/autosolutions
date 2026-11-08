@@ -1,28 +1,27 @@
 # Site da GARC – Soluções Técnicas
 
-Site estático da GARC – Soluções Técnicas, Unipessoal Lda: serviços, pedido de ficheiro, loja, notícias e páginas legais.
+Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: serviços, preços em tokens, loja, notícias, páginas legais e área de cliente para oficinas.
 
 ## Estrutura
 
-- `build.py` gera todas as páginas. Os dados da empresa (morada, telefone, email, NIPC…) estão no dicionário `DADOS`, no início do ficheiro.
-- `src/assets/` tem os estilos, o script, o ícone e as fontes (Barlow e Barlow Condensed, licença SIL Open Font License, em `src/assets/fonts/OFL.txt`).
-- `site/` é o site gerado, que o Cloudflare Pages publica. Não se edita à mão.
-- `preview/` é uma versão de revisão, sem envio de formulários. Não entra no repositório.
+- `build.py` gera todas as páginas. Os dados da empresa (morada, telefone, email, NIPC…) estão no dicionário `DADOS`; os custos em tokens estão em `TOKENS` e os pacotes em `PACOTES`, no início do ficheiro.
+- `src/assets/` tem os estilos, os scripts, o ícone e as fontes (Barlow e Barlow Condensed, licença SIL Open Font License, em `src/assets/fonts/OFL.txt`).
+- `site/` é o site gerado, que vai para a pasta `public_html` do alojamento. Não se edita à mão.
+- `app/` tem o código do servidor da área de cliente, que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`.
+- `preview/` é uma versão de revisão, com a área de cliente em modo de demonstração. Não entra no repositório.
 
 ## Alterar o site
 
-1. Editar `build.py` ou os ficheiros em `src/assets/`.
+1. Editar `build.py` ou os ficheiros em `src/`.
 2. Gerar o site: `python3 build.py` (Python 3.8 ou mais recente, sem dependências).
 3. Ver a lista "Por preencher" que o comando mostra no fim.
-4. Fazer commit das alterações, incluindo a pasta `site/`.
+4. Fazer commit das alterações, incluindo as pastas `site/` e `app/`.
 
-## Publicação no Cloudflare Pages
+## Alojamento
 
-- Repositório ligado ao Cloudflare Pages, com `main` como ramo de produção.
-- Predefinição de framework: nenhuma. Comando de build: vazio. Diretório de saída: `site`.
-- `site/_headers` define os cabeçalhos de segurança e a cache das fontes.
-- O Cloudflare Pages serve `servicos.html` em `/servicos`; as ligações internas do site já usam esses endereços.
+- Dominios.pt, com cPanel (Apache, PHP e MySQL), no domínio www.autosolutions.pt.
+- O conteúdo de `site/` é copiado para `public_html`. O `site/.htaccess` trata dos endereços sem `.html`, da página 404, do redirecionamento para `https://www.autosolutions.pt` e dos cabeçalhos de segurança.
 
-## Formulários
+## Área de cliente
 
-Os formulários enviam para `/api/pedido` (pedido de ficheiro, com anexo) e `/api/contacto`. Estas rotas vão ser criadas como Pages Functions na pasta `functions/`. Até lá, o envio mostra uma mensagem de erro.
+Em construção, em PHP e MySQL para correr no cPanel: registo das oficinas com aprovação, entrada por código enviado por email, saldo de tokens, pedidos com envio do ficheiro, entrega pela área de cliente, por email ou por WhatsApp, e painel de administração.

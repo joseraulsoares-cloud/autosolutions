@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Administração | GARC – Soluções Técnicas</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Painel de administração da área de cliente.">
+<meta property="og:title" content="Administração | GARC – Soluções Técnicas">
+<meta property="og:description" content="Painel de administração da área de cliente.">
+<meta property="og:locale" content="pt_PT">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/styles.css">
+<script src="/assets/main.js" defer></script>
+<script src="/assets/app.js" defer></script>
+<script src="/assets/admin.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="GARC – Soluções Técnicas, página inicial">
+      <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+      <span class="brand-text"><span class="brand-name">GARC</span><span class="brand-sub">Soluções Técnicas</span></span>
+    </a>
+    <nav class="nav" aria-label="Principal" data-open="false">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-list"><span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>Menu</button>
+      <ul class="nav-list" id="nav-list">
+        <li><a href="/">Início</a></li>
+        <li><a href="/servicos">Serviços</a></li>
+        <li><a href="/precos">Preços</a></li>
+        <li><a href="/loja">Loja</a></li>
+        <li><a href="/noticias">Notícias</a></li>
+        <li><a href="/#sobre">Sobre</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+        <li class="nav-account"><a href="/area-cliente">Área de cliente</a></li>
+        <li class="nav-cta"><a href="/area-cliente#novo">Enviar ficheiro</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main id="conteudo">
+<script type="application/json" id="catalogo">{"modulos": {"STAGE 1/2": {"nome": "Stage 1/2", "tokens": null, "emissoes": false}, "TCU STAGE 1": {"nome": "TCU Stage 1", "tokens": null, "emissoes": false}, "POP & BANGS": {"nome": "Pop & bangs", "tokens": null, "emissoes": false}, "TORQUE MONITORING": {"nome": "Torque monitoring", "tokens": null, "emissoes": false}, "SPORT DISPLAY CALIBRATION": {"nome": "Sport display", "tokens": null, "emissoes": false}, "FLAPS OFF": {"nome": "Flaps off", "tokens": null, "emissoes": false}, "EXHAUST FLAP OFF": {"nome": "Exhaust flap off", "tokens": null, "emissoes": false}, "TVA OFF": {"nome": "TVA off", "tokens": null, "emissoes": false}, "MAF OFF": {"nome": "MAF off", "tokens": null, "emissoes": false}, "OIL PRESSURE FIX": {"nome": "Oil pressure fix", "tokens": null, "emissoes": false}, "HOT START FIX": {"nome": "Hot start fix", "tokens": null, "emissoes": false}, "START STOP OFF": {"nome": "Start-stop off", "tokens": null, "emissoes": false}, "DPF OFF": {"nome": "DPF off", "tokens": null, "emissoes": true}, "EGR OFF": {"nome": "EGR off", "tokens": null, "emissoes": true}, "ADBLUE/SCR OFF": {"nome": "AdBlue/SCR off", "tokens": null, "emissoes": true}, "LAMBDA/O2 OFF": {"nome": "Lambda/O2 off", "tokens": null, "emissoes": true}}, "maxMb": 25, "urls": {"admin": "/admin", "areaCliente": "/area-cliente", "precos": "/precos"}}</script>
+<section class="page-head">
+  <div class="wrap"><h1>Administração</h1><p class="lead">Contas das oficinas, tokens e pedidos.</p></div>
+</section>
+
+<section class="section portal admin">
+  <div class="wrap">
+    <p class="muted" id="p-carregar">A carregar…</p>
+    <div class="auth" id="v-entrar" hidden>
+      <div class="auth-card">
+        <h2>Entrar</h2>
+        <form class="form" id="f-entrar-email">
+          <div class="field"><label for="a-email">Email da conta</label><input id="a-email" name="email" type="email" autocomplete="email" required></div>
+          <p class="hint">Enviamos um código de acesso para este email. Não há palavra-passe.</p>
+          <div class="actions"><button class="btn btn-primary" type="submit">Enviar código</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+        <form class="form" id="f-entrar-codigo" hidden>
+          <p>Se <strong data-email-mostra></strong> tiver uma conta ativa, recebe um código de 6 dígitos, válido durante 10 minutos.</p>
+          <div class="field"><label for="a-codigo">Código</label><input id="a-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Entrar</button><button class="btn btn-secondary" type="button" data-outro-email>Usar outro email</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </div>
+    <div id="v-painel" hidden>
+      <nav class="tabs" aria-label="Secções do painel">
+        <a href="#pedidos" data-tab="pedidos">Pedidos <span class="count" id="a-n-pedidos"></span></a>
+        <a href="#oficinas" data-tab="oficinas">Oficinas <span class="count" id="a-n-oficinas"></span></a>
+        <button class="tab-out" type="button" data-sair>Sair</button>
+      </nav>
+      <div class="panel" data-panel="pedidos">
+        <div class="filters" role="group" aria-label="Filtrar pedidos" id="a-filtro-pedidos">
+          <button type="button" data-filtro="tratar" aria-pressed="true">Por tratar</button>
+          <button type="button" data-filtro="a_aguardar_ficheiro" aria-pressed="false">À espera do ficheiro</button>
+          <button type="button" data-filtro="concluido" aria-pressed="false">Concluídos</button>
+          <button type="button" data-filtro="fechado" aria-pressed="false">Recusados e cancelados</button>
+          <button type="button" data-filtro="todos" aria-pressed="false">Todos</button>
+        </div>
+        <div class="split">
+          <div class="list" id="a-pedidos"></div>
+          <div class="detail" id="a-pedido" hidden></div>
+        </div>
+      </div>
+      <div class="panel" data-panel="oficinas" hidden>
+        <div class="filters" role="group" aria-label="Filtrar oficinas" id="a-filtro-oficinas">
+          <button type="button" data-filtro="pendente" aria-pressed="true">Por aprovar</button>
+          <button type="button" data-filtro="aprovada" aria-pressed="false">Aprovadas</button>
+          <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+        </div>
+        <div class="split">
+          <div class="list" id="a-oficinas"></div>
+          <div class="detail" id="a-oficina" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<footer class="site-footer" id="contacto">
+  <div class="wrap footer-main">
+    <div>
+      <h2>Envie uma mensagem</h2>
+      <form class="form" id="form-contacto" action="/api/contacto" method="post">
+        <div class="grid-2">
+          <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
+          <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
+          <div class="field"><label for="f-c-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-c-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="f-c-telefone">Telefone</label><input id="f-c-telefone" name="telefone" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
+        <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
+        <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="/privacidade">política de privacidade</a>.</label></div>
+        <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
+        <p class="status" role="status" aria-live="polite" hidden></p>
+      </form>
+    </div>
+    <div>
+      <h2>Contactos</h2>
+      <dl class="contact-info">
+        <div><dt>Morada</dt><dd><span class="ph">[rua e código postal]</span><br>Arcozelo, Vila Nova de Gaia</dd></div>
+        <div><dt>Telefone e WhatsApp</dt><dd><span class="ph">[telefone]</span></dd></div>
+        <div><dt>Email</dt><dd><span class="ph">[email da empresa]</span></dd></div>
+        <div><dt>Horário</dt><dd><span class="ph">[dias e horas de atendimento]</span></dd></div>
+        <div><dt>Redes sociais</dt><dd><span class="ph">[redes sociais]</span></dd></div>
+      </dl>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <div class="wrap">
+      <p>GARC – Soluções Técnicas, Unipessoal Lda. Sede: <span class="ph">[rua e código postal]</span>, Arcozelo, Vila Nova de Gaia. NIPC <span class="ph">[NIPC]</span>, matriculada na Conservatória do Registo Comercial de <span class="ph">[conservatória]</span> sob o mesmo número.</p>
+      <ul class="legal-links">
+        <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
+        <li><a href="/privacidade">Política de privacidade</a></li>
+        <li><a href="/termos">Termos de utilização</a></li>
+      </ul>
+      <p>© 2026 GARC – Soluções Técnicas</p>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

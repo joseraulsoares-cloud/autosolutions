@@ -1,3 +1,6 @@
 preview/
 __pycache__/
 .DS_Store
+# Configuração com palavras-passe e dados locais de teste
+app/config.php
+dados/
