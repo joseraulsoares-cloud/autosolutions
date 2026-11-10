@@ -31,8 +31,7 @@ MAX_MB = 25
 # A morada da sede e a conservatória aparecem só na identificação legal (rodapé, privacidade e termos),
 # não nos contactos, porque o serviço é prestado online. O capital social não é mostrado, por decisão da empresa.
 DADOS = {
-    "telefone": "913 027 543",
-    "whatsapp": True,       # o mesmo número atende WhatsApp
+    "whatsapp": "+351 913 027 543",  # contacto só por WhatsApp (mensagens); o site não mostra ligação para chamadas
     "email": "fileservice@autosolutions.pt",  # email da empresa (contactos, pedidos e privacidade)
     "horario": "8h30–17h00",
     "nipc": "505743973",
@@ -41,7 +40,7 @@ DADOS = {
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
     "prazo_ficheiros": "1 mês",  # conservação dos ficheiros de centralina (apagados automaticamente)
     "entrega": "Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento",
-    "mbway": "913 027 543",      # número MB WAY para carregamentos de saldo
+    "mbway": "+351 913 027 543",  # número MB WAY para carregamentos de saldo
     "stripe": "",                # ligação de pagamento do Stripe (Payment Link), ex.: "https://buy.stripe.com/..."; vazio = cartão oculto
     "paypal": "jraulsoares",     # nome no PayPal.Me (https://paypal.me/<nome>), pagamentos entre amigos e familiares; vazio = PayPal oculto
     "iva": "IVA incluído à taxa legal em vigor",
@@ -138,9 +137,9 @@ def registo_html(inicio=False):
             f"com o número único de matrícula e de pessoa coletiva {val('nipc', 'NIPC')}")
 
 
-def telefone_digitos():
+def whatsapp_digitos():
     """Número com indicativo, só algarismos (ex.: 351913027543)."""
-    digits = re.sub(r"\D", "", DADOS["telefone"])
+    digits = re.sub(r"\D", "", DADOS["whatsapp"])
     if digits.startswith("00"):
         digits = digits[2:]
     if len(digits) == 9:  # número português sem indicativo
@@ -149,22 +148,20 @@ def telefone_digitos():
 
 
 def whatsapp_url(texto="Olá! Tenho uma questão sobre os serviços da GARC."):
-    return f"https://wa.me/{telefone_digitos()}?text={quote(texto)}"
+    return f"https://wa.me/{whatsapp_digitos()}?text={quote(texto)}"
 
 
-def telefone_html():
-    tel = DADOS["telefone"]
-    if not tel:
-        return ph("telefone")
-    out = f'<a href="tel:+{telefone_digitos()}">{esc(tel)}</a>'
-    if DADOS["whatsapp"]:
-        out += f'<br><a href="{esc(whatsapp_url())}" target="_blank" rel="noopener">Falar no WhatsApp</a>'
-    return out
+def whatsapp_html():
+    """Contacto por WhatsApp: o número abre a conversa; não há ligação para chamadas."""
+    if not DADOS["whatsapp"]:
+        return ph("número de WhatsApp")
+    return (f'<a href="{esc(whatsapp_url())}" target="_blank" rel="noopener">{esc(DADOS["whatsapp"])}</a>'
+            '<br><span class="small muted">Atendimento por mensagem, sem chamadas.</span>')
 
 
 def whatsapp_flutuante():
     """Botão fixo no canto do ecrã para abrir uma conversa no WhatsApp."""
-    if not DADOS["whatsapp"] or not DADOS["telefone"]:
+    if not DADOS["whatsapp"]:
         return ""
     return (f'<a class="wa-float" href="{esc(whatsapp_url())}" target="_blank" rel="noopener" '
             f'aria-label="Falar connosco pelo WhatsApp">'
@@ -293,7 +290,7 @@ def footer(preview):
     <div>
       <h2>Contactos</h2>
       <dl class="contact-info">
-        <div><dt>{'Telefone e WhatsApp' if DADOS['whatsapp'] else 'Telefone'}</dt><dd>{telefone_html()}</dd></div>
+        <div><dt>WhatsApp</dt><dd>{whatsapp_html()}</dd></div>
         <div><dt>Email</dt><dd>{email_html()}</dd></div>
         <div><dt>Horário</dt><dd>{val('horario', 'dias e horas de atendimento')}</dd></div>
         <div><dt>Prazo de entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
@@ -727,7 +724,7 @@ def body_precos(preview):
       </div>""")
     grupos_html = "\n      ".join(grupos)
     wa = (f'<a href="{esc(whatsapp_url("Olá! Quero saber o custo de um ficheiro para esta ECU:"))}" target="_blank" rel="noopener">WhatsApp</a>'
-          if DADOS["whatsapp"] else "telefone")
+          if DADOS["whatsapp"] else ph("número de WhatsApp"))
     return page_head(
         "Preços",
         f"Os ficheiros pagam-se com tokens pré-pagos. 1 token custa {esc(eur(TOKEN_EUR))}, com IVA incluído.",

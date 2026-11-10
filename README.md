@@ -4,7 +4,7 @@ Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: 
 
 ## Estrutura
 
-- `build.py` gera todas as páginas. Os dados da empresa (sede, conservatória, NIPC, telefone, email, pagamentos…) estão no dicionário `DADOS`; o preço do token está em `TOKEN_EUR` e os tokens descontados no envio de cada pedido em `TOKENS_MINIMO`, no início do ficheiro.
+- `build.py` gera todas as páginas. Os dados da empresa (sede, conservatória, NIPC, WhatsApp, email, pagamentos…) estão no dicionário `DADOS`; o preço do token está em `TOKEN_EUR` e os tokens descontados no envio de cada pedido em `TOKENS_MINIMO`, no início do ficheiro.
 - `src/assets/` tem os estilos, os scripts, o ícone e as fontes (Barlow e Barlow Condensed, licença SIL Open Font License, em `src/assets/fonts/OFL.txt`). `src/api/` tem a entrada da API em PHP.
 - `site/` é o site gerado, que vai para a pasta `public_html` do alojamento. Não se edita à mão.
 - `app/` é o código do servidor da área de cliente (PHP 8.1 ou mais recente, MySQL), que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`.
