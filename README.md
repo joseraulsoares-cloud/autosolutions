@@ -51,13 +51,17 @@ Depois copiar `logo-cabecalho.html` para `src/` e os restantes ficheiros para `s
 
 ## Instalação no cPanel (Dominios.pt)
 
-1. **PHP**: em MultiPHP Manager, PHP 8.1 ou mais recente para o domínio.
-2. **Base de dados**: em MySQL Database Wizard, criar a base de dados e um utilizador com todas as permissões.
-3. **Email**: a conta fileservice@autosolutions.pt (já criada) envia e recebe os emails do site. Confirmar SPF e DKIM em Email Deliverability.
-4. **Código**: em Git Version Control, clonar `https://github.com/joseraulsoares-cloud/autosolutions` e usar "Deploy HEAD Commit". O `.cpanel.yml` copia `site/` para `public_html` e `app/` para `~/autosolutions-app`. Em alternativa, enviar as duas pastas pelo Gestor de Ficheiros.
-5. **Configuração**: em `~/autosolutions-app/`, copiar `config.exemplo.php` para `config.php` e preencher: base de dados, emails de administração, remetente, pasta dos ficheiros (`/home/UTILIZADOR/autosolutions-dados/ficheiros`) e um segredo com 64 caracteres aleatórios.
-6. **Limites de envio**: `site/api/.user.ini` sobe o limite de ficheiros para 32 MB. Se o alojamento o ignorar, definir `upload_max_filesize` e `post_max_size` no MultiPHP INI Editor.
-7. **Primeiro acesso**: abrir `https://www.autosolutions.pt/admin` e entrar com um dos emails de administração. As tabelas são criadas automaticamente no primeiro acesso à API.
+1. **Site antigo**: se o `public_html` já tiver outro site, fazer cópia de segurança e esvaziá-lo antes do primeiro Deploy (os ficheiros antigos não são apagados pelo Deploy).
+2. **PHP**: em MultiPHP Manager, PHP 8.1 ou mais recente para o domínio.
+3. **Base de dados**: em MySQL Database Wizard, criar a base de dados e um utilizador com todas as permissões. O cPanel junta o nome da conta como prefixo (por exemplo, `UTILIZADOR_garc`).
+4. **HTTPS**: em SSL/TLS Status, confirmar que o certificado cobre `autosolutions.pt` e `www.autosolutions.pt` (correr o AutoSSL, se faltar). O `.htaccess` redireciona tudo para `https://www.autosolutions.pt`.
+5. **Email**: a conta fileservice@autosolutions.pt (já criada) envia e recebe os emails do site. Confirmar SPF e DKIM em Email Deliverability.
+6. **Código**: em Git Version Control, criar um repositório com o Clone URL `https://github.com/joseraulsoares-cloud/autosolutions` (público, não precisa de chave), o caminho `/home/UTILIZADOR/repositories/autosolutions` (fora de `public_html`) e o ramo `main`. Depois, em Manage → Pull or Deploy, usar "Deploy HEAD Commit". O `.cpanel.yml` copia `site/` para `public_html` e `app/` para `~/autosolutions-app`. Em alternativa, enviar as duas pastas pelo Gestor de Ficheiros.
+7. **Configuração**: em `~/autosolutions-app/`, copiar `config.exemplo.php` para `config.php` e preencher: base de dados, emails de administração, remetente, pasta dos ficheiros (`/home/UTILIZADOR/autosolutions-dados/ficheiros`, criada automaticamente) e um segredo com 64 caracteres aleatórios (no Terminal do cPanel: `openssl rand -hex 32`). O `config.php` não está no repositório e o Deploy não lhe toca.
+8. **Limites de envio**: `site/api/.user.ini` sobe o limite de ficheiros para 32 MB. Se o alojamento o ignorar, definir `upload_max_filesize` e `post_max_size` no MultiPHP INI Editor.
+9. **Primeiro acesso**: abrir `https://www.autosolutions.pt/admin` e entrar com um dos emails de administração. As tabelas são criadas automaticamente no primeiro acesso à API.
+
+**Atualizar o site** depois de cada alteração no `main`: em Git Version Control → Manage → Pull or Deploy, "Update from Remote" e depois "Deploy HEAD Commit".
 
 O `site/.htaccess` trata dos endereços sem `.html`, da página 404, do redirecionamento para `https://www.autosolutions.pt` e dos cabeçalhos de segurança.
 
