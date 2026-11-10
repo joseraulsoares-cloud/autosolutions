@@ -42,8 +42,8 @@ DADOS = {
     "prazo_ficheiros": "1 mês",  # conservação dos ficheiros de centralina (apagados automaticamente)
     "entrega": "Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento",
     "mbway": "913 027 543",      # número MB WAY para carregamentos de saldo
-    "stripe": "",                # ligação de pagamento do Stripe (Payment Link), ex.: "https://buy.stripe.com/..."
-    "paypal": "",                # conta PayPal para pagamentos entre amigos e familiares, ex.: "nome@exemplo.pt"
+    "stripe": "",                # ligação de pagamento do Stripe (Payment Link), ex.: "https://buy.stripe.com/..."; vazio = cartão oculto
+    "paypal": "jraulsoares",     # nome no PayPal.Me (https://paypal.me/<nome>), pagamentos entre amigos e familiares; vazio = PayPal oculto
     "iva": "IVA incluído à taxa legal em vigor",
     "validade_tokens": "12 meses a contar do carregamento",
     "reembolso": "não é reembolsado; os tokens ficam em crédito na conta até ao fim da validade",
@@ -57,6 +57,7 @@ EXEMPLOS_CARREGAMENTO = [5, 10, 12, 20]  # quantidades mostradas na tabela de pr
 
 PREVIEW = False  # definido por build()
 MISSING = []     # campos por preencher encontrados na geração
+OCULTOS = []     # opções que não aparecem no site enquanto o campo estiver vazio
 
 
 def esc(text):
@@ -90,6 +91,44 @@ def asset(path):
 def email_html():
     email = DADOS["email"]
     return f'<a href="mailto:{esc(email)}">{esc(email)}</a>' if email else ph("email da empresa")
+
+
+def paypal_url():
+    return f"https://paypal.me/{DADOS['paypal']}" if DADOS["paypal"] else ""
+
+
+def lista_txt(itens):
+    """«A», «A ou B», «A, B ou C»."""
+    return itens[0] if len(itens) == 1 else ", ".join(itens[:-1]) + " ou " + itens[-1]
+
+
+def meios_pagamento():
+    """Meios de pagamento com dados preenchidos; o cartão e o PayPal ficam ocultos até haver ligação."""
+    meios = ["MB WAY"]
+    for chave, nome, falta in (("stripe", "cartão", "ligação de pagamento do Stripe (pagamento por cartão)"),
+                               ("paypal", "PayPal", "nome no PayPal.Me (pagamento por PayPal)")):
+        if DADOS[chave]:
+            meios.append(nome)
+        elif falta not in OCULTOS:
+            OCULTOS.append(falta)
+    return meios
+
+
+def meios_txt():
+    return lista_txt(meios_pagamento())
+
+
+def plataformas_txt():
+    """Frase da política de privacidade sobre as plataformas de pagamento em uso."""
+    usadas = [(meio, plataforma) for meio, plataforma, chave in (("cartão", "Stripe", "stripe"), ("PayPal", "PayPal", "paypal"))
+              if DADOS[chave]]
+    if not usadas:
+        return ""
+    meios = " e ".join(f"por {meio}" for meio, _ in usadas)
+    nomes = " e ".join(plataforma for _, plataforma in usadas)
+    if len(usadas) == 1:
+        return f" Os pagamentos {meios} são feitos na plataforma {nomes}, que trata os dados do pagamento segundo as suas próprias políticas."
+    return f" Os pagamentos {meios} são feitos nas plataformas {nomes}, que tratam os dados do pagamento segundo as suas próprias políticas."
 
 
 def registo_html(inicio=False):
@@ -429,7 +468,7 @@ def body_index(preview):
     </div>
     <ol class="steps">
       <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
-      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por MB WAY, cartão ou PayPal.</p></li>
+      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por {meios_txt()}.</p></li>
       <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
       <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
     </ol>
@@ -704,7 +743,7 @@ def body_precos(preview):
       <h2>Como carregar saldo</h2>
       <ol class="aside-steps">
         <li>Crie conta na área de cliente. Aprovamos a conta e avisamos por email.</li>
-        <li>Pague por MB WAY, cartão ou PayPal. Os dados de pagamento estão na área de cliente, em Saldo.</li>
+        <li>Pague por {meios_txt()}. Os dados de pagamento estão na área de cliente, em Saldo.</li>
         <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
       </ol>
       <div class="actions"><a class="btn btn-primary" href="{url('area-cliente', '#registo')}">Criar conta</a><a class="btn btn-secondary" href="{url('area-cliente')}">Entrar</a></div>
@@ -783,13 +822,16 @@ def body_area_cliente(preview):
         field("r-telefone", "telefone", "Telefone", True, "tel", extra=' autocomplete="tel"'),
         field("r-whatsapp", "whatsapp", "WhatsApp, se for outro número", kind="tel"),
     ])
-    cartao = (f'<a class="btn btn-secondary btn-sm" href="{esc(DADOS["stripe"])}" target="_blank" rel="noopener">Pagar com cartão</a>'
-              if DADOS["stripe"] else ph("ligação de pagamento do Stripe"))
-    pagamento = f"""<dl class="spec">
-              <div><dt>MB WAY</dt><dd>{val('mbway', 'número MB WAY')}</dd></div>
-              <div><dt>Cartão</dt><dd>{cartao}</dd></div>
-              <div><dt>PayPal</dt><dd>{val('paypal', 'conta PayPal')}<br><span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>
-            </dl>"""
+    meios = meios_pagamento()
+    linhas = [f"<div><dt>MB WAY</dt><dd>{val('mbway', 'número MB WAY')}</dd></div>"]
+    if "cartão" in meios:
+        linhas.append(f'<div><dt>Cartão</dt><dd><a class="btn btn-secondary btn-sm" href="{esc(DADOS["stripe"])}" '
+                      f'target="_blank" rel="noopener">Pagar com cartão</a></dd></div>')
+    if "PayPal" in meios:
+        linhas.append(f'<div><dt>PayPal</dt><dd><a href="{esc(paypal_url())}" target="_blank" rel="noopener">'
+                      f'{esc(paypal_url().removeprefix("https://"))}</a><br>'
+                      f'<span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>')
+    pagamento = '<dl class="spec">\n              ' + "\n              ".join(linhas) + "\n            </dl>"
     return f"""<section class="page-head">
   <div class="wrap portal-top">
     <div class="portal-title">
@@ -859,7 +901,7 @@ def body_area_cliente(preview):
           <div class="stack">
             <h3>Carregar saldo</h3>
             <ol class="aside-steps">
-              <li>Escolha quantos tokens quer, a partir de {tokens_txt(TOKENS_MINIMO)}, e pague por MB WAY, cartão ou PayPal.</li>
+              <li>Escolha quantos tokens quer, a partir de {tokens_txt(TOKENS_MINIMO)}, e pague por {lista_txt(meios)}.</li>
               <li>Na descrição do pagamento, indique o NIF da oficina.</li>
               <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
             </ol>
@@ -1024,7 +1066,7 @@ def body_privacidade(preview):
       <li>Dados de clientes, pedidos e faturação: pelo prazo legal de conservação dos documentos contabilísticos.</li>
     </ul>
     <h2>Destinatários</h2>
-    <p>Os dados são acessíveis aos fornecedores que prestam à empresa os serviços de alojamento do site, armazenamento de ficheiros e envio de email, apenas para esse fim e ao abrigo de contrato. Os pagamentos por cartão e por PayPal são feitos nas plataformas Stripe e PayPal, que tratam os dados do pagamento segundo as suas próprias políticas. Alguns destes fornecedores podem tratar dados fora do Espaço Económico Europeu, com as garantias previstas no RGPD. A empresa não vende nem cede dados para fins de marketing.</p>
+    <p>Os dados são acessíveis aos fornecedores que prestam à empresa os serviços de alojamento do site, armazenamento de ficheiros e envio de email, apenas para esse fim e ao abrigo de contrato.{plataformas_txt()} Alguns destes fornecedores podem tratar dados fora do Espaço Económico Europeu, com as garantias previstas no RGPD. A empresa não vende nem cede dados para fins de marketing.</p>
     <h2>Direitos dos titulares</h2>
     <p>Pode pedir o acesso, a retificação, o apagamento, a limitação ou a portabilidade dos seus dados, ou opor-se ao tratamento, através de {email_html()}. Pode também apresentar reclamação à Comissão Nacional de Proteção de Dados (<a href="https://www.cnpd.pt/" target="_blank" rel="noopener">www.cnpd.pt</a>).</p>
     <h2>Cookies</h2>
@@ -1058,7 +1100,7 @@ def body_termos(preview):
       <li>{esc(SOB_CONSULTA)}: sob consulta.</li>
     </ul>
     <h2>Preços, pagamento e prazos</h2>
-    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por MB WAY, por cartão, através do Stripe, ou por PayPal, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
+    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por {meios_txt()}, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
     <h2>Responsabilidade</h2>
     <p>A empresa não responde por danos resultantes de leituras incorretas, de escrita interrompida, da utilização do ficheiro noutra viatura ou de avarias mecânicas preexistentes.</p>
     <h2>Reclamações</h2>
@@ -1157,6 +1199,7 @@ def build(out_dir, preview):
     global PREVIEW
     PREVIEW = preview
     MISSING.clear()
+    OCULTOS.clear()
     if out_dir.exists():
         shutil.rmtree(out_dir)
     # O modo de demonstração (demo.js) só existe na pré-visualização.
@@ -1171,14 +1214,18 @@ def build(out_dir, preview):
         (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")
         (ROOT / "app").mkdir(exist_ok=True)
         (ROOT / "app" / "catalogo.php").write_text(catalogo_php(), encoding="utf-8")
-    return list(MISSING)
+    return list(MISSING), list(OCULTOS)
 
 
 if __name__ == "__main__":
     build(ROOT / "preview", preview=True)
-    missing = build(ROOT / "site", preview=False)
+    missing, ocultos = build(ROOT / "site", preview=False)
     print("Gerado: site/ e preview/")
     if missing:
         print("Por preencher (aparece a amarelo no site):")
         for item in missing:
+            print("  -", item)
+    if ocultos:
+        print("Oculto no site até ser preenchido:")
+        for item in ocultos:
             print("  -", item)
