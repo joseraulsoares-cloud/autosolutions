@@ -379,105 +379,118 @@ def page_head(title, lead=None, extra=""):
 
 # ---------------------------------------------------------------- página inicial
 
-def calibration_map():
-    rpm = [1000, 1500, 2000, 2500, 3000, 3500, 4000]
-    # pedal (%), binário de série (Nm), fator do Stage 1 (exemplo)
-    rows = [
-        (20, [60, 70, 75, 75, 70, 65, 60], 1.00),
-        (40, [120, 140, 150, 150, 145, 135, 120], 1.05),
-        (60, [180, 215, 230, 230, 220, 205, 185], 1.10),
-        (80, [230, 280, 300, 300, 290, 270, 245], 1.15),
-        (100, [250, 320, 340, 340, 330, 305, 275], 1.18),
-    ]
+# Módulos do esquema da rede de bordo (vista de cima, frente à direita): x, y, nome, pormenor.
+# Os módulos com y = 150 ficam sobre a linha principal da rede CAN; os outros ligam-se por um ramal.
+REDE_BORDO = [
+    (515, 150, "Motor e caixa", "ECU e TCU"),
+    (480, 208, "ABS e ESP", "travões e estabilidade"),
+    (420, 112, "Painel e conforto", "BCM"),
+    (372, 100, "Ficha de diagnóstico", "OBD"),
+    (326, 150, "Airbag", "SRS"),
+]
 
-    def bucket(v):
-        return 1 if v < 100 else 2 if v < 180 else 3 if v < 260 else 4 if v < 330 else 5
 
-    head_cells = "".join(f'<th scope="col">{r}</th>' for r in rpm)
-    body_rows = []
-    stock_max = 0
-    for pedal, values, factor in rows:
-        cells = []
-        for v in values:
-            t = int(v * factor + 0.5)
-            stock_max = max(stock_max, v)
-            cells.append(f'<td class="h{bucket(v)}" data-s="{v}" data-t="{t}">{v}</td>')
-        body_rows.append(f'<tr><th scope="row">{pedal}%</th>{"".join(cells)}</tr>')
-    rows_html = "\n          ".join(body_rows)
-    legend = [("h1", "&lt; 100"), ("h2", "100–179"), ("h3", "180–259"), ("h4", "260–329"), ("h5", "≥ 330")]
-    legend_html = "".join(f'<span style="--sw: var(--{k}-bg)">{label}</span>' for k, label in legend)
-    return f"""<figure class="map" data-map aria-labelledby="map-title">
-      <div class="map-head">
-        <div>
-          <p class="map-title" id="map-title">Binário pedido</p>
-          <p class="map-axis">Nm por posição do pedal e regime do motor</p>
-        </div>
-        <div class="seg" role="group" aria-label="Calibração mostrada">
-          <button type="button" data-variant="s" aria-pressed="true">Série</button>
-          <button type="button" data-variant="t" aria-pressed="false">Stage 1</button>
-        </div>
-      </div>
-      <div class="map-scroll">
-        <table>
-          <caption class="sr-only">Binário pedido, em Nm, por posição do pedal (linhas) e regime do motor em rpm (colunas). Exemplo ilustrativo.</caption>
-          <thead><tr><th scope="col">Pedal / rpm</th>{head_cells}</tr></thead>
-          <tbody>
-          {rows_html}
-          </tbody>
-        </table>
-      </div>
-      <div class="map-foot">
-        <div>
-          <p class="small muted">Binário máximo</p>
-          <p class="readout" data-readout aria-live="polite">{stock_max} Nm</p>
-        </div>
-        <div class="legend" aria-label="Escala de cores, em Nm">{legend_html}</div>
-      </div>
-      <figcaption>Exemplo ilustrativo de um diesel 2.0, de série e com Stage 1. Os valores reais dependem do motor e da ECU.</figcaption>
+def rede_bordo():
+    """Esquema simplificado de um automóvel visto de cima, com os módulos ligados pela rede CAN."""
+    tronco = [x for x, y, *_ in REDE_BORDO if y == 150]
+    linhas = [f'<path class="rb-can" pathLength="1" d="M{min(tronco)} 150 H{max(tronco)}"/>']
+    ramais = [(x, y) for x, y, *_ in REDE_BORDO if y != 150]
+    linhas += [f'<path class="rb-can rb-ramal" style="--i: {i}" pathLength="1" d="M{x} 150 V{y}"/>'
+               for i, (x, y) in enumerate(ramais)]
+    nos = [f'<g transform="translate({x} {y})"><g class="rb-no"><circle r="14"/><text y="5.5">{n}</text></g></g>'
+           for n, (x, y, *_) in enumerate(REDE_BORDO, 1)]
+    legenda = "".join(f"<li><strong>{esc(nome)}</strong><span>{esc(pormenor)}</span></li>"
+                      for *_, nome, pormenor in REDE_BORDO)
+    legenda += '<li class="rb-legenda-can"><strong>Rede CAN</strong><span>liga os módulos entre si</span></li>'
+    return f"""<figure class="rb">
+      <svg class="rb-svg" viewBox="0 0 600 300" role="img" aria-labelledby="rb-titulo rb-desc">
+        <title id="rb-titulo">Rede de bordo de um automóvel</title>
+        <desc id="rb-desc">Esquema de um automóvel visto de cima, com os módulos numerados de 1 a 5 ligados pela rede CAN.</desc>
+        <g class="rb-rodas"><rect x="94" y="37" width="66" height="19" rx="6"/><rect x="94" y="244" width="66" height="19" rx="6"/><rect x="440" y="37" width="66" height="19" rx="6"/><rect x="440" y="244" width="66" height="19" rx="6"/></g>
+        <g class="rb-linha"><rect x="400" y="38" width="24" height="12" rx="5" transform="rotate(-10 412 44)"/><rect x="400" y="250" width="24" height="12" rx="5" transform="rotate(10 412 256)"/></g>
+        <path class="rb-corpo" d="M40 150 C40 95 48 62 92 56 C180 48 380 46 470 50 C535 53 566 80 570 150 C566 220 535 247 470 250 C380 254 180 252 92 244 C48 238 40 205 40 150 Z"/>
+        <path class="rb-vidro" d="M172 102 C176 88 192 82 216 80 L388 78 C418 80 440 90 450 104 L450 196 C440 210 418 220 388 222 L216 220 C192 218 176 212 172 198 Z M388 78 C397 108 397 192 388 222 M216 80 C208 108 208 192 216 220"/>
+        <g class="rb-bancos"><rect x="300" y="92" width="52" height="44" rx="10"/><rect x="300" y="164" width="52" height="44" rx="10"/><rect x="228" y="92" width="44" height="116" rx="12"/></g>
+        {"".join(linhas)}
+        {"".join(nos)}
+      </svg>
+      <ol class="rb-legenda">{legenda}</ol>
+      <figcaption>Esquema simplificado de um automóvel visto de cima. É nesta rede que trabalhamos.</figcaption>
     </figure>"""
 
 
+# Áreas de serviço da página inicial. "estado": None (disponível) ou "Brevemente".
+AREAS = [
+    {
+        "titulo": "Ficheiros de calibração",
+        "texto": "Chiptuning, admissão e escape, correções e sistemas de emissões, por módulo, preparados para a viatura e a ECU de cada pedido.",
+        "modo": "Online, na área de cliente, com tokens.",
+        "aviso": "Sistemas de emissões: uso exclusivo em competição ou fora da via pública",
+        "ligacao": ("servicos", "Ver módulos"),
+        "estado": None,
+    },
+    {
+        "titulo": "Diagnóstico avançado",
+        "texto": "Avarias intermitentes, falhas de comunicação entre módulos, sensores e atuadores, e sistemas de pós-tratamento.",
+        "modo": "Por WhatsApp, com apoio durante a reparação.",
+        "whatsapp": ("Olá! Preciso de ajuda com um diagnóstico:", "Pedir diagnóstico"),
+        "estado": None,
+    },
+    {
+        "titulo": "Airbags",
+        "texto": "Reposição de módulos de airbag após acidente (crash data), depois de substituídos os componentes acionados.",
+        "modo": "Por WhatsApp.",
+        "whatsapp": ("Olá! Gostava de saber mais sobre a reposição de módulos de airbag.", "Perguntar pelo WhatsApp"),
+        "estado": "Brevemente",
+    },
+    {
+        "titulo": "Serviços na oficina",
+        "texto": "Para oficinas da região: deslocação à oficina para diagnóstico e apoio técnico.",
+        "modo": "Por marcação, pelo WhatsApp.",
+        "whatsapp": ("Olá! Gostava de saber mais sobre os serviços na oficina.", "Perguntar pelo WhatsApp"),
+        "estado": "Brevemente",
+    },
+]
+
+
+def areas_html():
+    itens = []
+    for a in AREAS:
+        estado = f'<span class="estado">{esc(a["estado"])}</span>' if a.get("estado") else ""
+        aviso = f'\n        <span class="tag">{esc(a["aviso"])}</span>' if a.get("aviso") else ""
+        if a.get("ligacao"):
+            pagina, rotulo = a["ligacao"]
+            acao = f'<a href="{url(pagina)}">{esc(rotulo)}</a>'
+        elif a.get("whatsapp") and DADOS["whatsapp"]:
+            texto, rotulo = a["whatsapp"]
+            acao = f'<a href="{esc(whatsapp_url(texto))}" target="_blank" rel="noopener">{esc(rotulo)}</a>'
+        else:
+            acao = ""
+        itens.append(f"""<li class="area">
+        <div class="area-titulo"><h3>{esc(a["titulo"])}</h3>{estado}</div>
+        <p>{esc(a["texto"])}</p>
+        <p class="area-modo">{esc(a["modo"])}</p>{aviso}
+        {acao}
+      </li>""")
+    return "\n      ".join(itens)
+
+
 def body_index(preview):
-    svc_rows = [
-        ("Chiptuning", "Stage 1 e 2, caixa automática, pop &amp; bangs e ajustes de monitorização.", "chiptuning", ""),
-        ("Admissão e escape", "Flaps, válvula de escape, borboleta de admissão (TVA) e medidor de massa de ar.", "admissao-escape", ""),
-        ("Correções", "Pressão de óleo, arranque a quente e Start &amp; Stop.", "correcoes", ""),
-        ("Sistemas de emissões", "DPF, EGR, AdBlue/SCR e sondas lambda.", "emissoes",
-         '<span class="tag">Uso exclusivo em competição ou fora da via pública</span>'),
-        ("Diagnóstico avançado", "Avarias intermitentes, pós-tratamento, sensores, atuadores e comunicação entre módulos.", "diagnostico", ""),
-    ]
-    rows = []
-    for title, text, anchor, extra in svc_rows:
-        rows.append(
-            f'<li class="svc-row"><h3>{title}</h3><div><p>{text}</p>{extra}</div>'
-            f'<a href="{url("servicos", "#" + anchor)}">Ver detalhes<span class="sr-only"> de {title}</span></a></li>'
-        )
-    svc_html = "\n      ".join(rows)
+    wa_botao = (f'<a class="btn btn-secondary" href="{esc(whatsapp_url())}" target="_blank" rel="noopener">Falar no WhatsApp</a>'
+                if DADOS["whatsapp"] else f'<a class="btn btn-secondary" href="{url("servicos")}">Ver serviços</a>')
+    desde = f"No mercado desde {DADOS['desde']}." if DADOS.get("desde") else ""
     return f"""<section class="hero">
   <div class="wrap">
     <div class="hero-text">
-      <h1>Ficheiros de calibração e diagnóstico avançado para oficinas</h1>
-      <p class="lead">Envie a leitura da centralina, indique o que precisa e receba o ficheiro pronto a escrever. Do outro lado está um engenheiro que conhece o motor e a eletrónica.</p>
+      <h1>Eletrónica automóvel e diagnóstico para oficinas</h1>
+      <p class="lead">Ficheiros de calibração entregues, em média, em 30 a 45 minutos, diagnóstico avançado e apoio técnico por WhatsApp. Do outro lado está um engenheiro que conhece o motor e a eletrónica.</p>
       <div class="actions">
         <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
-        <a class="btn btn-secondary" href="{url('servicos')}">Ver serviços</a>
+        {wa_botao}
       </div>
+      <p class="hero-nota">{desde}</p>
     </div>
-    {calibration_map()}
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Como funciona</h2>
-    </div>
-    <ol class="steps">
-      <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
-      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por {meios_txt()}.</p></li>
-      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
-      <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
-    </ol>
+    {rede_bordo()}
   </div>
 </section>
 
@@ -485,11 +498,25 @@ def body_index(preview):
   <div class="wrap">
     <div class="section-head">
       <h2>Serviços</h2>
-      <p class="lead">Ficheiros por módulo, preparados para a viatura e a ECU de cada pedido, e diagnóstico para as avarias que pedem mais do que uma leitura de erros.</p>
+      <p class="lead">Ficheiros online para oficinas de todo o país; diagnóstico e apoio técnico pelo WhatsApp.</p>
     </div>
-    <ul class="svc-list">
-      {svc_html}
+    <ul class="areas">
+      {areas_html()}
     </ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Como pedir um ficheiro</h2>
+    </div>
+    <ol class="steps">
+      <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
+      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por {meios_txt()}.</p></li>
+      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
+      <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
+    </ol>
   </div>
 </section>
 
@@ -513,10 +540,13 @@ def body_index(preview):
 <section class="band">
   <div class="wrap">
     <div class="band-text">
-      <h2>Tem uma leitura pronta?</h2>
-      <p>Envie-a na área de cliente com os dados da viatura. No envio descontam-se {TOKENS_MINIMO} tokens; o custo final depende da ECU e é confirmado depois de analisarmos o ficheiro.</p>
+      <h2>Tem um carro parado na oficina?</h2>
+      <p>Envie a leitura na área de cliente ou descreva a avaria pelo WhatsApp. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
     </div>
-    <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
+    <div class="actions">
+      <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
+      {wa_botao}
+    </div>
   </div>
 </section>"""
 
@@ -1128,7 +1158,7 @@ def body_404(preview):
 
 PAGES = [
     {"file": "index.html", "nav": "inicio", "title": COMPANY,
-     "desc": "Ficheiros de calibração, chiptuning e diagnóstico avançado para oficinas, com entrega em menos de 2 horas. GARC – AutoSolutions & Consulting.",
+     "desc": "Eletrónica automóvel e diagnóstico para oficinas: ficheiros de calibração entregues em menos de 2 horas, diagnóstico avançado e apoio técnico. GARC – AutoSolutions & Consulting, desde 2001.",
      "body": body_index},
     {"file": "servicos.html", "nav": "servicos", "title": f"Serviços | {COMPANY}",
      "desc": "Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.",

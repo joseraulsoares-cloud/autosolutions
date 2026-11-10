@@ -38,31 +38,6 @@
     });
   }
 
-  /* Calibration map: stock vs. Stage 1 */
-  var map = document.querySelector('[data-map]');
-  if (map) {
-    var buttons = map.querySelectorAll('[data-variant]');
-    var cells = map.querySelectorAll('td[data-s]');
-    var readout = map.querySelector('[data-readout]');
-    var bucket = function (v) { return v < 100 ? 1 : v < 180 ? 2 : v < 260 ? 3 : v < 330 ? 4 : 5; };
-    var show = function (variant) {
-      var max = 0;
-      Array.prototype.forEach.call(cells, function (td) {
-        var v = Number(variant === 't' ? td.getAttribute('data-t') : td.getAttribute('data-s'));
-        td.textContent = String(v);
-        td.className = 'h' + bucket(v);
-        if (v > max) max = v;
-      });
-      if (readout) readout.textContent = max + ' Nm';
-      Array.prototype.forEach.call(buttons, function (b) {
-        b.setAttribute('aria-pressed', String(b.getAttribute('data-variant') === variant));
-      });
-    };
-    Array.prototype.forEach.call(buttons, function (b) {
-      b.addEventListener('click', function () { show(b.getAttribute('data-variant')); });
-    });
-  }
-
   /* Buttons that prefill the contact subject (shop, diagnosis) */
   document.addEventListener('click', function (e) {
     var trigger = e.target.closest('[data-subject]');
