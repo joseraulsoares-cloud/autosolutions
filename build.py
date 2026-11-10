@@ -35,6 +35,7 @@ DADOS = {
     "email": "fileservice@autosolutions.pt",  # email da empresa (contactos, pedidos e privacidade)
     "horario": "8h30–17h00",
     "nipc": "505743973",
+    "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
     "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
@@ -90,6 +91,14 @@ def asset(path):
 def email_html():
     email = DADOS["email"]
     return f'<a href="mailto:{esc(email)}">{esc(email)}</a>' if email else ph("email da empresa")
+
+
+def desde_html():
+    """Há quanto tempo a empresa está no mercado, contado até ao ano de YEAR."""
+    ano = DADOS.get("desde")
+    if not ano:
+        return ph("ano de entrada no mercado")
+    return f"Desde {ano} ({int(YEAR) - int(ano)} anos)"
 
 
 def paypal_url():
@@ -493,6 +502,7 @@ def body_index(preview):
     </div>
     <dl class="spec">
       <div><dt>Empresa</dt><dd>{esc(FIRMA)}</dd></div>
+      <div><dt>No mercado</dt><dd>{desde_html()}</dd></div>
       <div><dt>Entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
