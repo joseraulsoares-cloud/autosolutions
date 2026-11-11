@@ -7,6 +7,7 @@ declare(strict_types=1);
 // A pasta garc-conteudos fica ao lado de public_html e de autosolutions-app, e as atualizações do site
 // nunca a substituem. Se não existir, é criada com os valores de conteudos-iniciais/.
 // Este ficheiro não usa a base de dados: as páginas públicas funcionam mesmo sem a área de cliente.
+// Funciona a partir do PHP 7.1 (o alojamento pode ainda não ter o PHP 8 que a área de cliente pede).
 
 if (!function_exists('garc_dados')) {
 
@@ -37,13 +38,18 @@ if (!function_exists('garc_dados')) {
         }
     }
 
+    function garc_contem(string $texto, string $parte): bool
+    {
+        return strpos($texto, $parte) !== false;
+    }
+
     /** Ficheiros .txt de uma pasta, por ordem do nome. */
     function garc_txts(string $pasta): array
     {
         $nomes = is_dir($pasta) ? (@scandir($pasta) ?: []) : [];
         $lista = [];
         foreach ($nomes as $n) {
-            if (str_ends_with(strtolower($n), '.txt') && is_file("$pasta/$n")) {
+            if (substr(strtolower($n), -4) === '.txt' && is_file("$pasta/$n")) {
                 $lista[] = "$pasta/$n";
             }
         }
@@ -57,7 +63,7 @@ if (!function_exists('garc_dados')) {
         $texto = preg_replace('/^\xEF\xBB\xBF/', '', $texto);
         foreach (preg_split('/\R/u', $texto) as $linha) {
             $linha = trim($linha);
-            if ($linha === '' || $linha[0] === '#' || !str_contains($linha, ':')) {
+            if ($linha === '' || $linha[0] === '#' || !garc_contem($linha, ':')) {
                 continue;
             }
             [$chave, $valor] = explode(':', $linha, 2);
@@ -72,7 +78,7 @@ if (!function_exists('garc_dados')) {
     function garc_numero(string $texto): ?float
     {
         $t = str_replace(['€', ' ', "\u{a0}"], '', $texto);
-        if (str_contains($t, ',')) {
+        if (garc_contem($t, ',')) {
             $t = str_replace(['.', ','], ['', '.'], $t);
         }
         return is_numeric($t) && (float) $t > 0 ? (float) $t : null;
@@ -113,16 +119,25 @@ if (!function_exists('garc_dados')) {
         $ficheiro = garc_conteudos_dir() . '/dados.txt';
         $vivo = is_file($ficheiro) ? garc_ler_dados((string) @file_get_contents($ficheiro)) : [];
         $v = $vivo + $origem;
-        $texto = static fn (string $k): string => ($v[$k] ?? '') !== '' ? $v[$k] : ($origem[$k] ?? '');
+        $texto = static function (string $k) use ($v, $origem): string {
+            return ($v[$k] ?? '') !== '' ? $v[$k] : ($origem[$k] ?? '');
+        };
+        $inteiros = static function (string $lista): array {
+            $r = [];
+            foreach (explode(',', $lista) as $x) {
+                $n = garc_inteiro($x);
+                if ($n !== null) {
+                    $r[] = $n;
+                }
+            }
+            return $r;
+        };
 
         $token = garc_numero($v['token'] ?? '') ?? garc_numero($origem['token'] ?? '') ?? 1.0;
         $minimo = garc_inteiro($v['minimo'] ?? '') ?? garc_inteiro($origem['minimo'] ?? '') ?? 1;
-        $exemplos = array_values(array_filter(array_map(
-            static fn ($x) => garc_inteiro($x),
-            explode(',', $v['exemplos'] ?? '')
-        )));
+        $exemplos = $inteiros($v['exemplos'] ?? '');
         if (!$exemplos) {
-            $exemplos = array_values(array_filter(array_map(static fn ($x) => garc_inteiro($x), explode(',', $origem['exemplos'] ?? ''))));
+            $exemplos = $inteiros($origem['exemplos'] ?? '');
         }
         $paypal = trim(preg_replace('#^(https?://)?(www\.)?paypal\.me/#i', '', $v['paypal'] ?? ''), " /@");
         $cartao = trim($v['cartao'] ?? '');
@@ -188,11 +203,13 @@ if (!function_exists('garc_dados')) {
             'token_txt' => $d['token_txt'],
             'minimo' => $d['minimo'],
             'minimo_txt' => $d['minimo_txt'],
-            'tabela' => array_map(static fn (int $n) => [
-                'tokens' => $n,
-                'tokens_txt' => garc_tokens_txt($n),
-                'preco_txt' => garc_eur($n * $d['token']),
-            ], $d['exemplos']),
+            'tabela' => array_map(static function (int $n) use ($d): array {
+                return [
+                    'tokens' => $n,
+                    'tokens_txt' => garc_tokens_txt($n),
+                    'preco_txt' => garc_eur($n * $d['token']),
+                ];
+            }, $d['exemplos']),
             'iva' => $d['iva'],
             'validade' => $d['validade'],
             'sob_consulta' => $d['sob_consulta'],
@@ -273,10 +290,13 @@ if (!function_exists('garc_dados')) {
                 continue;
             }
             $ls = array_map('trim', explode("\n", $b));
-            $lista = count(array_filter($ls, static fn ($x) => preg_match('/^[-*•]\s+/u', $x))) === count($ls);
-            $blocos[] = $lista
-                ? ['lista' => array_map(static fn ($x) => trim(preg_replace('/^[-*•]\s+/u', '', $x)), $ls)]
-                : ['paragrafo' => $ls];
+            $itens = [];
+            foreach ($ls as $x) {
+                if (preg_match('/^[-*•]\s+/u', $x)) {
+                    $itens[] = trim(preg_replace('/^[-*•]\s+/u', '', $x));
+                }
+            }
+            $blocos[] = count($itens) === count($ls) ? ['lista' => $itens] : ['paragrafo' => $ls];
         }
         return [
             'titulo' => $titulo,
@@ -300,7 +320,9 @@ if (!function_exists('garc_dados')) {
                 $lista[] = $n;
             }
         }
-        usort($lista, static fn ($a, $b) => [$b['data'], $a['ficheiro']] <=> [$a['data'], $b['ficheiro']]);
+        usort($lista, static function (array $a, array $b): int {
+            return [$b['data'], $a['ficheiro']] <=> [$a['data'], $b['ficheiro']];
+        });
         return $lista;
     }
 
@@ -332,10 +354,11 @@ if (!function_exists('garc_dados')) {
             $corpo = '';
             foreach ($n['blocos'] as $b) {
                 if (isset($b['lista'])) {
-                    $corpo .= "\n        <ul>" . implode('', array_map(
-                        static fn ($x) => "\n          <li>" . garc_texto_noticia($x) . '</li>',
-                        $b['lista']
-                    )) . "\n        </ul>";
+                    $corpo .= "\n        <ul>";
+                    foreach ($b['lista'] as $x) {
+                        $corpo .= "\n          <li>" . garc_texto_noticia($x) . '</li>';
+                    }
+                    $corpo .= "\n        </ul>";
                 } else {
                     $corpo .= "\n        <p>" . implode('<br>', array_map('garc_texto_noticia', $b['paragrafo'])) . '</p>';
                 }

@@ -1332,7 +1332,7 @@ ErrorDocument 404 /404.html
 
 
 # Início das páginas em PHP: carrega autosolutions-app/conteudos.php (valores de garc-conteudos/dados.txt e
-# notícias). Se a aplicação faltar, o PHP for anterior a 8.1 ou houver qualquer erro, a página não falha:
+# notícias). Se a aplicação faltar, o PHP for anterior a 7.1 ou houver qualquer erro, a página não falha:
 # mostra os valores de origem gravados nela (e o erro fica no registo do PHP). Sem sintaxe de PHP 7 ou 8,
 # para funcionar mesmo que o domínio fique com uma versão antiga do PHP.
 def php_cabecalho(extra=""):
@@ -1346,7 +1346,7 @@ try {{
     if (!$garc_app) {{
         $garc_app = dirname(__DIR__) . '/autosolutions-app';
     }}
-    if (PHP_VERSION_ID >= 80100 && @is_file($garc_app . '/conteudos.php')) {{
+    if (PHP_VERSION_ID >= 70100 && @is_file($garc_app . '/conteudos.php')) {{
         require_once $garc_app . '/conteudos.php';
         $garc_dados = garc_dados();{extra}
     }}

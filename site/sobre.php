@@ -7,7 +7,7 @@ try {
     if (!$garc_app) {
         $garc_app = dirname(__DIR__) . '/autosolutions-app';
     }
-    if (PHP_VERSION_ID >= 80100 && @is_file($garc_app . '/conteudos.php')) {
+    if (PHP_VERSION_ID >= 70100 && @is_file($garc_app . '/conteudos.php')) {
         require_once $garc_app . '/conteudos.php';
         $garc_dados = garc_dados();
     }
