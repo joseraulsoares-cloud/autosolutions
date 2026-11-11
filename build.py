@@ -366,7 +366,7 @@ def document(page, preview):
         page["body"](preview),
         "</main>",
         footer(preview),
-        "" if page["file"] == "admin.html" else whatsapp_flutuante(),
+        "" if page["file"] in ("admin.html", "index.html") else whatsapp_flutuante(),
     ])
     if bare:
         return f"{head}\n{body}\n"
@@ -480,51 +480,68 @@ def areas_html():
     return "\n      ".join(itens)
 
 
+def can_crc15(bits):
+    """CRC-15 do protocolo CAN (polinómio 0x4599), sobre os bits do SOF ao fim dos dados."""
+    crc = 0
+    for b in bits:
+        seguinte = b ^ ((crc >> 14) & 1)
+        crc = (crc << 1) & 0x7FFF
+        if seguinte:
+            crc ^= 0x4599
+    return crc
+
+
+def can_trama(ident, dados):
+    """Bits de uma trama CAN normal (identificador de 11 bits), com bit stuffing, como passam no barramento.
+    0 = dominante, 1 = recessivo."""
+    bits = [0] + [(ident >> (10 - i)) & 1 for i in range(11)] + [0, 0, 0]
+    bits += [(len(dados) >> (3 - i)) & 1 for i in range(4)]
+    for byte in dados:
+        bits += [(byte >> (7 - i)) & 1 for i in range(8)]
+    crc = can_crc15(bits)
+    bits += [(crc >> (14 - i)) & 1 for i in range(15)]
+    enchidos, anterior, seguidos = [], None, 0
+    for b in bits:  # depois de 5 bits iguais entra um bit contrário
+        enchidos.append(b)
+        seguidos = seguidos + 1 if b == anterior else 1
+        anterior = b
+        if seguidos == 5:
+            enchidos.append(1 - b)
+            anterior, seguidos = 1 - b, 1
+    # delimitador do CRC, ACK (dominante, dado por quem recebe), delimitador do ACK, fim de trama e intervalo
+    return enchidos + [1, 0, 1] + [1] * 7 + [1] * 3
+
+
+def sinal_can():
+    """Pedido OBD da rotação do motor (7DF: 01 0C) e a resposta da centralina (7E8: 41 0C 0C 80 = 800 rpm)."""
+    bits = [1] * 18 + can_trama(0x7DF, [0x02, 0x01, 0x0C, 0, 0, 0, 0, 0])
+    bits += [1] * 26 + can_trama(0x7E8, [0x04, 0x41, 0x0C, 0x0C, 0x80, 0, 0, 0]) + [1] * 40
+    return "".join(map(str, bits))
+
+
 def body_index(preview):
-    wa_botao = (f'<a class="btn btn-secondary" href="{esc(whatsapp_url())}" target="_blank" rel="noopener">Falar no WhatsApp</a>'
-                if DADOS["whatsapp"] else f'<a class="btn btn-secondary" href="{url("servicos")}">Ver serviços</a>')
+    """Página inicial: um só ecrã, com o sinal da rede CAN a passar como num osciloscópio."""
+    return f"""<section class="sinal" aria-labelledby="sinal-titulo">
+  <div class="wrap">
+    <h1 id="sinal-titulo">Lemos o que<br> o carro diz.</h1>
+  </div>
+  <div class="sinal-ecra" aria-hidden="true">
+    <div class="sinal-grelha"><canvas class="sinal-tela" data-bits="{sinal_can()}"></canvas></div>
+    <div class="wrap sinal-canais"><span class="sinal-canal sinal-canal-h">CAN-H</span><span class="sinal-canal sinal-canal-l">CAN-L</span></div>
+  </div>
+  <div class="wrap">
+    <p class="sinal-legenda">No ecrã: uma ferramenta de diagnóstico pede a rotação do motor e a centralina responde pela rede CAN: 800 rpm.</p>
+  </div>
+</section>"""
+
+
+# Reservado: secções que saíram da página inicial (rede de bordo, áreas de serviço e «Sobre»).
+# Ficam aqui para serem reaproveitadas quando se definirem as outras páginas.
+def seccoes_reservadas():
     desde = f"No mercado desde {DADOS['desde']}." if DADOS.get("desde") else ""
-    return f"""<section class="hero">
-  <div class="wrap">
-    <div class="hero-text">
-      <h1>Eletrónica automóvel e diagnóstico para oficinas</h1>
-      <p class="lead">Ficheiros de calibração entregues, em média, em 30 a 45 minutos, diagnóstico avançado e apoio técnico por WhatsApp. Do outro lado está um engenheiro que conhece o motor e a eletrónica.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
-        {wa_botao}
-      </div>
-      <p class="hero-nota">{desde}</p>
-    </div>
-    {rede_bordo()}
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Serviços</h2>
-      <p class="lead">Ficheiros online para oficinas de todo o país; diagnóstico e apoio técnico pelo WhatsApp.</p>
-    </div>
-    <ul class="areas">
-      {areas_html()}
-    </ul>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Como pedir um ficheiro</h2>
-    </div>
-    <ol class="steps">
-      <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
-      <li><h3>Carregue tokens</h3><p>1 token custa {esc(eur(TOKEN_EUR))}, a partir de {TOKENS_MINIMO} tokens. Pague por {meios_txt()}.</p></li>
-      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
-      <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
-    </ol>
-  </div>
-</section>
-
+    return f"""{rede_bordo()}
+<ul class="areas">{areas_html()}</ul>
+<p class="hero-nota">{desde}</p>
 <section class="section" id="sobre">
   <div class="wrap about">
     <div class="about-text">
@@ -542,19 +559,6 @@ def body_index(preview):
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
     </dl>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="band-text">
-      <h2>Tem um carro parado na oficina?</h2>
-      <p>Envie a leitura na área de cliente ou descreva a avaria pelo WhatsApp. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
-    </div>
-    <div class="actions">
-      <a class="btn btn-primary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
-      {wa_botao}
-    </div>
   </div>
 </section>"""
 

@@ -40,115 +40,16 @@
 </header>
 <main id="conteudo">
 
-<section class="hero">
+<section class="sinal" aria-labelledby="sinal-titulo">
   <div class="wrap">
-    <div class="hero-text">
-      <h1>Eletrónica automóvel e diagnóstico para oficinas</h1>
-      <p class="lead">Ficheiros de calibração entregues, em média, em 30 a 45 minutos, diagnóstico avançado e apoio técnico por WhatsApp. Do outro lado está um engenheiro que conhece o motor e a eletrónica.</p>
-      <div class="actions">
-        <a class="btn btn-primary" href="/area-cliente#novo">Enviar ficheiro</a>
-        <a class="btn btn-secondary" href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Tenho%20uma%20quest%C3%A3o%20sobre%20os%20servi%C3%A7os%20da%20GARC." target="_blank" rel="noopener">Falar no WhatsApp</a>
-      </div>
-      <p class="hero-nota">No mercado desde 2001.</p>
-    </div>
-    <figure class="rb">
-      <svg class="rb-svg" viewBox="0 0 600 300" role="img" aria-labelledby="rb-titulo rb-desc">
-        <title id="rb-titulo">Rede de bordo de um automóvel</title>
-        <desc id="rb-desc">Esquema de um automóvel visto de cima, com os módulos numerados de 1 a 5 ligados pela rede CAN.</desc>
-        <g class="rb-rodas"><rect x="94" y="37" width="66" height="19" rx="6"/><rect x="94" y="244" width="66" height="19" rx="6"/><rect x="440" y="37" width="66" height="19" rx="6"/><rect x="440" y="244" width="66" height="19" rx="6"/></g>
-        <g class="rb-linha"><rect x="400" y="38" width="24" height="12" rx="5" transform="rotate(-10 412 44)"/><rect x="400" y="250" width="24" height="12" rx="5" transform="rotate(10 412 256)"/></g>
-        <path class="rb-corpo" d="M40 150 C40 95 48 62 92 56 C180 48 380 46 470 50 C535 53 566 80 570 150 C566 220 535 247 470 250 C380 254 180 252 92 244 C48 238 40 205 40 150 Z"/>
-        <path class="rb-vidro" d="M172 102 C176 88 192 82 216 80 L388 78 C418 80 440 90 450 104 L450 196 C440 210 418 220 388 222 L216 220 C192 218 176 212 172 198 Z M388 78 C397 108 397 192 388 222 M216 80 C208 108 208 192 216 220"/>
-        <g class="rb-bancos"><rect x="300" y="92" width="52" height="44" rx="10"/><rect x="300" y="164" width="52" height="44" rx="10"/><rect x="228" y="92" width="44" height="116" rx="12"/></g>
-        <path class="rb-can" pathLength="1" d="M326 150 H515"/><path class="rb-can rb-ramal" style="--i: 0" pathLength="1" d="M480 150 V208"/><path class="rb-can rb-ramal" style="--i: 1" pathLength="1" d="M420 150 V112"/><path class="rb-can rb-ramal" style="--i: 2" pathLength="1" d="M372 150 V100"/>
-        <g transform="translate(515 150)"><g class="rb-no"><circle r="14"/><text y="5.5">1</text></g></g><g transform="translate(480 208)"><g class="rb-no"><circle r="14"/><text y="5.5">2</text></g></g><g transform="translate(420 112)"><g class="rb-no"><circle r="14"/><text y="5.5">3</text></g></g><g transform="translate(372 100)"><g class="rb-no"><circle r="14"/><text y="5.5">4</text></g></g><g transform="translate(326 150)"><g class="rb-no"><circle r="14"/><text y="5.5">5</text></g></g>
-      </svg>
-      <ol class="rb-legenda"><li><strong>Motor e caixa</strong><span>ECU e TCU</span></li><li><strong>ABS e ESP</strong><span>travões e estabilidade</span></li><li><strong>Painel e conforto</strong><span>BCM</span></li><li><strong>Ficha de diagnóstico</strong><span>OBD</span></li><li><strong>Airbag</strong><span>SRS</span></li><li class="rb-legenda-can"><strong>Rede CAN</strong><span>liga os módulos entre si</span></li></ol>
-      <figcaption>Esquema simplificado de um automóvel visto de cima. É nesta rede que trabalhamos.</figcaption>
-    </figure>
+    <h1 id="sinal-titulo">Lemos o que<br> o carro diz.</h1>
   </div>
-</section>
-
-<section class="section">
+  <div class="sinal-ecra" aria-hidden="true">
+    <div class="sinal-grelha"><canvas class="sinal-tela" data-bits="11111111111111111101111100111110000100000100001000001000100001100000100000100000100000100000100000100000100000100101011001001001101111111111111111111111111111111111111011111010100000101000001000100010000011000011000001011001000001000001000001000001000001000001010111001111011010111111111111111111111111111111111111111111111111111"></canvas></div>
+    <div class="wrap sinal-canais"><span class="sinal-canal sinal-canal-h">CAN-H</span><span class="sinal-canal sinal-canal-l">CAN-L</span></div>
+  </div>
   <div class="wrap">
-    <div class="section-head">
-      <h2>Serviços</h2>
-      <p class="lead">Ficheiros online para oficinas de todo o país; diagnóstico e apoio técnico pelo WhatsApp.</p>
-    </div>
-    <ul class="areas">
-      <li class="area">
-        <div class="area-titulo"><h3>Ficheiros de calibração</h3></div>
-        <p>Chiptuning, admissão e escape, correções e sistemas de emissões, por módulo, preparados para a viatura e a ECU de cada pedido. Também corrigimos o checksum e revemos ficheiros já modificados.</p>
-        <p class="area-modo">Online, na área de cliente, com tokens.</p>
-        <span class="tag">Sistemas de emissões: uso exclusivo em competição ou fora da via pública</span>
-        <a href="/servicos">Ver módulos</a>
-      </li>
-      <li class="area">
-        <div class="area-titulo"><h3>Diagnóstico avançado</h3></div>
-        <p>Avarias intermitentes, falhas de comunicação entre módulos, sensores e atuadores, e sistemas de pós-tratamento.</p>
-        <p class="area-modo">Por WhatsApp, com apoio durante a reparação.</p>
-        <a href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Preciso%20de%20ajuda%20com%20um%20diagn%C3%B3stico%3A" target="_blank" rel="noopener">Pedir diagnóstico</a>
-      </li>
-      <li class="area">
-        <div class="area-titulo"><h3>Airbags</h3><span class="estado">Brevemente</span></div>
-        <p>Reposição de módulos de airbag após acidente (crash data), depois de substituídos os componentes acionados.</p>
-        <p class="area-modo">Por WhatsApp.</p>
-        <a href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Gostava%20de%20saber%20mais%20sobre%20a%20reposi%C3%A7%C3%A3o%20de%20m%C3%B3dulos%20de%20airbag." target="_blank" rel="noopener">Perguntar pelo WhatsApp</a>
-      </li>
-      <li class="area">
-        <div class="area-titulo"><h3>Serviços na oficina</h3><span class="estado">Brevemente</span></div>
-        <p>Para oficinas da região: deslocação à oficina para diagnóstico e apoio técnico.</p>
-        <p class="area-modo">Por marcação, pelo WhatsApp.</p>
-        <a href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Gostava%20de%20saber%20mais%20sobre%20os%20servi%C3%A7os%20na%20oficina." target="_blank" rel="noopener">Perguntar pelo WhatsApp</a>
-      </li>
-    </ul>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Como pedir um ficheiro</h2>
-    </div>
-    <ol class="steps">
-      <li><h3>Crie conta</h3><p>Registe a oficina com o NIF. Aprovamos a conta e avisamos por email.</p></li>
-      <li><h3>Carregue tokens</h3><p>1 token custa 6,00 €, a partir de 5 tokens. Pague por MB WAY ou PayPal.</p></li>
-      <li><h3>Envie a leitura</h3><p>Indique a viatura, escolha os módulos e anexe o ficheiro original. Também pode enviá-lo pelo WhatsApp.</p></li>
-      <li><h3>Receba o ficheiro</h3><p>Na área de cliente, por email ou por WhatsApp, como preferir.</p></li>
-    </ol>
-  </div>
-</section>
-
-<section class="section" id="sobre">
-  <div class="wrap about">
-    <div class="about-text">
-      <h2>Sobre a GARC</h2>
-      <p>A GARC está no mercado desde 2001 e dedica-se hoje à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.</p>
-      <p>Conhecemos o motor e a eletrónica por dentro, da teoria à bancada. Quem nos envia uma leitura fala diretamente com quem a vai trabalhar, sem intermediários.</p>
-      <p>Cada ficheiro é feito para aquela viatura, aquela ECU e aquela leitura, e é verificado antes de seguir. Ganhar potência não pode custar o motor nem a caixa: trabalhamos dentro dos limites mecânicos de cada conjunto.</p>
-      <p>Resposta rápida, trabalho explicado e apoio até o carro sair da oficina.</p>
-      <p class="assinatura">Engenharia ao serviço da oficina.</p>
-    </div>
-    <dl class="spec">
-      <div><dt>Empresa</dt><dd>GARC – Soluções Técnicas, Unipessoal Lda</dd></div>
-      <div><dt>No mercado</dt><dd>Desde 2001 (25 anos)</dd></div>
-      <div><dt>Entrega</dt><dd>Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento</dd></div>
-      <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
-      <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="band">
-  <div class="wrap">
-    <div class="band-text">
-      <h2>Tem um carro parado na oficina?</h2>
-      <p>Envie a leitura na área de cliente ou descreva a avaria pelo WhatsApp. Horário: 8h30–17h00.</p>
-    </div>
-    <div class="actions">
-      <a class="btn btn-primary" href="/area-cliente#novo">Enviar ficheiro</a>
-      <a class="btn btn-secondary" href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Tenho%20uma%20quest%C3%A3o%20sobre%20os%20servi%C3%A7os%20da%20GARC." target="_blank" rel="noopener">Falar no WhatsApp</a>
-    </div>
+    <p class="sinal-legenda">No ecrã: uma ferramenta de diagnóstico pede a rotação do motor e a centralina responde pela rede CAN: 800 rpm.</p>
   </div>
 </section>
 </main>
@@ -193,6 +94,6 @@
     </div>
   </div>
 </footer>
-<a class="wa-float" href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Tenho%20uma%20quest%C3%A3o%20sobre%20os%20servi%C3%A7os%20da%20GARC." target="_blank" rel="noopener" aria-label="Falar connosco pelo WhatsApp"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.6 3.7a.6.6 0 0 1-1-.47V16H6.5A2.5 2.5 0 0 1 4 13.5z"/></svg><span>WhatsApp</span></a>
+
 </body>
 </html>
