@@ -94,11 +94,13 @@
   /* Formulário da página Contacto */
   var contacto = document.getElementById('form-contacto');
   if (contacto) {
+    var alternativa = contacto.getAttribute('data-email');
     wireForm(contacto, {
       endpoint: '/api/contacto',
       previewMsg: 'Pré-visualização: a mensagem foi validada, mas não foi enviada.',
       okMsg: 'Mensagem enviada. Respondemos por email.',
-      errMsg: 'Não foi possível enviar a mensagem. Tente de novo mais tarde.'
+      errMsg: 'Não foi possível enviar a mensagem. Tente de novo mais tarde' +
+        (alternativa ? ' ou escreva para ' + alternativa : '') + '.'
     });
   }
 })();

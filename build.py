@@ -548,10 +548,12 @@ def body_contacto(preview):
     """Página «Contacto»: só o formulário, sem WhatsApp nem horário (o horário está em Serviços).
     O envio é feito por assets/main.js para /api/contacto. O assunto pode vir no endereço
     (contacto?assunto=…), como no botão «Pedir diagnóstico» da página Serviços."""
+    # Se o envio falhar (servidor em baixo, limite de mensagens), a mensagem de erro indica o email.
+    alternativa = f' data-email="{esc(DADOS["email"])}"' if DADOS["email"] else ""
     return page_head("Contacto", "Envie uma mensagem pelo formulário. Respondemos por email.") + f"""
 <section class="section">
   <div class="wrap">
-    <form class="form contacto-form" id="form-contacto"{form_attrs("/api/contacto", preview)}>
+    <form class="form contacto-form" id="form-contacto"{form_attrs("/api/contacto", preview)}{alternativa}>
       <div class="grid-2">
         <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
         <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
