@@ -201,6 +201,8 @@ MODULES = {
     "EGR OFF": ("EGR off", "Desativação da recirculação dos gases de escape (EGR)."),
     "ADBLUE/SCR OFF": ("AdBlue/SCR off", "Desativação do sistema de redução catalítica seletiva (SCR/AdBlue)."),
     "LAMBDA/O2 OFF": ("Lambda/O2 off", "Desativação da monitorização das sondas lambda (O2)."),
+    "CHECKSUM": ("Correção de checksum", "Correção do checksum de um ficheiro já modificado, para que a centralina o aceite na escrita."),
+    "MAP REVIEW": ("Revisão de mapa", "Revisão de um ficheiro já modificado, por outro preparador ou pela oficina, à procura de erros nos mapas alterados."),
 }
 
 # (âncora, título, introdução, módulos, é de emissões)
@@ -213,6 +215,9 @@ GROUPS = [
      ["OIL PRESSURE FIX", "HOT START FIX", "START STOP OFF"], False),
     ("emissoes", "Sistemas de emissões", None,
      ["DPF OFF", "EGR OFF", "ADBLUE/SCR OFF", "LAMBDA/O2 OFF"], True),
+    ("verificacao", "Verificação de ficheiros",
+     "Para ficheiros já modificados pela oficina ou por outro preparador, com custo à parte.",
+     ["CHECKSUM", "MAP REVIEW"], False),
 ]
 
 EMISSIONS_NOTICE = (
@@ -423,7 +428,7 @@ def rede_bordo():
 AREAS = [
     {
         "titulo": "Ficheiros de calibração",
-        "texto": "Chiptuning, admissão e escape, correções e sistemas de emissões, por módulo, preparados para a viatura e a ECU de cada pedido.",
+        "texto": "Chiptuning, admissão e escape, correções e sistemas de emissões, por módulo, preparados para a viatura e a ECU de cada pedido. Também corrigimos o checksum e revemos ficheiros já modificados.",
         "modo": "Online, na área de cliente, com tokens.",
         "aviso": "Sistemas de emissões: uso exclusivo em competição ou fora da via pública",
         "ligacao": ("servicos", "Ver módulos"),
@@ -524,8 +529,11 @@ def body_index(preview):
   <div class="wrap about">
     <div class="about-text">
       <h2>Sobre a GARC</h2>
-      <p>A GARC – Soluções Técnicas presta serviços técnicos a oficinas: ficheiros de calibração, diagnóstico avançado e apoio em eletrónica automóvel.</p>
-      <p>O trabalho assenta em engenharia, com formação em Engenharia Mecânica e mestrado em Eletrotecnia e Computadores. Cada ficheiro é preparado para a viatura, a ECU e a leitura indicadas no pedido.</p>
+      <p>A GARC está no mercado desde {DADOS['desde']} e dedica-se hoje à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.</p>
+      <p>Conhecemos o motor e a eletrónica por dentro, da teoria à bancada. Quem nos envia uma leitura fala diretamente com quem a vai trabalhar, sem intermediários.</p>
+      <p>Cada ficheiro é feito para aquela viatura, aquela ECU e aquela leitura, e é verificado antes de seguir. Ganhar potência não pode custar o motor nem a caixa: trabalhamos dentro dos limites mecânicos de cada conjunto.</p>
+      <p>Resposta rápida, trabalho explicado e apoio até o carro sair da oficina.</p>
+      <p class="assinatura">Engenharia ao serviço da oficina.</p>
     </div>
     <dl class="spec">
       <div><dt>Empresa</dt><dd>{esc(FIRMA)}</dd></div>
@@ -656,7 +664,7 @@ def form_novo_pedido():
       </fieldset>
       <fieldset class="fieldset">
         <legend>Ficheiro e observações</legend>
-        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Máximo {MAX_MB} MB.</p></div>
+        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Para correção de checksum ou revisão de mapa, envie o ficheiro modificado e, se tiver o original, junte os dois num .zip. Máximo {MAX_MB} MB.</p></div>
         <div class="field"><label for="f-mensagem">Observações</label><textarea id="f-mensagem" name="observacoes" maxlength="2000" placeholder="Sintomas, peças alteradas, códigos de erro…"></textarea></div>
       </fieldset>
       <fieldset class="fieldset">

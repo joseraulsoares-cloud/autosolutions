@@ -20,5 +20,7 @@ return [
         'EGR OFF' => ['nome' => 'EGR off', 'emissoes' => true],
         'ADBLUE/SCR OFF' => ['nome' => 'AdBlue/SCR off', 'emissoes' => true],
         'LAMBDA/O2 OFF' => ['nome' => 'Lambda/O2 off', 'emissoes' => true],
+        'CHECKSUM' => ['nome' => 'Correção de checksum', 'emissoes' => false],
+        'MAP REVIEW' => ['nome' => 'Revisão de mapa', 'emissoes' => false],
     ],
 ];
