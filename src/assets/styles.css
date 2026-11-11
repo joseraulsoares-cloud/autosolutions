@@ -340,7 +340,7 @@ ul, ol { margin: 0; }
 }
 .abertura h1 {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(3.2rem, 9vw, 8.5rem); line-height: 0.9; letter-spacing: -0.01em;
+  font-size: clamp(2.25rem, 5vw, 4.75rem); line-height: 0.95; letter-spacing: 0;
   color: #F4F7FA; text-shadow: 0 2px 30px rgba(2, 13, 31, 0.35);
 }
 .abertura-falta { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 16px; font-size: var(--step--1); }
