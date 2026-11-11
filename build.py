@@ -36,11 +36,13 @@ DADOS = {
     "horario": "8h30–17h00",
     "nipc": "505743973",
     "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
-    "foto_inicio": "fotos/inicio",  # imagem da página inicial (original, gerada por ferramentas/foto/gerar_inicio.py
-                                    # e preparada por ferramentas/foto/preparar.py); vazio = aparece a amarelo
-    "foto_inicio_foco": "70% 62%",  # ponto da imagem que fica sempre à vista (object-position)
-    "foto_inicio_foco_estreito": "92% 62%",  # o mesmo, em ecrãs ao alto (telemóvel): mostra a frente do carro
-    "foto_inicio_frase": "cima",    # onde fica a frase: "cima" (zona escura, à esquerda) ou "baixo"
+    "foto_inicio": "fotos/inicio",  # imagem da página inicial: Pexels n.º 8664308 (licença e alterações em
+                                    # ferramentas/foto/LICENCAS.md), limpa por limpar_inicio.py e preparada
+                                    # por preparar.py; vazio = aparece a amarelo
+    "foto_inicio_foco": "50% 52%",  # ponto da imagem que fica sempre à vista (object-position)
+    "foto_inicio_foco_estreito": "50% 55%",  # o mesmo, em ecrãs ao alto (telemóvel); com recorte ao alto
+                                             # (preparar.py --estreito), é a posição dentro do recorte
+    "foto_inicio_frase": "baixo",   # onde fica a frase: "cima" (zona escura, à esquerda) ou "baixo"
     "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
@@ -261,7 +263,6 @@ def header(active):
         items.append(f'<li><a href="{href}"{cur}>{label}</a></li>')
     cur = ' aria-current="page"' if active == "area-cliente" else ""
     items.append(f'<li class="nav-account"><a href="{url("area-cliente")}"{cur}>Área de cliente</a></li>')
-    items.append(f'<li class="nav-cta"><a href="{url("area-cliente", "#novo")}">Enviar ficheiro</a></li>')
     nav_items = "\n        ".join(items)
     return f"""<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
 <header class="site-header">
@@ -485,19 +486,35 @@ def areas_html():
     return "\n      ".join(itens)
 
 
-FOTO_LARGURAS = (1280, 1920, 2560)  # tamanhos gerados por ferramentas/foto/preparar.py
+FOTO_LARGURAS = (1280, 1920, 2560)          # tamanhos gerados por ferramentas/foto/preparar.py
+FOTO_LARGURAS_ESTREITO = (800, 1200, 1600)  # recorte ao alto (preparar.py --estreito), se existir
+# A fotografia cobre a área toda (object-fit: cover): num ecrã mais estreito do que a imagem (3:2),
+# a largura necessária é a altura x 1,5, não a largura do ecrã. Sem isto, o telemóvel escolhia
+# o ficheiro mais pequeno e ampliava-o. No recorte ao alto (4:5), é a altura x 0,8.
+FOTO_SIZES = "(max-aspect-ratio: 3/2) 150vh, 100vw"
+FOTO_SIZES_ESTREITO = "(max-aspect-ratio: 4/5) 80vh, 100vw"
+FOTO_MEDIA_ESTREITO = "(max-aspect-ratio: 1/1)"  # igual à regra de --foco-estreito em styles.css
 
 
 def foto_inicio_html():
-    """Fotografia da página inicial em vários tamanhos (WebP, com JPEG para browsers antigos)."""
+    """Fotografia da página inicial em vários tamanhos (WebP, com JPEG para browsers antigos).
+    Em ecrãs ao alto usa o recorte NOME-estreito-*, quando existe."""
     base = DADOS["foto_inicio"]
     if not base:
         return f'<p class="abertura-falta">{ph("fotografia da página inicial")}</p>'
-    def conjunto(ext):
-        return ", ".join(f"{asset(f'assets/{base}-{w}.{ext}')} {w}w" for w in FOTO_LARGURAS)
+    def conjunto(nome, larguras, ext):
+        return ", ".join(f"{asset(f'assets/{nome}-{w}.{ext}')} {w}w" for w in larguras)
+    fontes = []
+    if (SRC / "assets" / f"{base}-estreito-{FOTO_LARGURAS_ESTREITO[0]}.webp").exists():
+        for tipo, ext in ((' type="image/webp"', "webp"), ("", "jpg")):
+            fontes.append(f'<source media="{FOTO_MEDIA_ESTREITO}"{tipo} '
+                          f'srcset="{conjunto(f"{base}-estreito", FOTO_LARGURAS_ESTREITO, ext)}" sizes="{FOTO_SIZES_ESTREITO}">')
+    fontes.append(f'<source type="image/webp" srcset="{conjunto(base, FOTO_LARGURAS, "webp")}" sizes="{FOTO_SIZES}">')
+    foco = esc(DADOS["foto_inicio_foco"])
+    foco_estreito = esc(DADOS.get("foto_inicio_foco_estreito") or DADOS["foto_inicio_foco"])
     return f"""<picture class="abertura-foto">
-    <source type="image/webp" srcset="{conjunto('webp')}" sizes="100vw">
-    <img src="{asset(f'assets/{base}-1920.jpg')}" srcset="{conjunto('jpg')}" sizes="100vw" alt="" fetchpriority="high" style="--foco: {esc(DADOS['foto_inicio_foco'])}; --foco-estreito: {esc(DADOS.get('foto_inicio_foco_estreito') or DADOS['foto_inicio_foco'])}">
+    {(chr(10) + "    ").join(fontes)}
+    <img src="{asset(f'assets/{base}-1920.jpg')}" srcset="{conjunto(base, FOTO_LARGURAS, 'jpg')}" sizes="{FOTO_SIZES}" alt="" fetchpriority="high" style="--foco: {foco}; --foco-estreito: {foco_estreito}">
   </picture>"""
 
 

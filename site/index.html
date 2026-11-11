@@ -33,17 +33,18 @@
         <li><a href="/#sobre">Sobre</a></li>
         <li><a href="#contacto">Contacto</a></li>
         <li class="nav-account"><a href="/area-cliente">Área de cliente</a></li>
-        <li class="nav-cta"><a href="/area-cliente#novo">Enviar ficheiro</a></li>
       </ul>
     </nav>
   </div>
 </header>
 <main id="conteudo">
 
-<section class="abertura" data-frase="cima" aria-labelledby="abertura-titulo">
+<section class="abertura" data-frase="baixo" aria-labelledby="abertura-titulo">
   <picture class="abertura-foto">
-    <source type="image/webp" srcset="/assets/fotos/inicio-1280.webp 1280w, /assets/fotos/inicio-1920.webp 1920w, /assets/fotos/inicio-2560.webp 2560w" sizes="100vw">
-    <img src="/assets/fotos/inicio-1920.jpg" srcset="/assets/fotos/inicio-1280.jpg 1280w, /assets/fotos/inicio-1920.jpg 1920w, /assets/fotos/inicio-2560.jpg 2560w" sizes="100vw" alt="" fetchpriority="high" style="--foco: 70% 62%; --foco-estreito: 92% 62%">
+    <source media="(max-aspect-ratio: 1/1)" type="image/webp" srcset="/assets/fotos/inicio-estreito-800.webp 800w, /assets/fotos/inicio-estreito-1200.webp 1200w, /assets/fotos/inicio-estreito-1600.webp 1600w" sizes="(max-aspect-ratio: 4/5) 80vh, 100vw">
+    <source media="(max-aspect-ratio: 1/1)" srcset="/assets/fotos/inicio-estreito-800.jpg 800w, /assets/fotos/inicio-estreito-1200.jpg 1200w, /assets/fotos/inicio-estreito-1600.jpg 1600w" sizes="(max-aspect-ratio: 4/5) 80vh, 100vw">
+    <source type="image/webp" srcset="/assets/fotos/inicio-1280.webp 1280w, /assets/fotos/inicio-1920.webp 1920w, /assets/fotos/inicio-2560.webp 2560w" sizes="(max-aspect-ratio: 3/2) 150vh, 100vw">
+    <img src="/assets/fotos/inicio-1920.jpg" srcset="/assets/fotos/inicio-1280.jpg 1280w, /assets/fotos/inicio-1920.jpg 1920w, /assets/fotos/inicio-2560.jpg 2560w" sizes="(max-aspect-ratio: 3/2) 150vh, 100vw" alt="" fetchpriority="high" style="--foco: 50% 52%; --foco-estreito: 50% 55%">
   </picture>
   <div class="wrap">
     <h1 id="abertura-titulo">O automóvel fala.<br> Nós ouvimos.</h1>
