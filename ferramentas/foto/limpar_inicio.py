@@ -4,8 +4,9 @@ as matrículas e a marca das máquinas de soldar. A licença da Pexels não cobr
 que a marca do carro está associada à GARC.
 
 Uso: python3 ferramentas/foto/limpar_inicio.py ORIGINAL.jpg LIMPA.jpg
-Depois: python3 ferramentas/foto/preparar.py LIMPA.jpg inicio --estreito 1570,0,4488,3648
-(o recorte ao alto, 4:5, é o que aparece nos telemóveis)
+Depois: python3 ferramentas/foto/frase_parede.py LIMPA.jpg COM_FRASE.jpg
+        python3 ferramentas/foto/preparar.py COM_FRASE.jpg inicio --estreito 1480,0,4398,3648
+(o recorte ao alto, 4:5, é o que aparece nos telemóveis; deixa margem à esquerda da frase)
 As coordenadas são do original da Pexels (5472 x 3648 px).
 """
 import sys

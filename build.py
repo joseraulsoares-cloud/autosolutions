@@ -37,12 +37,13 @@ DADOS = {
     "nipc": "505743973",
     "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
     "foto_inicio": "fotos/inicio",  # imagem da página inicial: Pexels n.º 8664308 (licença e alterações em
-                                    # ferramentas/foto/LICENCAS.md), limpa por limpar_inicio.py e preparada
-                                    # por preparar.py; vazio = aparece a amarelo
+                                    # ferramentas/foto/LICENCAS.md), limpa por limpar_inicio.py, com a frase
+                                    # pintada por frase_parede.py e preparada por preparar.py; vazio = aparece a amarelo
     "foto_inicio_foco": "50% 52%",  # ponto da imagem que fica sempre à vista (object-position)
     "foto_inicio_foco_estreito": "50% 55%",  # o mesmo, em ecrãs ao alto (telemóvel); com recorte ao alto
                                              # (preparar.py --estreito), é a posição dentro do recorte
-    "foto_inicio_frase": "baixo",   # onde fica a frase: "cima" (zona escura, à esquerda) ou "baixo"
+    "foto_inicio_frase": "imagem",  # onde fica a frase: "imagem" (pintada na parede da fotografia; o título
+                                    # fica só para leitores de ecrã), "cima" ou "baixo" (texto sobre a imagem)
     "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
@@ -501,11 +502,16 @@ def foto_inicio_html():
 
 def body_index(preview):
     """Página inicial: uma fotografia em ecrã inteiro e uma frase. O resto está nos separadores da barra."""
-    frase = "cima" if DADOS.get("foto_inicio_frase") == "cima" else "baixo"
+    frase = DADOS.get("foto_inicio_frase")
+    if frase not in ("imagem", "cima", "baixo"):
+        frase = "baixo"
+    # Com a frase pintada na fotografia, o título continua no HTML (leitores de ecrã, motores de busca),
+    # mas não aparece por cima da imagem. Sem fotografia, aparece sempre.
+    oculto = ' class="sr-only"' if frase == "imagem" and DADOS["foto_inicio"] else ""
     return f"""<section class="abertura" data-frase="{frase}" aria-labelledby="abertura-titulo">
   {foto_inicio_html()}
   <div class="wrap">
-    <h1 id="abertura-titulo">O automóvel fala.<br> Nós ouvimos.</h1>
+    <h1 id="abertura-titulo"{oculto}>O automóvel fala.<br> Nós ouvimos.</h1>
   </div>
 </section>"""
 
