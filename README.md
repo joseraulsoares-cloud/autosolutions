@@ -77,7 +77,7 @@ Na pasta `garc-conteudos/noticias`, cada ficheiro `.txt` é uma notícia: primei
 8. **Limites de envio**: `site/api/.user.ini` sobe o limite de ficheiros para 32 MB. Se o alojamento o ignorar, definir `upload_max_filesize` e `post_max_size` no MultiPHP INI Editor.
 9. **Primeiro acesso**: abrir `https://www.autosolutions.pt/admin` e entrar com um dos emails de administração. As tabelas são criadas automaticamente no primeiro acesso à API.
 
-**Atualizar o site** depois de cada alteração no `main`: em Git Version Control → Manage → Pull or Deploy, "Update from Remote" e depois "Deploy HEAD Commit".
+**Atualizar o site** depois de cada alteração no `main`: em Git Version Control → Manage → Pull or Deploy, "Update from Remote" e depois "Deploy HEAD Commit". O Deploy instala sempre a versão do `main` por cima do que estiver no servidor: não misturar com envios por zip, senão o Deploy seguinte repõe a versão do `main`. A pasta `garc-conteudos` e o `config.php` não são tocados.
 
 O `site/.htaccess` trata dos endereços sem `.html` (e sem `.php`, nas páginas Serviços, Notícias, Sobre e Termos, que leem os valores alteráveis), da página 404, do redirecionamento para `https://www.autosolutions.pt`, do endereço antigo `/precos` e dos cabeçalhos de segurança.
 
