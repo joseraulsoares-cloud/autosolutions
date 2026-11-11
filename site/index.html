@@ -40,8 +40,11 @@
 </header>
 <main id="conteudo">
 
-<section class="abertura" aria-labelledby="abertura-titulo">
-  <p class="abertura-falta"><span class="ph">[fotografia da página inicial]</span></p>
+<section class="abertura" data-frase="cima" aria-labelledby="abertura-titulo">
+  <picture class="abertura-foto">
+    <source type="image/webp" srcset="/assets/fotos/inicio-1280.webp 1280w, /assets/fotos/inicio-1920.webp 1920w, /assets/fotos/inicio-2560.webp 2560w" sizes="100vw">
+    <img src="/assets/fotos/inicio-1920.jpg" srcset="/assets/fotos/inicio-1280.jpg 1280w, /assets/fotos/inicio-1920.jpg 1920w, /assets/fotos/inicio-2560.jpg 2560w" sizes="100vw" alt="" fetchpriority="high" style="--foco: 70% 62%; --foco-estreito: 92% 62%">
+  </picture>
   <div class="wrap">
     <h1 id="abertura-titulo">O automóvel fala.<br> Nós ouvimos.</h1>
   </div>

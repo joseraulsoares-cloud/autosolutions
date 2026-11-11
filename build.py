@@ -36,8 +36,11 @@ DADOS = {
     "horario": "8h30–17h00",
     "nipc": "505743973",
     "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
-    "foto_inicio": "",      # fotografia da página inicial, preparada com ferramentas/foto/preparar.py (ex.: "fotos/inicio")
-    "foto_inicio_foco": "50% 50%",  # ponto da fotografia que fica sempre à vista (object-position)
+    "foto_inicio": "fotos/inicio",  # imagem da página inicial (original, gerada por ferramentas/foto/gerar_inicio.py
+                                    # e preparada por ferramentas/foto/preparar.py); vazio = aparece a amarelo
+    "foto_inicio_foco": "70% 62%",  # ponto da imagem que fica sempre à vista (object-position)
+    "foto_inicio_foco_estreito": "92% 62%",  # o mesmo, em ecrãs ao alto (telemóvel): mostra a frente do carro
+    "foto_inicio_frase": "cima",    # onde fica a frase: "cima" (zona escura, à esquerda) ou "baixo"
     "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
@@ -494,13 +497,14 @@ def foto_inicio_html():
         return ", ".join(f"{asset(f'assets/{base}-{w}.{ext}')} {w}w" for w in FOTO_LARGURAS)
     return f"""<picture class="abertura-foto">
     <source type="image/webp" srcset="{conjunto('webp')}" sizes="100vw">
-    <img src="{asset(f'assets/{base}-1920.jpg')}" srcset="{conjunto('jpg')}" sizes="100vw" alt="" fetchpriority="high" style="--foco: {esc(DADOS['foto_inicio_foco'])}">
+    <img src="{asset(f'assets/{base}-1920.jpg')}" srcset="{conjunto('jpg')}" sizes="100vw" alt="" fetchpriority="high" style="--foco: {esc(DADOS['foto_inicio_foco'])}; --foco-estreito: {esc(DADOS.get('foto_inicio_foco_estreito') or DADOS['foto_inicio_foco'])}">
   </picture>"""
 
 
 def body_index(preview):
     """Página inicial: uma fotografia em ecrã inteiro e uma frase. O resto está nos separadores da barra."""
-    return f"""<section class="abertura" aria-labelledby="abertura-titulo">
+    frase = "cima" if DADOS.get("foto_inicio_frase") == "cima" else "baixo"
+    return f"""<section class="abertura" data-frase="{frase}" aria-labelledby="abertura-titulo">
   {foto_inicio_html()}
   <div class="wrap">
     <h1 id="abertura-titulo">O automóvel fala.<br> Nós ouvimos.</h1>

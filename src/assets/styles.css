@@ -322,6 +322,7 @@ ul, ol { margin: 0; }
 .abertura-foto, .abertura-foto img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .abertura-foto { z-index: -2; }
 .abertura-foto img { object-fit: cover; object-position: var(--foco, 50% 50%); }
+@media (max-aspect-ratio: 1/1) { .abertura-foto img { object-position: var(--foco-estreito, var(--foco, 50% 50%)); } }
 /* Darkens the lower left so the sentence reads over any photograph */
 .abertura::before {
   content: ""; position: absolute; inset: 0; z-index: -1;
@@ -330,6 +331,13 @@ ul, ol { margin: 0; }
     linear-gradient(to right, rgba(2, 13, 31, 0.45) 0%, rgba(2, 13, 31, 0) 60%);
 }
 .abertura > .wrap { width: 100%; }
+/* Sentence at the top left, for images whose dark area is there */
+.abertura[data-frase="cima"] { align-items: start; }
+.abertura[data-frase="cima"]::before {
+  background:
+    linear-gradient(to bottom, rgba(2, 13, 31, 0.5) 0%, rgba(2, 13, 31, 0) 45%),
+    linear-gradient(to right, rgba(2, 13, 31, 0.35) 0%, rgba(2, 13, 31, 0) 55%);
+}
 .abertura h1 {
   font-family: var(--font-display); font-weight: 700;
   font-size: clamp(3.2rem, 9vw, 8.5rem); line-height: 0.9; letter-spacing: -0.01em;

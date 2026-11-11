@@ -27,7 +27,8 @@ def preparar(origem: Path, nome: str = "inicio"):
     for largura in LARGURAS:
         alvo = imagem if imagem.width <= largura else imagem.resize(
             (largura, round(imagem.height * largura / imagem.width)), Image.LANCZOS)
-        for ext, opcoes in (("webp", {"quality": 80, "method": 6}),
+        # WebP com qualidade alta: evita degraus nos degradês escuros
+        for ext, opcoes in (("webp", {"quality": 90, "method": 6}),
                             ("jpg", {"quality": 82, "optimize": True, "progressive": True})):
             ficheiro = DESTINO / f"{nome}-{largura}.{ext}"
             alvo.save(ficheiro, **opcoes)  # sem exif=: os metadados não passam para o site
