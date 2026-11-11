@@ -36,6 +36,8 @@ DADOS = {
     "horario": "8h30–17h00",
     "nipc": "505743973",
     "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
+    "foto_inicio": "",      # fotografia da página inicial, preparada com ferramentas/foto/preparar.py (ex.: "fotos/inicio")
+    "foto_inicio_foco": "50% 50%",  # ponto da fotografia que fica sempre à vista (object-position)
     "morada": "Rua do Morangal, n.º 205, Traseiras, Fração S, 4410-385 Vila Nova de Gaia",  # sede
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
@@ -365,7 +367,7 @@ def document(page, preview):
         catalogo_script() if page.get("scripts") else "",
         page["body"](preview),
         "</main>",
-        footer(preview),
+        footer_legal() if page["file"] == "index.html" else footer(preview),
         "" if page["file"] in ("admin.html", "index.html") else whatsapp_flutuante(),
     ])
     if bare:
@@ -480,59 +482,47 @@ def areas_html():
     return "\n      ".join(itens)
 
 
-def can_crc15(bits):
-    """CRC-15 do protocolo CAN (polinómio 0x4599), sobre os bits do SOF ao fim dos dados."""
-    crc = 0
-    for b in bits:
-        seguinte = b ^ ((crc >> 14) & 1)
-        crc = (crc << 1) & 0x7FFF
-        if seguinte:
-            crc ^= 0x4599
-    return crc
+FOTO_LARGURAS = (1280, 1920, 2560)  # tamanhos gerados por ferramentas/foto/preparar.py
 
 
-def can_trama(ident, dados):
-    """Bits de uma trama CAN normal (identificador de 11 bits), com bit stuffing, como passam no barramento.
-    0 = dominante, 1 = recessivo."""
-    bits = [0] + [(ident >> (10 - i)) & 1 for i in range(11)] + [0, 0, 0]
-    bits += [(len(dados) >> (3 - i)) & 1 for i in range(4)]
-    for byte in dados:
-        bits += [(byte >> (7 - i)) & 1 for i in range(8)]
-    crc = can_crc15(bits)
-    bits += [(crc >> (14 - i)) & 1 for i in range(15)]
-    enchidos, anterior, seguidos = [], None, 0
-    for b in bits:  # depois de 5 bits iguais entra um bit contrário
-        enchidos.append(b)
-        seguidos = seguidos + 1 if b == anterior else 1
-        anterior = b
-        if seguidos == 5:
-            enchidos.append(1 - b)
-            anterior, seguidos = 1 - b, 1
-    # delimitador do CRC, ACK (dominante, dado por quem recebe), delimitador do ACK, fim de trama e intervalo
-    return enchidos + [1, 0, 1] + [1] * 7 + [1] * 3
-
-
-def sinal_can():
-    """Pedido OBD da rotação do motor (7DF: 01 0C) e a resposta da centralina (7E8: 41 0C 0C 80 = 800 rpm)."""
-    bits = [1] * 18 + can_trama(0x7DF, [0x02, 0x01, 0x0C, 0, 0, 0, 0, 0])
-    bits += [1] * 26 + can_trama(0x7E8, [0x04, 0x41, 0x0C, 0x0C, 0x80, 0, 0, 0]) + [1] * 40
-    return "".join(map(str, bits))
+def foto_inicio_html():
+    """Fotografia da página inicial em vários tamanhos (WebP, com JPEG para browsers antigos)."""
+    base = DADOS["foto_inicio"]
+    if not base:
+        return f'<p class="abertura-falta">{ph("fotografia da página inicial")}</p>'
+    def conjunto(ext):
+        return ", ".join(f"{asset(f'assets/{base}-{w}.{ext}')} {w}w" for w in FOTO_LARGURAS)
+    return f"""<picture class="abertura-foto">
+    <source type="image/webp" srcset="{conjunto('webp')}" sizes="100vw">
+    <img src="{asset(f'assets/{base}-1920.jpg')}" srcset="{conjunto('jpg')}" sizes="100vw" alt="" fetchpriority="high" style="--foco: {esc(DADOS['foto_inicio_foco'])}">
+  </picture>"""
 
 
 def body_index(preview):
-    """Página inicial: um só ecrã, com o sinal da rede CAN a passar como num osciloscópio."""
-    return f"""<section class="sinal" aria-labelledby="sinal-titulo">
+    """Página inicial: uma fotografia em ecrã inteiro e uma frase. O resto está nos separadores da barra."""
+    return f"""<section class="abertura" aria-labelledby="abertura-titulo">
+  {foto_inicio_html()}
   <div class="wrap">
-    <h1 id="sinal-titulo">Lemos o que<br> o carro diz.</h1>
-  </div>
-  <div class="sinal-ecra" aria-hidden="true">
-    <div class="sinal-grelha"><canvas class="sinal-tela" data-bits="{sinal_can()}"></canvas></div>
-    <div class="wrap sinal-canais"><span class="sinal-canal sinal-canal-h">CAN-H</span><span class="sinal-canal sinal-canal-l">CAN-L</span></div>
-  </div>
-  <div class="wrap">
-    <p class="sinal-legenda">No ecrã: uma ferramenta de diagnóstico pede a rotação do motor e a centralina responde pela rede CAN: 800 rpm.</p>
+    <h1 id="abertura-titulo">O automóvel fala.<br> Nós ouvimos.</h1>
   </div>
 </section>"""
+
+
+def footer_legal():
+    """Rodapé da página inicial: só as ligações legais, que têm de estar visíveis em todo o site
+    (o acesso ao Livro de Reclamações Eletrónico, por exemplo). Sem contactos."""
+    return f"""<footer class="site-footer">
+  <div class="footer-legal">
+    <div class="wrap">
+      <ul class="legal-links">
+        <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
+        <li><a href="{url('privacidade')}">Política de privacidade</a></li>
+        <li><a href="{url('termos')}">Termos de utilização</a></li>
+      </ul>
+      <p>© {YEAR} {esc(COMPANY)}</p>
+    </div>
+  </div>
+</footer>"""
 
 
 # Reservado: secções que saíram da página inicial (rede de bordo, áreas de serviço e «Sobre»).

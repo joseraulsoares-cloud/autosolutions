@@ -310,51 +310,32 @@ ul, ol { margin: 0; }
 .hero h1 { max-width: 13em; }
 @media (max-width: 960px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); } }
 
-/* Home: one full screen, a scope showing the CAN bus. The only bold element of the site. */
-.sinal {
-  --sinal-fundo: #020D1F;
-  --sinal-luz: #06224D;
-  --sinal-grelha: rgba(138, 176, 255, 0.08);
-  --sinal-eixo: rgba(138, 176, 255, 0.22);
-  --sinal-h: #8AB0FF;
-  --sinal-l: #D7DCE2;
-  --sinal-texto: #F1F4F8;
-  --sinal-texto-2: #8D9BAB;
+/* Home: one full-screen photograph and one sentence. The only bold element of the site. */
+.abertura {
+  position: relative; isolation: isolate; overflow: hidden;
   min-height: calc(100svh - var(--header-h));
-  display: grid; grid-template-rows: auto minmax(200px, 1fr) auto;
-  gap: clamp(20px, 4vh, 40px);
-  padding-block: clamp(40px, 9vh, 104px) clamp(20px, 4vh, 36px);
-  background: radial-gradient(110% 80% at 72% 58%, var(--sinal-luz) 0%, var(--sinal-fundo) 62%);
-  color: var(--sinal-texto);
-  overflow: hidden;
+  display: grid; align-items: end;
+  padding-block: clamp(40px, 10vh, 120px);
+  background: radial-gradient(120% 90% at 72% 35%, #0A2E63 0%, #020D1F 65%);
+  color: #F4F7FA;
 }
-.sinal h1 {
+.abertura-foto, .abertura-foto img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.abertura-foto { z-index: -2; }
+.abertura-foto img { object-fit: cover; object-position: var(--foco, 50% 50%); }
+/* Darkens the lower left so the sentence reads over any photograph */
+.abertura::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(to top, rgba(2, 13, 31, 0.72) 0%, rgba(2, 13, 31, 0.25) 45%, rgba(2, 13, 31, 0) 70%),
+    linear-gradient(to right, rgba(2, 13, 31, 0.45) 0%, rgba(2, 13, 31, 0) 60%);
+}
+.abertura > .wrap { width: 100%; }
+.abertura h1 {
   font-family: var(--font-display); font-weight: 700;
-  font-size: clamp(3.4rem, 10vw, 9rem); line-height: 0.88; letter-spacing: -0.01em;
-  color: var(--sinal-texto);
+  font-size: clamp(3.2rem, 9vw, 8.5rem); line-height: 0.9; letter-spacing: -0.01em;
+  color: #F4F7FA; text-shadow: 0 2px 30px rgba(2, 13, 31, 0.35);
 }
-/* In a grid, .wrap's auto margins would shrink it to its content: keep it full width so text aligns with the page */
-.sinal > .wrap { width: 100%; }
-.sinal-ecra { position: relative; align-self: center; height: clamp(200px, 38vh, 380px); }
-.sinal-grelha {
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--sinal-eixo) calc(50% - 0.5px), var(--sinal-eixo) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
-    linear-gradient(to right, var(--sinal-grelha) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--sinal-grelha) 1px, transparent 1px);
-  background-size: 100% 100%, 10% 100%, 100% 12.5%;
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
-  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
-}
-.sinal-tela { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.sinal-canais { position: absolute; inset: 0; margin-inline: auto; width: 100%; pointer-events: none; }
-.sinal-canal {
-  position: absolute; left: max(16px, env(safe-area-inset-left, 0px));
-  font-size: 0.8rem; font-weight: 600; color: var(--sinal-h);
-}
-.sinal-canal-h { top: calc(25% - 2.2em); }
-.sinal-canal-l { top: calc(75% + 1em); color: var(--sinal-l); }
-.sinal-legenda { font-size: var(--step--1); color: var(--sinal-texto-2); max-width: 46em; }
+.abertura-falta { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 16px; font-size: var(--step--1); }
 
 /* On-board network drawing (hero) */
 .hero-nota { font-size: var(--step--1); color: var(--ink-2); }
