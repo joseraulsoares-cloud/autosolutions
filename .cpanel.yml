@@ -1,10 +1,8 @@
 ---
-# Instalação pelo Git Version Control do cPanel ("Deploy HEAD Commit").
-# site/ vai para public_html; app/ fica fora da pasta pública. O config.php do servidor não é tocado.
+# Instalação pelo Git Version Control do cPanel ("Deploy HEAD Commit"), a partir da raiz do repositório.
+# O script copia site/ para public_html e app/ para ~/autosolutions-app, mantém no .htaccess a versão
+# do PHP escolhida no MultiPHP Manager e tira a escrita para o grupo (que alguns alojamentos recusam).
+# Não toca em ~/garc-conteudos nem no config.php.
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/public_html/
-    - export APPPATH=$HOME/autosolutions-app/
-    - /bin/mkdir -p $DEPLOYPATH $APPPATH
-    - /bin/cp -R site/. $DEPLOYPATH
-    - /bin/cp -R app/. $APPPATH
+    - /bin/bash ferramentas/publicar.sh

@@ -113,7 +113,7 @@ def dado(chave, label):
               "meios_txt": meios_txt()}[chave]
     if PREVIEW or not PAGINA_PHP:
         return esc(origem) if origem else ph(label)
-    return f"<?= garc_txt({php_str(chave)}, {php_str(origem)}) ?>"
+    return f"<?= garc_v({php_str(chave)}, {php_str(origem)}) ?>"
 
 
 def url(page, anchor=""):
@@ -1150,8 +1150,7 @@ def body_noticias(preview):
     """Notícias: um ficheiro por notícia em garc-conteudos/noticias, no servidor, lidas no momento por
     app/conteudos.php. Na pré-visualização aparecem as notícias de origem (app/conteudos-iniciais/noticias)."""
     if PAGINA_PHP:
-        lista = ("<?= function_exists('garc_noticias_html') ? garc_noticias_html() "
-                 ": '<p class=\"muted\">Ainda não há notícias.</p>' ?>")
+        lista = "<?= isset($garc_noticias) ? $garc_noticias : '<p class=\"muted\">Ainda não há notícias.</p>' ?>"
     else:
         lista = noticias_html_origem()
     return page_head("Notícias", "Notas técnicas para oficinas e novidades da GARC.") + f"""
@@ -1261,7 +1260,7 @@ PAGES = [
      "body": body_loja, "oculta": True},
     {"file": "noticias.html", "nav": "noticias", "title": f"Notícias | {COMPANY}",
      "desc": "Notas técnicas para oficinas e novidades da GARC – Soluções Técnicas.",
-     "body": body_noticias, "php": True},
+     "body": body_noticias, "php": True, "php_extra": "$garc_noticias = garc_noticias_html();"},
     {"file": "sobre.html", "nav": "sobre", "title": f"Sobre | {COMPANY}",
      "desc": "A GARC está no mercado desde 2001 e dedica-se à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.",
      "body": body_sobre, "whatsapp": False, "php": True},
@@ -1333,22 +1332,38 @@ ErrorDocument 404 /404.html
 
 
 # Início das páginas em PHP: carrega autosolutions-app/conteudos.php (valores de garc-conteudos/dados.txt e
-# notícias). Se a pasta da aplicação faltar, as páginas mostram os valores de origem gravados nelas.
-PHP_CABECALHO = """<?php
+# notícias). Se a aplicação faltar, o PHP for anterior a 8.1 ou houver qualquer erro, a página não falha:
+# mostra os valores de origem gravados nela (e o erro fica no registo do PHP). Sem sintaxe de PHP 7 ou 8,
+# para funcionar mesmo que o domínio fique com uma versão antiga do PHP.
+def php_cabecalho(extra=""):
+    extra = f"\n        {extra}" if extra else ""
+    return f"""<?php
 // Gerado por build.py. Não editar à mão.
-$garc_app = getenv('GARC_APP') ?: dirname(__DIR__) . '/autosolutions-app';
-// conteudos.php precisa de PHP 8.1; com uma versão mais antiga, a página mostra os valores de origem
-if (PHP_VERSION_ID >= 80100 && is_file($garc_app . '/conteudos.php')) {
-    require_once $garc_app . '/conteudos.php';
-}
-if (!function_exists('garc_txt')) {
-    function garc_txt(string $chave, string $padrao = ''): string
-    {
-        return htmlspecialchars($padrao, ENT_QUOTES, 'UTF-8');
-    }
-}
+$garc_dados = array();
+$garc_noticias = null;
+try {{
+    $garc_app = getenv('GARC_APP');
+    if (!$garc_app) {{
+        $garc_app = dirname(__DIR__) . '/autosolutions-app';
+    }}
+    if (PHP_VERSION_ID >= 80100 && @is_file($garc_app . '/conteudos.php')) {{
+        require_once $garc_app . '/conteudos.php';
+        $garc_dados = garc_dados();{extra}
+    }}
+}} catch (Exception $e) {{
+    error_log('GARC conteúdos: ' . $e->getMessage());
+}} catch (Throwable $e) {{
+    error_log('GARC conteúdos: ' . $e->getMessage());
+}}
+function garc_v($chave, $padrao)
+{{
+    global $garc_dados;
+    $v = isset($garc_dados[$chave]) && is_scalar($garc_dados[$chave]) ? (string) $garc_dados[$chave] : '';
+    return htmlspecialchars($v !== '' ? $v : $padrao, ENT_QUOTES, 'UTF-8');
+}}
 ?>
 """
+
 
 # Páginas que existiam em .html e deixaram de existir: o ficheiro antigo é substituído por um aviso que leva
 # ao endereço certo, para não ficar conteúdo desatualizado (como preços) em public_html.
@@ -1389,7 +1404,7 @@ def build(out_dir, preview):
         nome = page["file"]
         if PAGINA_PHP:
             nome = nome.removesuffix(".html") + ".php"
-            texto = PHP_CABECALHO + texto
+            texto = php_cabecalho(page.get("php_extra", "")) + texto
             # o .html antigo desta página, se ficar no servidor, passa a levar para o endereço certo
             (out_dir / page["file"]).write_text(aviso_mudanca(page["file"].removesuffix(".html")), encoding="utf-8")
         (out_dir / nome).write_text(texto, encoding="utf-8")

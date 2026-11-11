@@ -1,15 +1,26 @@
 <?php
 // Gerado por build.py. Não editar à mão.
-$garc_app = getenv('GARC_APP') ?: dirname(__DIR__) . '/autosolutions-app';
-// conteudos.php precisa de PHP 8.1; com uma versão mais antiga, a página mostra os valores de origem
-if (PHP_VERSION_ID >= 80100 && is_file($garc_app . '/conteudos.php')) {
-    require_once $garc_app . '/conteudos.php';
-}
-if (!function_exists('garc_txt')) {
-    function garc_txt(string $chave, string $padrao = ''): string
-    {
-        return htmlspecialchars($padrao, ENT_QUOTES, 'UTF-8');
+$garc_dados = array();
+$garc_noticias = null;
+try {
+    $garc_app = getenv('GARC_APP');
+    if (!$garc_app) {
+        $garc_app = dirname(__DIR__) . '/autosolutions-app';
     }
+    if (PHP_VERSION_ID >= 80100 && @is_file($garc_app . '/conteudos.php')) {
+        require_once $garc_app . '/conteudos.php';
+        $garc_dados = garc_dados();
+    }
+} catch (Exception $e) {
+    error_log('GARC conteúdos: ' . $e->getMessage());
+} catch (Throwable $e) {
+    error_log('GARC conteúdos: ' . $e->getMessage());
+}
+function garc_v($chave, $padrao)
+{
+    global $garc_dados;
+    $v = isset($garc_dados[$chave]) && is_scalar($garc_dados[$chave]) ? (string) $garc_dados[$chave] : '';
+    return htmlspecialchars($v !== '' ? $v : $padrao, ENT_QUOTES, 'UTF-8');
 }
 ?>
 <!doctype html>
@@ -69,7 +80,7 @@ if (!function_exists('garc_txt')) {
     <dl class="spec">
       <div><dt>Empresa</dt><dd>GARC – Soluções Técnicas, Unipessoal Lda</dd></div>
       <div><dt>No mercado</dt><dd>Desde 2001 (25 anos)</dd></div>
-      <div><dt>Entrega</dt><dd><?= garc_txt('entrega', 'Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento') ?></dd></div>
+      <div><dt>Entrega</dt><dd><?= garc_v('entrega', 'Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento') ?></dd></div>
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
     </dl>

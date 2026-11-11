@@ -1,15 +1,26 @@
 <?php
 // Gerado por build.py. Não editar à mão.
-$garc_app = getenv('GARC_APP') ?: dirname(__DIR__) . '/autosolutions-app';
-// conteudos.php precisa de PHP 8.1; com uma versão mais antiga, a página mostra os valores de origem
-if (PHP_VERSION_ID >= 80100 && is_file($garc_app . '/conteudos.php')) {
-    require_once $garc_app . '/conteudos.php';
-}
-if (!function_exists('garc_txt')) {
-    function garc_txt(string $chave, string $padrao = ''): string
-    {
-        return htmlspecialchars($padrao, ENT_QUOTES, 'UTF-8');
+$garc_dados = array();
+$garc_noticias = null;
+try {
+    $garc_app = getenv('GARC_APP');
+    if (!$garc_app) {
+        $garc_app = dirname(__DIR__) . '/autosolutions-app';
     }
+    if (PHP_VERSION_ID >= 80100 && @is_file($garc_app . '/conteudos.php')) {
+        require_once $garc_app . '/conteudos.php';
+        $garc_dados = garc_dados();
+    }
+} catch (Exception $e) {
+    error_log('GARC conteúdos: ' . $e->getMessage());
+} catch (Throwable $e) {
+    error_log('GARC conteúdos: ' . $e->getMessage());
+}
+function garc_v($chave, $padrao)
+{
+    global $garc_dados;
+    $v = isset($garc_dados[$chave]) && is_scalar($garc_dados[$chave]) ? (string) $garc_dados[$chave] : '';
+    return htmlspecialchars($v !== '' ? $v : $padrao, ENT_QUOTES, 'UTF-8');
 }
 ?>
 <!doctype html>
@@ -75,12 +86,12 @@ if (!function_exists('garc_txt')) {
     <p>Os ficheiros pagam-se com tokens pré-pagos. O preço do token e o carregamento mínimo estão na área de cliente, em Preços, para as contas aprovadas. Os tokens são carregados na conta depois de confirmado o pagamento, e a fatura é enviada por email.</p>
     <p>No envio de um pedido desconta-se do saldo o número de tokens indicado na área de cliente. O custo final depende da ECU e é comunicado depois de analisado o ficheiro. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido fica suspenso até a diferença ser carregada. Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se a empresa recusar o pedido, os tokens voltam ao saldo.</p>
     <ul>
-      <li>Validade dos tokens: <?= garc_txt('validade', '12 meses a contar do carregamento') ?>.</li>
+      <li>Validade dos tokens: <?= garc_v('validade', '12 meses a contar do carregamento') ?>.</li>
       <li>Saldo não usado: não é reembolsado; os tokens ficam em crédito na conta até ao fim da validade.</li>
       <li>Algumas unidades são sob consulta: o custo é dado caso a caso, antes do envio do ficheiro.</li>
     </ul>
     <h2>Preços, pagamento e prazos</h2>
-    <p>Os preços estão na área de cliente, em Preços. O pagamento faz-se por <?= garc_txt('meios_txt', 'MB WAY ou PayPal') ?>, sempre antes do envio dos ficheiros. Prazo normal de entrega: <?= garc_txt('entrega', 'Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento') ?>. O horário de atendimento está na página <a href="/servicos">Serviços</a>.</p>
+    <p>Os preços estão na área de cliente, em Preços. O pagamento faz-se por <?= garc_v('meios_txt', 'MB WAY ou PayPal') ?>, sempre antes do envio dos ficheiros. Prazo normal de entrega: <?= garc_v('entrega', 'Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento') ?>. O horário de atendimento está na página <a href="/servicos">Serviços</a>.</p>
     <h2>Responsabilidade</h2>
     <p>A empresa não responde por danos resultantes de leituras incorretas, de escrita interrompida, da utilização do ficheiro noutra viatura ou de avarias mecânicas preexistentes.</p>
     <h2>Reclamações</h2>

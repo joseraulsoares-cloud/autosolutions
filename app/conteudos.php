@@ -31,10 +31,23 @@ if (!function_exists('garc_dados')) {
             @copy("$origem/dados.txt", "$dir/dados.txt");
         }
         if (!is_dir("$dir/noticias") && @mkdir("$dir/noticias", 0755)) {
-            foreach (glob("$origem/noticias/*.txt") ?: [] as $f) {
+            foreach (garc_txts("$origem/noticias") as $f) {
                 @copy($f, "$dir/noticias/" . basename($f));
             }
         }
+    }
+
+    /** Ficheiros .txt de uma pasta, por ordem do nome. */
+    function garc_txts(string $pasta): array
+    {
+        $nomes = is_dir($pasta) ? (@scandir($pasta) ?: []) : [];
+        $lista = [];
+        foreach ($nomes as $n) {
+            if (str_ends_with(strtolower($n), '.txt') && is_file("$pasta/$n")) {
+                $lista[] = "$pasta/$n";
+            }
+        }
+        return $lista;
     }
 
     /** Lê linhas "chave: valor"; ignora linhas vazias e notas (#). */
@@ -213,7 +226,14 @@ if (!function_exists('garc_dados')) {
 
     function garc_ancora(string $titulo): string
     {
-        $t = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $titulo) ?: $titulo;
+        $t = strtr($titulo, [
+            'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c', 'ñ' => 'n',
+            'Á' => 'A', 'À' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E',
+            'Í' => 'I', 'Ì' => 'I', 'Î' => 'I', 'Ï' => 'I', 'Ó' => 'O', 'Ò' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O',
+            'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ç' => 'C', 'Ñ' => 'N',
+        ]);
         $t = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $t));
         return trim($t, '-') ?: 'noticia';
     }
@@ -270,7 +290,7 @@ if (!function_exists('garc_dados')) {
     {
         garc_conteudos_preparar();
         $lista = [];
-        foreach (glob(garc_conteudos_dir() . '/noticias/*.txt') ?: [] as $f) {
+        foreach (garc_txts(garc_conteudos_dir() . '/noticias') as $f) {
             $nome = basename($f);
             if ($nome[0] === '_' || !is_file($f)) {
                 continue;
