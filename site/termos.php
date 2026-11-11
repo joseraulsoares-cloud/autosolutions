@@ -1,7 +1,8 @@
 <?php
 // Gerado por build.py. Não editar à mão.
 $garc_app = getenv('GARC_APP') ?: dirname(__DIR__) . '/autosolutions-app';
-if (is_file($garc_app . '/conteudos.php')) {
+// conteudos.php precisa de PHP 8.1; com uma versão mais antiga, a página mostra os valores de origem
+if (PHP_VERSION_ID >= 80100 && is_file($garc_app . '/conteudos.php')) {
     require_once $garc_app . '/conteudos.php';
 }
 if (!function_exists('garc_txt')) {
