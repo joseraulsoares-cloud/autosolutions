@@ -9,7 +9,7 @@
   function $(id) { return document.getElementById(id); }
 
   var est = { sessao: null, saldo: 0, voltar: 'pedidos', pedidos: [] };
-  var PAINEIS = ['pedidos', 'novo', 'saldo', 'conta'];
+  var PAINEIS = ['pedidos', 'novo', 'saldo', 'precos', 'conta'];
   var vistas = { carregar: $('p-carregar'), entrar: $('v-entrar'), registo: $('v-registo'), painel: $('v-painel') };
   var form = $('form-pedido');
 
@@ -23,10 +23,35 @@
     atualizarResumo();
   }
 
+  /* Os preços chegam com a sessão (só para contas aprovadas) e não estão no HTML da página. */
+  function aplicarPrecos(p) {
+    p = p || {};
+    if (p.minimo) G.CAT.minimo = p.minimo;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-preco]'), function (el) {
+      var v = p[el.getAttribute('data-preco')];
+      el.textContent = v == null ? '' : String(v);
+    });
+    $('p-tabela-precos').innerHTML = (p.tabela || []).map(function (l) {
+      return '<tr><th scope="row">' + esc(l.tokens_txt) + '</th><td>' + esc(l.preco_txt) + '</td></tr>';
+    }).join('');
+    $('p-pagamentos').innerHTML = (p.pagamentos || []).map(function (m) {
+      if (m.tipo === 'cartao') {
+        return '<div><dt>Cartão</dt><dd><a class="btn btn-secondary btn-sm" href="' + esc(m.url) +
+          '" target="_blank" rel="noopener">Pagar com cartão</a></dd></div>';
+      }
+      if (m.tipo === 'paypal') {
+        return '<div><dt>PayPal</dt><dd><a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.valor) +
+          '</a><br><span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>';
+      }
+      return '<div><dt>' + esc(m.nome) + '</dt><dd>' + esc(m.valor) + '</dd></div>';
+    }).join('');
+  }
+
   function aplicarSessao(s) {
     est.sessao = s;
     $('p-sub').textContent = s.oficina.nome;
     $('p-saldo-box').hidden = false;
+    aplicarPrecos(s.precos);
     definirSaldo(s.saldo);
     prepararNovo();
   }
@@ -34,6 +59,8 @@
   function sessaoTerminada() {
     est.sessao = null;
     est.pedidos = [];
+    aplicarPrecos(null);
+    delete G.CAT.minimo;
     $('p-saldo-box').hidden = true;
     $('p-sub').textContent = 'Envie ficheiros, acompanhe os pedidos e consulte o saldo de tokens.';
     rota();

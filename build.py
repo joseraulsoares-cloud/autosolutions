@@ -11,6 +11,7 @@ import html
 import json
 import re
 import shutil
+import unicodedata
 from pathlib import Path
 from urllib.parse import quote
 
@@ -33,7 +34,6 @@ MAX_MB = 25
 DADOS = {
     "whatsapp": "+351 913 027 543",  # contacto só por WhatsApp (mensagens); o site não mostra ligação para chamadas
     "email": "fileservice@autosolutions.pt",  # email da empresa (contactos, pedidos e privacidade)
-    "horario": "8h30–17h00",
     "nipc": "505743973",
     "desde": 2001,          # ano em que a empresa entrou no mercado; os anos contam-se até YEAR
     "foto_inicio": "fotos/inicio",  # imagem da página inicial: Pexels n.º 8664308 (licença e alterações em
@@ -48,22 +48,43 @@ DADOS = {
     "conservatoria": "Vila Nova de Gaia",  # Conservatória do Registo Comercial onde a sociedade está matriculada
     "prazo_pedidos": "1 mês",    # conservação de pedidos sem seguimento
     "prazo_ficheiros": "1 mês",  # conservação dos ficheiros de centralina (apagados automaticamente)
-    "entrega": "Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento",
-    "mbway": "+351 913 027 543",  # número MB WAY para carregamentos de saldo
-    "stripe": "",                # ligação de pagamento do Stripe (Payment Link), ex.: "https://buy.stripe.com/..."; vazio = cartão oculto
-    "paypal": "jraulsoares",     # nome no PayPal.Me (https://paypal.me/<nome>), pagamentos entre amigos e familiares; vazio = PayPal oculto
-    "iva": "IVA incluído à taxa legal em vigor",
-    "validade_tokens": "12 meses a contar do carregamento",
+    # horário, prazo de entrega, pagamentos, IVA e validade dos tokens: ver VALORES, mais abaixo
     "reembolso": "não é reembolsado; os tokens ficam em crédito na conta até ao fim da validade",
 }
 
-# Preço e regras dos tokens. O custo de cada pedido depende da ECU e é definido no painel depois de analisado o ficheiro.
-TOKEN_EUR = 6.0       # preço de 1 token, com IVA
-TOKENS_MINIMO = 5     # carregamento mínimo e tokens descontados no envio de cada pedido
-SOB_CONSULTA = "SID321, SID212, SID213 e outras unidades posteriores a 2018"
-EXEMPLOS_CARREGAMENTO = [5, 10, 12, 20]  # quantidades mostradas na tabela de preços
+# Valores que o Raul altera no servidor, sem mexer no código: preços, prazo de entrega, horário e pagamentos.
+# A origem é app/conteudos-iniciais/dados.txt; no servidor manda a cópia em garc-conteudos/dados.txt, lida no
+# momento por app/conteudos.php (páginas em PHP e API). Aqui usam-se os valores de origem: na pré-visualização
+# e como reserva das páginas em PHP. Os preços só aparecem na área de cliente, a contas aprovadas, vindos da API.
+# O custo de cada pedido depende da ECU e é definido no painel depois de analisado o ficheiro.
+CONTEUDOS_INICIAIS = ROOT / "app" / "conteudos-iniciais"
+
+
+def ler_dados(texto):
+    """Linhas «chave: valor»; ignora linhas vazias e notas (#). Igual a garc_ler_dados em app/conteudos.php."""
+    dados = {}
+    for linha in texto.lstrip("\ufeff").splitlines():
+        linha = linha.strip()
+        if not linha or linha.startswith("#") or ":" not in linha:
+            continue
+        chave, valor = linha.split(":", 1)
+        chave = chave.strip().lower()
+        if re.fullmatch(r"[a-z_]+", chave):
+            dados[chave] = valor.strip()
+    return dados
+
+
+VALORES = ler_dados((CONTEUDOS_INICIAIS / "dados.txt").read_text(encoding="utf-8"))
+TOKEN_EUR = float(re.sub(r"[€\s]", "", VALORES["token"]).replace(",", "."))  # preço de 1 token, com IVA
+TOKENS_MINIMO = int(re.match(r"\d+", VALORES["minimo"]).group())  # carregamento mínimo e tokens descontados no envio
+EXEMPLOS_CARREGAMENTO = [int(x) for x in re.findall(r"\d+", VALORES["exemplos"])]  # quantidades na tabela de preços
+SOB_CONSULTA = VALORES["sob_consulta"]
+DADOS.update(horario=VALORES["horario"], entrega=VALORES["entrega"], mbway=VALORES["mbway"],
+             stripe=VALORES["cartao"], paypal=VALORES["paypal"], iva=VALORES["iva"],
+             validade_tokens=VALORES["validade"])
 
 PREVIEW = False  # definido por build()
+PAGINA_PHP = False  # definido por build() para cada página: True quando a página do site é gerada em PHP
 MISSING = []     # campos por preencher encontrados na geração
 OCULTOS = []     # opções que não aparecem no site enquanto o campo estiver vazio
 
@@ -83,6 +104,16 @@ def ph(text, report=None):
 def val(key, label):
     value = DADOS.get(key)
     return esc(value) if value else ph(label)
+
+
+def dado(chave, label):
+    """Valor alterável no servidor (garc-conteudos/dados.txt): nas páginas em PHP é lido no momento, com o valor
+    de origem como reserva; na pré-visualização aparece o valor de origem."""
+    origem = {"horario": DADOS["horario"], "entrega": DADOS["entrega"], "validade": DADOS["validade_tokens"],
+              "meios_txt": meios_txt()}[chave]
+    if PREVIEW or not PAGINA_PHP:
+        return esc(origem) if origem else ph(label)
+    return f"<?= garc_txt({php_str(chave)}, {php_str(origem)}) ?>"
 
 
 def url(page, anchor=""):
@@ -126,8 +157,8 @@ def lista_txt(itens):
 def meios_pagamento():
     """Meios de pagamento com dados preenchidos; o cartão e o PayPal ficam ocultos até haver ligação."""
     meios = ["MB WAY"]
-    for chave, nome, falta in (("stripe", "cartão", "ligação de pagamento do Stripe (pagamento por cartão)"),
-                               ("paypal", "PayPal", "nome no PayPal.Me (pagamento por PayPal)")):
+    for chave, nome, falta in (("stripe", "cartão", "pagamento por cartão: ligação do Stripe em «cartao», no dados.txt do servidor"),
+                               ("paypal", "PayPal", "pagamento por PayPal: nome em «paypal», no dados.txt do servidor")):
         if DADOS[chave]:
             meios.append(nome)
         elif falta not in OCULTOS:
@@ -140,16 +171,10 @@ def meios_txt():
 
 
 def plataformas_txt():
-    """Frase da política de privacidade sobre as plataformas de pagamento em uso."""
-    usadas = [(meio, plataforma) for meio, plataforma, chave in (("cartão", "Stripe", "stripe"), ("PayPal", "PayPal", "paypal"))
-              if DADOS[chave]]
-    if not usadas:
-        return ""
-    meios = " e ".join(f"por {meio}" for meio, _ in usadas)
-    nomes = " e ".join(plataforma for _, plataforma in usadas)
-    if len(usadas) == 1:
-        return f" Os pagamentos {meios} são feitos na plataforma {nomes}, que trata os dados do pagamento segundo as suas próprias políticas."
-    return f" Os pagamentos {meios} são feitos nas plataformas {nomes}, que tratam os dados do pagamento segundo as suas próprias políticas."
+    """Frase da política de privacidade sobre as plataformas de pagamento. Os meios em uso mudam no servidor
+    (dados.txt), por isso a frase vale para qualquer combinação."""
+    return (" Se pagar por cartão ou por PayPal, o pagamento é feito na plataforma Stripe ou PayPal, que trata"
+            " os dados do pagamento segundo as suas próprias políticas.")
 
 
 def registo_html(inicio=False):
@@ -254,7 +279,6 @@ def eur(valor):
 NAV = [
     ("index", "", "Início", "inicio"),
     ("servicos", "", "Serviços", "servicos"),
-    ("precos", "", "Preços", "precos"),
     ("noticias", "", "Notícias", "noticias"),
     ("sobre", "", "Sobre", "sobre"),
     ("contacto", "", "Contacto", "contacto"),
@@ -542,7 +566,7 @@ def body_sobre(preview):
     <dl class="spec">
       <div><dt>Empresa</dt><dd>{esc(FIRMA)}</dd></div>
       <div><dt>No mercado</dt><dd>{desde_html()}</dd></div>
-      <div><dt>Entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
+      <div><dt>Entrega</dt><dd>{dado('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
     </dl>
@@ -582,7 +606,7 @@ def body_contacto(preview):
 def body_servicos(preview):
     sub = "".join(f'<a href="#{a}">{t}</a>' for a, t, *_ in GROUPS) + '<a href="#diagnostico">Diagnóstico avançado</a>'
     # O horário de atendimento aparece só nesta página; Preços e Termos remetem para aqui.
-    horario = f'\n    <p class="horario">Horário de atendimento: <strong>{val("horario", "dias e horas de atendimento")}</strong></p>'
+    horario = f'\n    <p class="horario">Horário de atendimento: <strong>{dado("horario", "dias e horas de atendimento")}</strong></p>'
     parts = [page_head(
         "Serviços",
         "Ficheiros por módulo, preparados para a viatura e a ECU de cada pedido, e diagnóstico avançado para oficinas.",
@@ -694,7 +718,7 @@ def form_novo_pedido():
         <p class="hint">O ficheiro fica sempre disponível em Pedidos.</p>
       </fieldset>
       <div class="resumo" id="f-resumo" data-estado="vazio" aria-live="polite">
-        <div><span class="small muted">Desconto no envio</span><strong id="f-total">{tokens_txt(TOKENS_MINIMO)}</strong></div>
+        <div><span class="small muted">Desconto no envio</span><strong id="f-total">–</strong></div>
         <div><span class="small muted">Saldo atual</span><strong id="f-saldo-atual">–</strong></div>
         <p class="resumo-msg" id="f-resumo-msg">Escolha os módulos pretendidos.</p>
         <p class="small muted resumo-nota">O custo final depende da ECU. Se for maior, avisamos e a diferença é descontada do saldo.</p>
@@ -716,7 +740,7 @@ def form_novo_pedido():
       <div class="aside-block">
         <h2>Depois do envio</h2>
         <ol class="aside-steps">
-          <li>Descontam-se {tokens_txt(TOKENS_MINIMO)} do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
+          <li>Descontam-se <span data-preco="minimo_txt"></span> do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
           <li>Analisamos a ECU e confirmamos o custo final. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido espera pelo carregamento.</li>
           <li>Entregamos o ficheiro pela via que escolheu, normalmente em menos de 2 horas. Fica também disponível em Pedidos durante {esc(DADOS['prazo_ficheiros'])}.</li>
           <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
@@ -741,13 +765,33 @@ def entrega_radios(prefix, name="entrega"):
 
 
 def catalogo_dados():
+    """Catálogo público (vai no HTML): sem preços. Os preços chegam à área de cliente pela API, só com sessão."""
     modulos = {k: {"nome": nome, "emissoes": k in EMISSOES} for k, (nome, _desc) in MODULES.items()}
-    return {"modulos": modulos, "maxMb": MAX_MB, "minimo": TOKENS_MINIMO}
+    return {"modulos": modulos, "maxMb": MAX_MB}
+
+
+def precos_origem():
+    """Os mesmos campos que garc_precos() em app/conteudos.php, com os valores de origem (para demo.js)."""
+    pagamentos = []
+    if DADOS["mbway"]:
+        pagamentos.append({"tipo": "mbway", "nome": "MB WAY", "valor": DADOS["mbway"]})
+    if DADOS["stripe"]:
+        pagamentos.append({"tipo": "cartao", "nome": "Cartão", "url": DADOS["stripe"]})
+    if DADOS["paypal"]:
+        pagamentos.append({"tipo": "paypal", "nome": "PayPal", "url": paypal_url(), "valor": paypal_url().removeprefix("https://")})
+    return {
+        "token": TOKEN_EUR, "token_txt": eur(TOKEN_EUR), "minimo": TOKENS_MINIMO, "minimo_txt": tokens_txt(TOKENS_MINIMO),
+        "tabela": [{"tokens": n, "tokens_txt": tokens_txt(n), "preco_txt": eur(n * TOKEN_EUR)} for n in EXEMPLOS_CARREGAMENTO],
+        "iva": DADOS["iva"], "validade": DADOS["validade_tokens"], "sob_consulta": SOB_CONSULTA,
+        "entrega": DADOS["entrega"], "meios_txt": meios_txt(), "pagamentos": pagamentos,
+    }
 
 
 def catalogo_script():
     dados = catalogo_dados()
-    dados["urls"] = {"admin": url("admin"), "areaCliente": url("area-cliente"), "precos": url("precos")}
+    dados["urls"] = {"admin": url("admin"), "areaCliente": url("area-cliente")}
+    if PREVIEW:
+        dados["precosDemo"] = precos_origem()
     texto = json.dumps(dados, ensure_ascii=False).replace("</", "<\\/")
     return f'<script type="application/json" id="catalogo">{texto}</script>'
 
@@ -767,87 +811,36 @@ def catalogo_php():
             + "\n".join(linhas) + "\n    ],\n];\n")
 
 
-# ---------------------------------------------------------------- preços
+# ---------------------------------------------------------------- preços (só na área de cliente)
 
-def tabela_tokens():
-    linhas = "".join(
-        f'<tr><th scope="row">{esc(tokens_txt(n))}</th><td>{esc(eur(n * TOKEN_EUR))}</td></tr>'
-        for n in EXEMPLOS_CARREGAMENTO
-    )
-    return f"""<div class="table-wrap"><table class="price-table">
-          <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
-          <tbody>{linhas}</tbody>
-        </table></div>
-        <p class="small muted">1 token = {esc(eur(TOKEN_EUR))}. Pode carregar qualquer quantidade a partir de {tokens_txt(TOKENS_MINIMO)}. {val('iva', 'IVA incluído ou a acrescer')}. Validade: {val('validade_tokens', 'validade dos tokens')}.</p>"""
-
-
-def body_precos(preview):
-    grupos = []
-    for anchor, title, _intro, keys, emissions in GROUPS:
-        itens = "".join(f"<li>{esc(MODULES[k][0])}</li>" for k in keys)
-        nota = '<p><span class="tag">Uso exclusivo em competição ou fora da via pública</span></p>' if emissions else ""
-        grupos.append(f"""<div class="price-group">
-        <h3>{title}</h3>{nota}
-        <ul class="mod-names">{itens}</ul>
-      </div>""")
-    grupos_html = "\n      ".join(grupos)
+def painel_precos():
+    """Separador Preços da área de cliente. Os valores chegam pela API, só com sessão de conta aprovada
+    (portal.js preenche os elementos com data-preco), e por isso não ficam no HTML da página."""
     wa = (f'<a href="{esc(whatsapp_url("Olá! Quero saber o custo de um ficheiro para esta ECU:"))}" target="_blank" rel="noopener">WhatsApp</a>'
           if DADOS["whatsapp"] else ph("número de WhatsApp"))
-    return page_head(
-        "Preços",
-        f"Os ficheiros pagam-se com tokens pré-pagos. 1 token custa {esc(eur(TOKEN_EUR))}, com IVA incluído.",
-    ) + f"""
-
-<section class="section">
-  <div class="wrap saldo-grid">
-    <div class="stack">
-      <h2>Tokens</h2>
-      {tabela_tokens()}
-    </div>
-    <div class="stack">
-      <h2>Como carregar saldo</h2>
-      <ol class="aside-steps">
-        <li>Crie conta na área de cliente. Aprovamos a conta e avisamos por email.</li>
-        <li>Pague por {meios_txt()}. Os dados de pagamento estão na área de cliente, em Saldo.</li>
-        <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
-      </ol>
-      <div class="actions"><a class="btn btn-primary" href="{url('area-cliente', '#registo')}">Criar conta</a><a class="btn btn-secondary" href="{url('area-cliente')}">Entrar</a></div>
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap saldo-grid">
-    <div class="stack">
-      <h2>Quanto custa cada pedido</h2>
-      <p>O custo depende da ECU e dos módulos pedidos.</p>
-      <ol class="aside-steps">
-        <li>No envio do ficheiro descontam-se {tokens_txt(TOKENS_MINIMO)} do saldo.</li>
-        <li>Depois de analisarmos a ECU, confirmamos o custo final na área de cliente e por email. Se for maior, por exemplo 10 ou 12 tokens, a diferença é descontada do saldo. Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
-        <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
-      </ol>
-    </div>
-    <div class="stack">
-      <h2>Sob consulta</h2>
-      <p class="note">{esc(SOB_CONSULTA)}: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
-      <h2>Prazo de entrega</h2>
-      <p>{val('entrega', 'prazo de entrega dos ficheiros')}. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
-      <p>Também pode enviar o ficheiro pelo WhatsApp, desde que tenha tokens na conta.</p>
-    </div>
-  </div>
-</section>
-
-<section class="section">
-  <div class="wrap stack">
-    <div class="section-head">
-      <h2>Módulos disponíveis</h2>
-      <p class="lead">Num pedido pode escolher vários módulos. O custo de cada pedido é confirmado depois de analisada a ECU.</p>
-    </div>
-    <div class="price-grid">
-      {grupos_html}
-    </div>
-  </div>
-</section>"""
+    return f"""<div class="saldo-grid">
+          <div class="stack">
+            <h3>Tokens</h3>
+            <div class="table-wrap"><table class="price-table">
+              <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
+              <tbody id="p-tabela-precos"></tbody>
+            </table></div>
+            <p class="small muted">1 token = <span data-preco="token_txt"></span>. Pode carregar qualquer quantidade a partir de <span data-preco="minimo_txt"></span>. <span data-preco="iva"></span>. Validade: <span data-preco="validade"></span>.</p>
+          </div>
+          <div class="stack">
+            <h3>Quanto custa cada pedido</h3>
+            <p>O custo depende da ECU e dos módulos pedidos.</p>
+            <ol class="aside-steps">
+              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo.</li>
+              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email. Se for maior, a diferença é descontada do saldo. Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+            </ol>
+            <h3>Sob consulta</h3>
+            <p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
+            <h3>Prazo de entrega</h3>
+            <p><span data-preco="entrega"></span>. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
+          </div>
+        </div>"""
 
 
 # ---------------------------------------------------------------- área de cliente e administração
@@ -887,16 +880,6 @@ def body_area_cliente(preview):
         field("r-telefone", "telefone", "Telefone", True, "tel", extra=' autocomplete="tel"'),
         field("r-whatsapp", "whatsapp", "WhatsApp, se for outro número", kind="tel"),
     ])
-    meios = meios_pagamento()
-    linhas = [f"<div><dt>MB WAY</dt><dd>{val('mbway', 'número MB WAY')}</dd></div>"]
-    if "cartão" in meios:
-        linhas.append(f'<div><dt>Cartão</dt><dd><a class="btn btn-secondary btn-sm" href="{esc(DADOS["stripe"])}" '
-                      f'target="_blank" rel="noopener">Pagar com cartão</a></dd></div>')
-    if "PayPal" in meios:
-        linhas.append(f'<div><dt>PayPal</dt><dd><a href="{esc(paypal_url())}" target="_blank" rel="noopener">'
-                      f'{esc(paypal_url().removeprefix("https://"))}</a><br>'
-                      f'<span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>')
-    pagamento = '<dl class="spec">\n              ' + "\n              ".join(linhas) + "\n            </dl>"
     return f"""<section class="page-head">
   <div class="wrap portal-top">
     <div class="portal-title">
@@ -948,6 +931,7 @@ def body_area_cliente(preview):
         <a href="#pedidos" data-tab="pedidos">Pedidos</a>
         <a href="#novo" data-tab="novo">Novo pedido</a>
         <a href="#saldo" data-tab="saldo">Saldo</a>
+        <a href="#precos" data-tab="precos">Preços</a>
         <a href="#conta" data-tab="conta">Conta</a>
         <button class="tab-out" type="button" data-sair>Sair</button>
       </nav>
@@ -957,7 +941,7 @@ def body_area_cliente(preview):
         <div class="orders" id="p-pedidos"></div>
       </div>
       <div class="panel" data-panel="novo" hidden>
-        <div class="panel-head"><h2>Novo pedido</h2><a href="{url('precos')}">Ver preços</a></div>
+        <div class="panel-head"><h2>Novo pedido</h2><a href="#precos">Ver preços</a></div>
         {form_novo_pedido()}
       </div>
       <div class="panel" data-panel="saldo" hidden>
@@ -966,19 +950,23 @@ def body_area_cliente(preview):
           <div class="stack">
             <h3>Carregar saldo</h3>
             <ol class="aside-steps">
-              <li>Escolha quantos tokens quer, a partir de {tokens_txt(TOKENS_MINIMO)}, e pague por {lista_txt(meios)}.</li>
+              <li>Escolha quantos tokens quer, a partir de <span data-preco="minimo_txt"></span>, e pague por <span data-preco="meios_txt"></span>.</li>
               <li>Na descrição do pagamento, indique o NIF da oficina.</li>
               <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
             </ol>
-            {pagamento}
+            <dl class="spec" id="p-pagamentos"></dl>
           </div>
           <div class="stack">
             <h3>Preços</h3>
-            {tabela_tokens()}
+            <p>1 token custa <strong data-preco="token_txt"></strong>. A tabela e as regras estão em <a href="#precos">Preços</a>.</p>
           </div>
         </div>
         <h3>Extrato</h3>
         <div id="p-extrato"></div>
+      </div>
+      <div class="panel" data-panel="precos" hidden>
+        <div class="panel-head"><h2>Preços</h2></div>
+        {painel_precos()}
       </div>
       <div class="panel" data-panel="conta" hidden>
         <div class="panel-head"><h2>Conta</h2></div>
@@ -1074,34 +1062,103 @@ def body_loja(preview):
 
 # ---------------------------------------------------------------- notícias
 
+MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto",
+         "setembro", "outubro", "novembro", "dezembro"]
+LISTA_RE = re.compile(r"^[-*•]\s+")
+
+
+def ler_noticia(texto, nome, alterado):
+    """Igual a garc_ler_noticia em app/conteudos.php: cabeçalho (Título, Data) até à primeira linha vazia."""
+    linhas = texto.lstrip("\ufeff").splitlines()
+    titulo, data = "", None
+    while linhas and linhas[0].strip():
+        m_t = re.match(r"\s*t[ií]tulo\s*:(.*)$", linhas[0], re.I)
+        m_d = re.match(r"\s*data\s*:(.*)$", linhas[0], re.I)
+        if m_t:
+            titulo = m_t.group(1).strip()
+        elif m_d:
+            t = m_d.group(1).strip()
+            if (m := re.fullmatch(r"(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})", t)):
+                data = f"{int(m[3]):04d}-{int(m[2]):02d}-{int(m[1]):02d}"
+            elif (m := re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", t)):
+                data = f"{int(m[1]):04d}-{int(m[2]):02d}-{int(m[3]):02d}"
+        else:
+            break
+        linhas.pop(0)
+    if not titulo:
+        while linhas and not linhas[0].strip():
+            linhas.pop(0)
+        if not linhas:
+            return None
+        titulo = linhas.pop(0).strip()
+    blocos = []
+    for b in re.split(r"\n\s*\n", "\n".join(linhas).strip()):
+        ls = [x.strip() for x in b.strip().split("\n")] if b.strip() else []
+        if not ls:
+            continue
+        if all(LISTA_RE.match(x) for x in ls):
+            blocos.append(("lista", [LISTA_RE.sub("", x).strip() for x in ls]))
+        else:
+            blocos.append(("paragrafo", ls))
+    import datetime
+    return {"titulo": titulo, "data": data or datetime.date.fromtimestamp(alterado).isoformat(),
+            "ficheiro": nome, "blocos": blocos}
+
+
+def texto_noticia(t):
+    t = esc(t)
+    def ligar(m):
+        url_ = m.group(0).rstrip(".,;:!?)")
+        return f'<a href="{url_}" target="_blank" rel="noopener">{url_}</a>' + m.group(0)[len(url_):]
+    return re.sub(r"https?://[^\s<>\"']+", ligar, t)
+
+
+def noticias_html_origem():
+    """Notícias de origem (app/conteudos-iniciais/noticias), com o mesmo HTML de garc_noticias_html()."""
+    lista = []
+    for f in sorted((CONTEUDOS_INICIAIS / "noticias").glob("*.txt")):
+        if f.name.startswith("_"):
+            continue
+        n = ler_noticia(f.read_text(encoding="utf-8"), f.name, f.stat().st_mtime)
+        if n:
+            lista.append(n)
+    lista.sort(key=lambda n: n["ficheiro"])
+    lista.sort(key=lambda n: n["data"], reverse=True)
+    if not lista:
+        return '<p class="muted">Ainda não há notícias.</p>'
+    html_, usadas = "", set()
+    for n in lista:
+        base = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", n["titulo"]).encode("ascii", "ignore").decode().lower()).strip("-") or "noticia"
+        ident, i = base, 2
+        while ident in usadas:
+            ident, i = f"{base}-{i}", i + 1
+        usadas.add(ident)
+        corpo = ""
+        for tipo, itens in n["blocos"]:
+            if tipo == "lista":
+                corpo += "\n        <ul>" + "".join(f"\n          <li>{texto_noticia(x)}</li>" for x in itens) + "\n        </ul>"
+            else:
+                corpo += "\n        <p>" + "<br>".join(texto_noticia(x) for x in itens) + "</p>"
+        a, m, d = (int(x) for x in n["data"].split("-"))
+        html_ += (f'\n      <article class="article" id="{ident}">'
+                  f'\n        <time datetime="{n["data"]}">{d} de {MESES[m - 1]} de {a}</time>'
+                  f'\n        <h2>{esc(n["titulo"])}</h2>{corpo}\n      </article>')
+    return '<div class="articles">' + html_ + "\n    </div>"
+
+
 def body_noticias(preview):
-    iso, human = UPDATED
+    """Notícias: um ficheiro por notícia em garc-conteudos/noticias, no servidor, lidas no momento por
+    app/conteudos.php. Na pré-visualização aparecem as notícias de origem (app/conteudos-iniciais/noticias)."""
+    if PAGINA_PHP:
+        lista = ("<?= function_exists('garc_noticias_html') ? garc_noticias_html() "
+                 ": '<p class=\"muted\">Ainda não há notícias.</p>' ?>")
+    else:
+        lista = noticias_html_origem()
     return page_head("Notícias", "Notas técnicas para oficinas e novidades da GARC.") + f"""
 
 <section class="section">
   <div class="wrap">
-    <div class="articles">
-      <article class="article" id="preparar-leitura">
-        <time datetime="{iso}">{human}</time>
-        <h2>Como preparar uma leitura antes de enviar o ficheiro</h2>
-        <p>Um ficheiro só é tão bom como a leitura de onde parte. Estes cuidados evitam a maior parte dos problemas na escrita.</p>
-        <ul>
-          <li>Guarde sempre o original, em mais de um sítio, antes de qualquer escrita.</li>
-          <li>Mantenha a tensão estável durante a leitura e a escrita, com um carregador ou estabilizador ligado à bateria.</li>
-          <li>Quando a ferramenta o permite, faça a leitura completa (flash e EEPROM). Uma leitura parcial por OBD pode não chegar para todas as alterações.</li>
-          <li>Anote as referências de hardware e de software da ECU, a ferramenta e o método usados (OBD, bancada ou boot).</li>
-          <li>Envie o ficheiro tal como a ferramenta o gravou, sem mudar a extensão nem o alterar noutros programas.</li>
-          <li>Se a viatura tem avarias registadas, indique quais. Um ficheiro não resolve uma avaria mecânica.</li>
-        </ul>
-      </article>
-      <article class="article" id="stage-1-stage-2">
-        <time datetime="{iso}">{human}</time>
-        <h2>Stage 1 e Stage 2: o que muda</h2>
-        <p>O Stage 1 é uma recalibração de software para o motor de série: ajustam-se binário, pressão do turbo, injeção e limitadores, com margens pensadas para os componentes originais.</p>
-        <p>O Stage 2 parte do mesmo princípio, mas para um motor com alterações físicas já montadas, como admissão, intercooler ou escape. A calibração é feita para essas peças e não deve ser usada sem elas.</p>
-        <p>Em ambos os casos, o resultado depende do estado mecânico do motor. Antes de reprogramar, convém confirmar que não há avarias registadas, fugas de ar nem componentes gastos, como a embraiagem, o turbo ou os injetores.</p>
-      </article>
-    </div>
+    {lista}
   </div>
 </section>"""
 
@@ -1157,15 +1214,15 @@ def body_termos(preview):
     <h2>Contas</h2>
     <p>A área de cliente é para oficinas e profissionais do setor automóvel. As contas são aprovadas pela empresa e o acesso faz-se com um código enviado para o email registado. A empresa pode suspender uma conta em caso de uso indevido.</p>
     <h2>Tokens e saldo</h2>
-    <p>Os ficheiros pagam-se com tokens pré-pagos: 1 token custa {esc(eur(TOKEN_EUR))}, com IVA incluído, e o carregamento mínimo é de {tokens_txt(TOKENS_MINIMO)}. Os tokens são carregados na conta depois de confirmado o pagamento, e a fatura é enviada por email.</p>
-    <p>No envio de um pedido descontam-se {tokens_txt(TOKENS_MINIMO)}. O custo final depende da ECU e é comunicado depois de analisado o ficheiro. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido fica suspenso até a diferença ser carregada. Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se a empresa recusar o pedido, os tokens voltam ao saldo.</p>
+    <p>Os ficheiros pagam-se com tokens pré-pagos. O preço do token e o carregamento mínimo estão na área de cliente, em Preços, para as contas aprovadas. Os tokens são carregados na conta depois de confirmado o pagamento, e a fatura é enviada por email.</p>
+    <p>No envio de um pedido desconta-se do saldo o número de tokens indicado na área de cliente. O custo final depende da ECU e é comunicado depois de analisado o ficheiro. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido fica suspenso até a diferença ser carregada. Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se a empresa recusar o pedido, os tokens voltam ao saldo.</p>
     <ul>
-      <li>Validade dos tokens: {val('validade_tokens', 'validade dos tokens')}.</li>
+      <li>Validade dos tokens: {dado('validade', 'validade dos tokens')}.</li>
       <li>Saldo não usado: {val('reembolso', 'regra para o saldo não usado')}.</li>
-      <li>{esc(SOB_CONSULTA)}: sob consulta.</li>
+      <li>Algumas unidades são sob consulta: o custo é dado caso a caso, antes do envio do ficheiro.</li>
     </ul>
     <h2>Preços, pagamento e prazos</h2>
-    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por {meios_txt()}, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
+    <p>Os preços estão na área de cliente, em Preços. O pagamento faz-se por {dado('meios_txt', 'meios de pagamento')}, sempre antes do envio dos ficheiros. Prazo normal de entrega: {dado('entrega', 'prazo de entrega dos ficheiros')}. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
     <h2>Responsabilidade</h2>
     <p>A empresa não responde por danos resultantes de leituras incorretas, de escrita interrompida, da utilização do ficheiro noutra viatura ou de avarias mecânicas preexistentes.</p>
     <h2>Reclamações</h2>
@@ -1190,10 +1247,7 @@ PAGES = [
      "body": body_index, "whatsapp": False},
     {"file": "servicos.html", "nav": "servicos", "title": f"Serviços | {COMPANY}",
      "desc": "Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.",
-     "body": body_servicos},
-    {"file": "precos.html", "nav": "precos", "title": f"Preços | {COMPANY}",
-     "desc": "1 token = 6 €, com IVA, a partir de 5 tokens. O custo de cada ficheiro depende da ECU e é confirmado depois da análise.",
-     "body": body_precos},
+     "body": body_servicos, "php": True},
     {"file": "area-cliente.html", "nav": "area-cliente", "title": f"Área de cliente | {COMPANY}",
      "desc": "Envie ficheiros, acompanhe pedidos e consulte o saldo de tokens.",
      "body": body_area_cliente, "noindex": True, "scripts": ["assets/app.js", "assets/portal.js"]},
@@ -1207,10 +1261,10 @@ PAGES = [
      "body": body_loja, "oculta": True},
     {"file": "noticias.html", "nav": "noticias", "title": f"Notícias | {COMPANY}",
      "desc": "Notas técnicas para oficinas e novidades da GARC – Soluções Técnicas.",
-     "body": body_noticias},
+     "body": body_noticias, "php": True},
     {"file": "sobre.html", "nav": "sobre", "title": f"Sobre | {COMPANY}",
      "desc": "A GARC está no mercado desde 2001 e dedica-se à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.",
-     "body": body_sobre, "whatsapp": False},
+     "body": body_sobre, "whatsapp": False, "php": True},
     {"file": "contacto.html", "nav": "contacto", "title": f"Contacto | {COMPANY}",
      "desc": "Envie uma mensagem à GARC – Soluções Técnicas pelo formulário de contacto.",
      "body": body_contacto, "whatsapp": False},
@@ -1219,7 +1273,7 @@ PAGES = [
      "body": body_privacidade},
     {"file": "termos.html", "nav": "", "title": f"Termos de utilização | {COMPANY}",
      "desc": "Termos de utilização do site da GARC – Soluções Técnicas.",
-     "body": body_termos},
+     "body": body_termos, "php": True},
     {"file": "404.html", "nav": "", "title": f"Página não encontrada | {COMPANY}",
      "desc": "A página pedida não existe.",
      "body": body_404, "noindex": True, "site_only": True},
@@ -1242,7 +1296,19 @@ ErrorDocument 404 /404.html
   RewriteCond %{HTTPS} !=on
   RewriteRule ^ https://www.autosolutions.pt%{REQUEST_URI} [R=301,L]
 
-  # Endereços sem .html: /servicos mostra servicos.html
+  # Os preços passaram para a área de cliente (só para contas aprovadas)
+  RewriteRule ^precos(\.html)?/?$ /area-cliente#precos [R=301,NE,L]
+
+  # Páginas em PHP (com valores alteráveis no servidor): /servicos mostra servicos.php, e o servicos.html
+  # antigo, se ainda estiver no servidor, leva para /servicos
+  RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+  RewriteRule ^(.+)\.html$ /$1 [R=301,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
+
+  # Endereços sem .html: /contacto mostra contacto.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME}.html -f
@@ -1266,8 +1332,47 @@ ErrorDocument 404 /404.html
 """
 
 
+# Início das páginas em PHP: carrega autosolutions-app/conteudos.php (valores de garc-conteudos/dados.txt e
+# notícias). Se a pasta da aplicação faltar, as páginas mostram os valores de origem gravados nelas.
+PHP_CABECALHO = """<?php
+// Gerado por build.py. Não editar à mão.
+$garc_app = getenv('GARC_APP') ?: dirname(__DIR__) . '/autosolutions-app';
+if (is_file($garc_app . '/conteudos.php')) {
+    require_once $garc_app . '/conteudos.php';
+}
+if (!function_exists('garc_txt')) {
+    function garc_txt(string $chave, string $padrao = ''): string
+    {
+        return htmlspecialchars($padrao, ENT_QUOTES, 'UTF-8');
+    }
+}
+?>
+"""
+
+# Páginas que existiam em .html e deixaram de existir: o ficheiro antigo é substituído por um aviso que leva
+# ao endereço certo, para não ficar conteúdo desatualizado (como preços) em public_html.
+SUBSTITUIDAS = {"precos.html": "area-cliente#precos"}
+
+
+def aviso_mudanca(destino):
+    alvo = "/" + destino
+    return f"""<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url={esc(alvo)}">
+<title>{esc(COMPANY)}</title>
+</head>
+<body>
+<p><a href="{esc(alvo)}">Continuar</a></p>
+</body>
+</html>
+"""
+
+
 def build(out_dir, preview):
-    global PREVIEW
+    global PREVIEW, PAGINA_PHP
     PREVIEW = preview
     MISSING.clear()
     OCULTOS.clear()
@@ -1278,8 +1383,19 @@ def build(out_dir, preview):
     for page in PAGES:
         if page.get("oculta") or (preview and page.get("site_only")):
             continue
-        (out_dir / page["file"]).write_text(document(page, preview), encoding="utf-8")
+        PAGINA_PHP = bool(page.get("php")) and not preview
+        texto = document(page, preview)
+        nome = page["file"]
+        if PAGINA_PHP:
+            nome = nome.removesuffix(".html") + ".php"
+            texto = PHP_CABECALHO + texto
+            # o .html antigo desta página, se ficar no servidor, passa a levar para o endereço certo
+            (out_dir / page["file"]).write_text(aviso_mudanca(page["file"].removesuffix(".html")), encoding="utf-8")
+        (out_dir / nome).write_text(texto, encoding="utf-8")
+    PAGINA_PHP = False
     if not preview:
+        for antigo, destino in SUBSTITUIDAS.items():
+            (out_dir / antigo).write_text(aviso_mudanca(destino), encoding="utf-8")
         shutil.copytree(SRC / "api", out_dir / "api")
         shutil.copy(SRC / "assets" / "favicon.ico", out_dir / "favicon.ico")  # pedido por omissão dos browsers
         (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")

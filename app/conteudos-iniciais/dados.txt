@@ -1,0 +1,52 @@
+# ============================================================================
+#  DADOS DO SITE QUE PODE ALTERAR
+#
+#  Como alterar: mude só o que está à direita dos dois pontos e grave.
+#  As alterações aparecem logo no site; não é preciso enviar mais nada.
+#  As linhas que começam por # são notas e não aparecem no site.
+#  Se apagar uma linha, o site volta a usar o valor de origem dessa linha.
+# ============================================================================
+
+
+# ------------------------------------------------------------------ PREÇOS
+# Só aparecem aos clientes com conta aprovada, na área de cliente (separador Preços).
+
+# Preço de 1 token, em euros, com IVA (pode usar vírgula, por exemplo 6,50)
+token: 6,00
+
+# Carregamento mínimo, que é também o número de tokens descontado no envio de cada pedido
+minimo: 5
+
+# Carregamentos de exemplo na tabela de preços (números de tokens, separados por vírgulas)
+exemplos: 5, 10, 12, 20
+
+# Frase sobre o IVA, por baixo da tabela de preços
+iva: IVA incluído à taxa legal em vigor
+
+# Validade dos tokens
+validade: 12 meses a contar do carregamento
+
+# Unidades sob consulta (o custo é dado caso a caso)
+sob_consulta: SID321, SID212, SID213 e outras unidades posteriores a 2018
+
+
+# ------------------------------------------------------- PRAZO E HORÁRIO
+
+# Prazo de entrega dos ficheiros (aparece em Sobre, nos Termos e na área de cliente)
+entrega: Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento
+
+# Horário de atendimento (aparece só na página Serviços)
+horario: 8h30–17h00
+
+
+# ------------------------------------------------------------- PAGAMENTOS
+# Se deixar um destes vazio, esse meio de pagamento deixa de aparecer.
+
+# Número MB WAY
+mbway: +351 913 027 543
+
+# Nome no PayPal.Me (o que vem depois de paypal.me/)
+paypal: jraulsoares
+
+# Ligação de pagamento por cartão do Stripe (começa por https://buy.stripe.com/)
+cartao:

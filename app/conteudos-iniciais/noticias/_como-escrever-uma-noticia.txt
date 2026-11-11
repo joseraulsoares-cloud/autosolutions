@@ -1,0 +1,22 @@
+COMO PUBLICAR UMA NOTÍCIA
+
+Os ficheiros desta pasta cujo nome começa por _ (como este) não aparecem no site.
+
+1. Nesta pasta, crie um ficheiro novo com o nome que quiser, terminado em .txt
+   (por exemplo: reset-de-airbags.txt).
+2. Escreva assim:
+
+   Título: Reset de airbags
+   Data: 11/11/2026
+
+   Primeiro parágrafo da notícia.
+
+   Segundo parágrafo. Os parágrafos separam-se com uma linha em branco.
+
+   - Uma linha começada por hífen e espaço fica numa lista.
+   - Outra linha da lista.
+
+3. Grave. A notícia aparece logo na página Notícias, a mais recente primeiro.
+
+Para tirar uma notícia do site, apague o ficheiro ou ponha _ no início do nome.
+Os endereços começados por https:// ficam com ligação.

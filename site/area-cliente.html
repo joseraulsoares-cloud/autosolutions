@@ -31,7 +31,6 @@
       <ul class="nav-list" id="nav-list">
         <li><a href="/">Início</a></li>
         <li><a href="/servicos">Serviços</a></li>
-        <li><a href="/precos">Preços</a></li>
         <li><a href="/noticias">Notícias</a></li>
         <li><a href="/sobre">Sobre</a></li>
         <li><a href="/contacto">Contacto</a></li>
@@ -41,7 +40,7 @@
   </div>
 </header>
 <main id="conteudo">
-<script type="application/json" id="catalogo">{"modulos": {"STAGE 1/2": {"nome": "Stage 1/2", "emissoes": false}, "TCU STAGE 1": {"nome": "TCU Stage 1", "emissoes": false}, "POP & BANGS": {"nome": "Pop & bangs", "emissoes": false}, "TORQUE MONITORING": {"nome": "Torque monitoring", "emissoes": false}, "SPORT DISPLAY CALIBRATION": {"nome": "Sport display", "emissoes": false}, "FLAPS OFF": {"nome": "Flaps off", "emissoes": false}, "EXHAUST FLAP OFF": {"nome": "Exhaust flap off", "emissoes": false}, "TVA OFF": {"nome": "TVA off", "emissoes": false}, "MAF OFF": {"nome": "MAF off", "emissoes": false}, "OIL PRESSURE FIX": {"nome": "Oil pressure fix", "emissoes": false}, "HOT START FIX": {"nome": "Hot start fix", "emissoes": false}, "START STOP OFF": {"nome": "Start-stop off", "emissoes": false}, "DPF OFF": {"nome": "DPF off", "emissoes": true}, "EGR OFF": {"nome": "EGR off", "emissoes": true}, "ADBLUE/SCR OFF": {"nome": "AdBlue/SCR off", "emissoes": true}, "LAMBDA/O2 OFF": {"nome": "Lambda/O2 off", "emissoes": true}, "CHECKSUM": {"nome": "Correção de checksum", "emissoes": false}, "MAP REVIEW": {"nome": "Revisão de mapa", "emissoes": false}}, "maxMb": 25, "minimo": 5, "urls": {"admin": "/admin", "areaCliente": "/area-cliente", "precos": "/precos"}}</script>
+<script type="application/json" id="catalogo">{"modulos": {"STAGE 1/2": {"nome": "Stage 1/2", "emissoes": false}, "TCU STAGE 1": {"nome": "TCU Stage 1", "emissoes": false}, "POP & BANGS": {"nome": "Pop & bangs", "emissoes": false}, "TORQUE MONITORING": {"nome": "Torque monitoring", "emissoes": false}, "SPORT DISPLAY CALIBRATION": {"nome": "Sport display", "emissoes": false}, "FLAPS OFF": {"nome": "Flaps off", "emissoes": false}, "EXHAUST FLAP OFF": {"nome": "Exhaust flap off", "emissoes": false}, "TVA OFF": {"nome": "TVA off", "emissoes": false}, "MAF OFF": {"nome": "MAF off", "emissoes": false}, "OIL PRESSURE FIX": {"nome": "Oil pressure fix", "emissoes": false}, "HOT START FIX": {"nome": "Hot start fix", "emissoes": false}, "START STOP OFF": {"nome": "Start-stop off", "emissoes": false}, "DPF OFF": {"nome": "DPF off", "emissoes": true}, "EGR OFF": {"nome": "EGR off", "emissoes": true}, "ADBLUE/SCR OFF": {"nome": "AdBlue/SCR off", "emissoes": true}, "LAMBDA/O2 OFF": {"nome": "Lambda/O2 off", "emissoes": true}, "CHECKSUM": {"nome": "Correção de checksum", "emissoes": false}, "MAP REVIEW": {"nome": "Revisão de mapa", "emissoes": false}}, "maxMb": 25, "urls": {"admin": "/admin", "areaCliente": "/area-cliente"}}</script>
 <section class="page-head">
   <div class="wrap portal-top">
     <div class="portal-title">
@@ -119,6 +118,7 @@
         <a href="#pedidos" data-tab="pedidos">Pedidos</a>
         <a href="#novo" data-tab="novo">Novo pedido</a>
         <a href="#saldo" data-tab="saldo">Saldo</a>
+        <a href="#precos" data-tab="precos">Preços</a>
         <a href="#conta" data-tab="conta">Conta</a>
         <button class="tab-out" type="button" data-sair>Sair</button>
       </nav>
@@ -128,7 +128,7 @@
         <div class="orders" id="p-pedidos"></div>
       </div>
       <div class="panel" data-panel="novo" hidden>
-        <div class="panel-head"><h2>Novo pedido</h2><a href="/precos">Ver preços</a></div>
+        <div class="panel-head"><h2>Novo pedido</h2><a href="#precos">Ver preços</a></div>
         <div class="pedido">
     <form class="form" id="form-pedido">
       <p class="hint">Os campos com <span class="req">*</span> são obrigatórios.</p>
@@ -169,7 +169,7 @@
         <p class="hint">O ficheiro fica sempre disponível em Pedidos.</p>
       </fieldset>
       <div class="resumo" id="f-resumo" data-estado="vazio" aria-live="polite">
-        <div><span class="small muted">Desconto no envio</span><strong id="f-total">5 tokens</strong></div>
+        <div><span class="small muted">Desconto no envio</span><strong id="f-total">–</strong></div>
         <div><span class="small muted">Saldo atual</span><strong id="f-saldo-atual">–</strong></div>
         <p class="resumo-msg" id="f-resumo-msg">Escolha os módulos pretendidos.</p>
         <p class="small muted resumo-nota">O custo final depende da ECU. Se for maior, avisamos e a diferença é descontada do saldo.</p>
@@ -191,7 +191,7 @@
       <div class="aside-block">
         <h2>Depois do envio</h2>
         <ol class="aside-steps">
-          <li>Descontam-se 5 tokens do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
+          <li>Descontam-se <span data-preco="minimo_txt"></span> do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
           <li>Analisamos a ECU e confirmamos o custo final. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido espera pelo carregamento.</li>
           <li>Entregamos o ficheiro pela via que escolheu, normalmente em menos de 2 horas. Fica também disponível em Pedidos durante 1 mês.</li>
           <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
@@ -206,26 +206,45 @@
           <div class="stack">
             <h3>Carregar saldo</h3>
             <ol class="aside-steps">
-              <li>Escolha quantos tokens quer, a partir de 5 tokens, e pague por MB WAY ou PayPal.</li>
+              <li>Escolha quantos tokens quer, a partir de <span data-preco="minimo_txt"></span>, e pague por <span data-preco="meios_txt"></span>.</li>
               <li>Na descrição do pagamento, indique o NIF da oficina.</li>
               <li>Depois de confirmarmos o pagamento, carregamos os tokens e enviamos a fatura por email.</li>
             </ol>
-            <dl class="spec">
-              <div><dt>MB WAY</dt><dd>+351 913 027 543</dd></div>
-              <div><dt>PayPal</dt><dd><a href="https://paypal.me/jraulsoares" target="_blank" rel="noopener">paypal.me/jraulsoares</a><br><span class="small muted">Como pagamento a amigos e familiares.</span></dd></div>
-            </dl>
+            <dl class="spec" id="p-pagamentos"></dl>
           </div>
           <div class="stack">
             <h3>Preços</h3>
-            <div class="table-wrap"><table class="price-table">
-          <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
-          <tbody><tr><th scope="row">5 tokens</th><td>30,00 €</td></tr><tr><th scope="row">10 tokens</th><td>60,00 €</td></tr><tr><th scope="row">12 tokens</th><td>72,00 €</td></tr><tr><th scope="row">20 tokens</th><td>120,00 €</td></tr></tbody>
-        </table></div>
-        <p class="small muted">1 token = 6,00 €. Pode carregar qualquer quantidade a partir de 5 tokens. IVA incluído à taxa legal em vigor. Validade: 12 meses a contar do carregamento.</p>
+            <p>1 token custa <strong data-preco="token_txt"></strong>. A tabela e as regras estão em <a href="#precos">Preços</a>.</p>
           </div>
         </div>
         <h3>Extrato</h3>
         <div id="p-extrato"></div>
+      </div>
+      <div class="panel" data-panel="precos" hidden>
+        <div class="panel-head"><h2>Preços</h2></div>
+        <div class="saldo-grid">
+          <div class="stack">
+            <h3>Tokens</h3>
+            <div class="table-wrap"><table class="price-table">
+              <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
+              <tbody id="p-tabela-precos"></tbody>
+            </table></div>
+            <p class="small muted">1 token = <span data-preco="token_txt"></span>. Pode carregar qualquer quantidade a partir de <span data-preco="minimo_txt"></span>. <span data-preco="iva"></span>. Validade: <span data-preco="validade"></span>.</p>
+          </div>
+          <div class="stack">
+            <h3>Quanto custa cada pedido</h3>
+            <p>O custo depende da ECU e dos módulos pedidos.</p>
+            <ol class="aside-steps">
+              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo.</li>
+              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email. Se for maior, a diferença é descontada do saldo. Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+            </ol>
+            <h3>Sob consulta</h3>
+            <p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por <a href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Quero%20saber%20o%20custo%20de%20um%20ficheiro%20para%20esta%20ECU%3A" target="_blank" rel="noopener">WhatsApp</a> ou por email.</p>
+            <h3>Prazo de entrega</h3>
+            <p><span data-preco="entrega"></span>. O horário de atendimento está na página <a href="/servicos">Serviços</a>.</p>
+          </div>
+        </div>
       </div>
       <div class="panel" data-panel="conta" hidden>
         <div class="panel-head"><h2>Conta</h2></div>

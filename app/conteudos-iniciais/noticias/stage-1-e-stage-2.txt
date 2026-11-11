@@ -1,0 +1,8 @@
+Título: Stage 1 e Stage 2: o que muda
+Data: 01/11/2026
+
+O Stage 1 é uma recalibração de software para o motor de série: ajustam-se binário, pressão do turbo, injeção e limitadores, com margens pensadas para os componentes originais.
+
+O Stage 2 parte do mesmo princípio, mas para um motor com alterações físicas já montadas, como admissão, intercooler ou escape. A calibração é feita para essas peças e não deve ser usada sem elas.
+
+Em ambos os casos, o resultado depende do estado mecânico do motor. Antes de reprogramar, convém confirmar que não há avarias registadas, fugas de ar nem componentes gastos, como a embraiagem, o turbo ou os injetores.

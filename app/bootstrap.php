@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 const GARC_APP = __DIR__;
 
+require __DIR__ . '/conteudos.php';
 require __DIR__ . '/lib/util.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/auth.php';
@@ -32,5 +33,10 @@ function cfg(?string $chave = null)
 function catalogo(): array
 {
     static $c = null;
-    return $c ??= require __DIR__ . '/catalogo.php';
+    if ($c === null) {
+        $c = require __DIR__ . '/catalogo.php';
+        // os tokens descontados no envio vêm de garc-conteudos/dados.txt (alteráveis no cPanel)
+        $c['minimo'] = garc_dados()['minimo'];
+    }
+    return $c;
 }

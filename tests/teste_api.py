@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import threading
+from pathlib import Path
 
 import requests
 
@@ -350,6 +351,61 @@ check(r.status_code == 200 and [e["id"] for e in emails()] == antes, "contacto c
 s_k = com_ip("203.0.113.30")
 ks = [s_k.post(B + "/api/entrar/codigo", json={"email": f"k{i}@teste.pt"}).status_code for i in range(11)]
 check(ks == [200] * 10 + [429], f"códigos de entrada: 10 em 15 minutos por IP, o 11.º recebe 429 {ks}")
+
+# ---------------------------------------------------------------- conteúdos alteráveis (garc-conteudos)
+# Precisa da pasta usada pelo servidor de teste: GARC_TESTE_CONTEUDOS=<a mesma pasta de GARC_CONTEUDOS>.
+CONT = os.environ.get("GARC_TESTE_CONTEUDOS")
+r = requests.get(B + "/servicos")
+check(r.status_code == 200 and "Horário de atendimento: <strong>8h30–17h00</strong>" in r.text, "Serviços mostra o horário do ficheiro de dados")
+r = requests.get(B + "/precos", allow_redirects=False)
+check(r.status_code == 301 and r.headers.get("Location") == "/area-cliente#precos", "/precos leva à área de cliente (301)")
+r = requests.get(B + "/servicos.html", allow_redirects=False)
+check(r.status_code == 301 and r.headers.get("Location") == "/servicos", "servicos.html antigo leva a /servicos (301)")
+html_area = requests.get(B + "/area-cliente").text
+check("6,00" not in html_area and "data-preco=\"token_txt\"" in html_area and '"minimo"' not in html_area,
+      "a página da área de cliente não traz valores de preço no HTML")
+check("precos" not in requests.get(B + "/api/sessao").json(), "sem sessão: a API não envia preços")
+sm = sessao()
+sm.post(B + "/api/registo", json=dict(reg, email="m@teste.pt", nome="Oficina M", nif=nif("54000000")))
+pm = {o["email"]: o for o in adm.get(B + "/api/admin/oficinas?filtro=pendente").json()["oficinas"]}
+adm.post(B + f"/api/admin/oficinas/{pm['m@teste.pt']['id']}/estado", json={"estado": "aprovada"})
+r = entrar(sm, "m@teste.pt")
+check(r.json().get("precos", {}).get("token_txt") == "6,00 €", "conta aprovada recebe os preços ao entrar")
+check(sm.get(B + "/api/sessao").json().get("precos", {}).get("tabela", [{}])[0].get("preco_txt") == "30,00 €",
+      "e com a sessão (tabela: 5 tokens = 30,00 €)")
+check(adm.get(B + "/api/sessao").json().get("precos", {}).get("minimo") == 5, "o administrador recebe o mínimo em vigor")
+if CONT:
+    dados = Path(CONT) / "dados.txt"
+    check(dados.is_file() and (Path(CONT) / "noticias" / "_como-escrever-uma-noticia.txt").is_file(),
+          "a pasta garc-conteudos foi criada com os valores de origem e as instruções das notícias")
+    original = dados.read_text(encoding="utf-8")
+    alterado = (original.replace("token: 6,00", "token: 7,50").replace("minimo: 5", "minimo: 6")
+                .replace("horario: 8h30–17h00", "horario: 9h00–18h00").replace("paypal: jraulsoares", "paypal:")
+                .replace("cartao:", "cartao: https://buy.stripe.com/teste"))
+    dados.write_text(alterado, encoding="utf-8")
+    p = sm.get(B + "/api/sessao").json()["precos"]
+    check(p["token_txt"] == "7,50 €" and p["minimo"] == 6 and p["tabela"][0]["preco_txt"] == "37,50 €",
+          f"preço do token e mínimo alterados no ficheiro valem logo ({p['token_txt']}, {p['minimo']})")
+    check([m["tipo"] for m in p["pagamentos"]] == ["mbway", "cartao"], "PayPal vazio deixa de aparecer; cartão aparece com a ligação")
+    check("9h00–18h00" in requests.get(B + "/servicos").text, "horário alterado aparece em Serviços")
+    check("MB WAY ou cartão" in requests.get(B + "/termos").text, "Termos mostram os meios de pagamento em vigor")
+    r = sm.post(B + "/api/pedidos", json=pedido)
+    check(r.status_code == 402 and r.json().get("custo") == 6, "o envio de pedidos usa o mínimo do ficheiro (6)")
+    dados.write_text(alterado.replace("token: 7,50", "token: sete"), encoding="utf-8")
+    check(sm.get(B + "/api/sessao").json()["precos"]["token_txt"] == "6,00 €", "valor inválido no ficheiro: usa o de origem")
+    dados.write_text(original, encoding="utf-8")
+    nd = Path(CONT) / "noticias"
+    (nd / "zz-teste.txt").write_text("Título: Novidade de teste\nData: 31/12/2030\n\nTexto com https://www.autosolutions.pt.\n\n- um\n- dois\n", encoding="utf-8")
+    (nd / "_rascunho.txt").write_text("Título: Rascunho escondido\nData: 01/01/2031\n\nNão publicar.\n", encoding="utf-8")
+    t = requests.get(B + "/noticias").text
+    check("Novidade de teste" in t and t.index("Novidade de teste") < t.index("Stage 1 e Stage 2"), "notícia nova aparece em primeiro")
+    check("Rascunho escondido" not in t, "ficheiros começados por _ não aparecem")
+    check('<a href="https://www.autosolutions.pt" target="_blank" rel="noopener">' in t and "<li>dois</li>" in t,
+          "endereços ficam com ligação e as linhas com hífen ficam em lista")
+    (nd / "zz-teste.txt").unlink()
+    (nd / "_rascunho.txt").unlink()
+else:
+    print("(conteúdos: sem GARC_TESTE_CONTEUDOS, só as verificações sem alterar ficheiros)")
 
 print(f"\n{sum(RES)}/{len(RES)} verificações passaram")
 sys.exit(0 if all(RES) else 1)

@@ -13,7 +13,19 @@ ErrorDocument 404 /404.html
   RewriteCond %{HTTPS} !=on
   RewriteRule ^ https://www.autosolutions.pt%{REQUEST_URI} [R=301,L]
 
-  # Endereços sem .html: /servicos mostra servicos.html
+  # Os preços passaram para a área de cliente (só para contas aprovadas)
+  RewriteRule ^precos(\.html)?/?$ /area-cliente#precos [R=301,NE,L]
+
+  # Páginas em PHP (com valores alteráveis no servidor): /servicos mostra servicos.php, e o servicos.html
+  # antigo, se ainda estiver no servidor, leva para /servicos
+  RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+  RewriteRule ^(.+)\.html$ /$1 [R=301,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
+
+  # Endereços sem .html: /contacto mostra contacto.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_FILENAME}.html -f

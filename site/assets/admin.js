@@ -426,6 +426,7 @@
   G.ligarEntrada(function (s) {
     if (!s.admin) { semAcesso(); return; }
     est.sessao = s;
+    if (s.precos) G.CAT.minimo = s.precos.minimo;
     rota();
   });
   G.ligarSaida(function () {
@@ -438,6 +439,7 @@
     if (!s || !s.email) { est.sessao = null; rota(); return; }
     if (!s.admin) { semAcesso(); return; }
     est.sessao = s;
+    if (s.precos) G.CAT.minimo = s.precos.minimo;
     rota();
   }).catch(function () {
     est.sessao = null;

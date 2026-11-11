@@ -135,10 +135,12 @@
   function detalheOficina(o) {
     return { oficina: o, saldo: saldo(o.id), movimentos: movimentosDe(o.id), pedidos: pedidosDe(o.id) };
   }
+  // Preços de exemplo (os de origem); no site, chegam pela API com a sessão.
+  function precos() { return catalogo().precosDemo || { minimo: 5, tabela: [], pagamentos: [] }; }
   function sessao() {
     return ADMIN
-      ? { email: 'admin@exemplo.pt', admin: true, oficina: null, saldo: 0 }
-      : { email: oficinas[0].email, admin: false, oficina: oficinas[0], saldo: saldo(1) };
+      ? { email: 'admin@exemplo.pt', admin: true, oficina: null, saldo: 0, precos: precos() }
+      : { email: oficinas[0].email, admin: false, oficina: oficinas[0], saldo: saldo(1), precos: precos() };
   }
 
   window.GARC_DEMO = function (caminho, opcoes) {
@@ -169,7 +171,7 @@
     if (c === '/pedidos' && metodo === 'GET') return ok({ pedidos: pedidosDe(1) });
     if (c === '/pedidos') {
       var cat = catalogo().modulos;
-      var custo = catalogo().minimo || 5;
+      var custo = precos().minimo || 5;
       var emissoes = false;
       (corpo.modulos || []).forEach(function (k) {
         if (cat[k]) emissoes = emissoes || cat[k].emissoes;
@@ -219,7 +221,7 @@
     }
     if ((m = /^\/admin\/pedidos\/(\d+)\/custo$/.exec(c))) {
       var pk = pedido(m[1]);
-      var minimo = catalogo().minimo || 5;
+      var minimo = precos().minimo || 5;
       var n = Number(corpo.tokens);
       if (!(n >= minimo && n <= 1000)) return falha(400, 'Indique um custo entre ' + tokensTxt(minimo) + ' e 1000 tokens.');
       if (['recebido', 'em_curso', 'a_aguardar_saldo'].indexOf(pk.estado) < 0) return falha(409, 'Só pode definir o custo de um pedido recebido, em curso ou à espera de saldo.');

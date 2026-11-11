@@ -1,0 +1,11 @@
+Título: Como preparar uma leitura antes de enviar o ficheiro
+Data: 01/11/2026
+
+Um ficheiro só é tão bom como a leitura de onde parte. Estes cuidados evitam a maior parte dos problemas na escrita.
+
+- Guarde sempre o original, em mais de um sítio, antes de qualquer escrita.
+- Mantenha a tensão estável durante a leitura e a escrita, com um carregador ou estabilizador ligado à bateria.
+- Quando a ferramenta o permite, faça a leitura completa (flash e EEPROM). Uma leitura parcial por OBD pode não chegar para todas as alterações.
+- Anote as referências de hardware e de software da ECU, a ferramenta e o método usados (OBD, bancada ou boot).
+- Envie o ficheiro tal como a ferramenta o gravou, sem mudar a extensão nem o alterar noutros programas.
+- Se a viatura tem avarias registadas, indique quais. Um ficheiro não resolve uma avaria mecânica.

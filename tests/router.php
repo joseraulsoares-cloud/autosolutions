@@ -7,6 +7,22 @@ if ($path === '/api' || str_starts_with($path, '/api/')) {
     require $root . '/api/index.php';
     return true;
 }
+// Os preços passaram para a área de cliente
+if (preg_match('#^/precos(\.html)?/?$#', $path)) {
+    header('Location: /area-cliente#precos', true, 301);
+    return true;
+}
+// Páginas em PHP: o .html antigo leva ao endereço limpo; o endereço limpo mostra o .php
+if (preg_match('#^/(.+)\.html$#', $path, $m) && is_file($root . '/' . $m[1] . '.php')) {
+    header('Location: /' . $m[1], true, 301);
+    return true;
+}
+$limpo = rtrim($path, '/');
+if ($limpo !== '' && !is_file($root . $path) && is_file($root . $limpo . '.php')) {
+    chdir($root);
+    require $root . $limpo . '.php';
+    return true;
+}
 if ($path === '/' || is_file($root . $path)) {
     return false;
 }

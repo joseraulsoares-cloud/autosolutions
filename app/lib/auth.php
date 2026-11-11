@@ -115,10 +115,15 @@ function oficina_publica(?array $o): ?array
 
 function resumo_sessao(array $s): array
 {
-    return [
+    $r = [
         'email' => $s['email'],
         'admin' => $s['admin'],
         'oficina' => oficina_publica($s['oficina']),
         'saldo' => $s['oficina'] ? saldo((int) $s['oficina']['id']) : 0,
     ];
+    // Os preços só seguem para o administrador e para contas aprovadas (não estão no HTML público).
+    if ($s['admin'] || ($s['oficina']['estado'] ?? '') === 'aprovada') {
+        $r['precos'] = garc_precos();
+    }
+    return $r;
 }
