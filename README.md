@@ -86,6 +86,6 @@ O `site/.htaccess` trata dos endereços sem `.html` (e sem `.php`, nas páginas 
 Com PHP 8.1+, MariaDB ou MySQL e Python 3 (`requests`; `playwright` para o teste no browser):
 
 1. Criar uma base de dados de teste e um `config.php` de teste com `'dev' => true` (os emails ficam na tabela `emails_dev`).
-2. Arrancar o servidor: `GARC_APP=<app> GARC_CONTEUDOS=<pasta-de-conteudos-de-teste> SITE_ROOT=<site> php -d upload_max_filesize=32M -d post_max_size=40M -S 127.0.0.1:8790 -t <site> tests/router.php`.
+2. Gerar o site completo, com PHP, numa pasta à parte: `python3 build.py --com-php <pasta>` (o `site/` pode estar em modo sem PHP). Arrancar o servidor: `GARC_APP=<app> GARC_CONTEUDOS=<pasta-de-conteudos-de-teste> SITE_ROOT=<pasta> php -d upload_max_filesize=32M -d post_max_size=40M -S 127.0.0.1:8790 -t <site> tests/router.php`.
 3. Correr `GARC_TESTE_CONTEUDOS=<a mesma pasta> python3 tests/teste_api.py` e `python3 tests/teste_ui.py <pasta-de-saida>`. A pasta de conteúdos deve começar vazia (o teste confirma que é criada com os valores de origem).
 

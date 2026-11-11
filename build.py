@@ -83,6 +83,14 @@ DADOS.update(horario=VALORES["horario"], entrega=VALORES["entrega"], mbway=VALOR
              stripe=VALORES["cartao"], paypal=VALORES["paypal"], iva=VALORES["iva"],
              validade_tokens=VALORES["validade"])
 
+# PHP2Shell (CVE-2026-109618 e CVE-2026-109619, outubro de 2026): falhas críticas do PHP, exploradas sem
+# autenticação, corrigidas só no 8.2.35, 8.3.36, 8.4.27 e 8.5.12. O alojamento só tem PHP 7.4, sem correção.
+# Enquanto SEM_PHP for True, o site publicado não corre PHP nenhum: as páginas são estáticas (com os valores
+# de origem), o .htaccess recusa ficheiros .php e a área de cliente e o formulário de contacto ficam
+# indisponíveis, com um aviso. Quando houver PHP 8 corrigido: SEM_PHP = False e python3 build.py.
+# A pré-visualização e os testes (python3 build.py --com-php PASTA) mostram sempre o site completo.
+SEM_PHP = True
+
 PREVIEW = False  # definido por build()
 PAGINA_PHP = False  # definido por build() para cada página: True quando a página do site é gerada em PHP
 MISSING = []     # campos por preencher encontrados na geração
@@ -370,11 +378,12 @@ def head_tags(title, desc, preview, bare, noindex=False, scripts=()):
 def document(page, preview):
     # Na pré-visualização, a página principal é envolvida pelo próprio Artifact (sem doctype/head/body).
     bare = preview and page["file"] == "index.html"
-    head = head_tags(page["title"], page["desc"], preview, bare, page.get("noindex", False), page.get("scripts", ()))
+    scripts = () if sem_php(preview) else page.get("scripts", ())
+    head = head_tags(page["title"], page["desc"], preview, bare, page.get("noindex", False), scripts)
     body = "\n".join([
         header(page["nav"]),
         '<main id="conteudo">',
-        catalogo_script() if page.get("scripts") else "",
+        catalogo_script() if scripts else "",
         page["body"](preview),
         "</main>",
         footer(inicio=page["file"] == "index.html"),
@@ -578,6 +587,13 @@ def body_contacto(preview):
     """Página «Contacto»: só o formulário, sem WhatsApp nem horário (o horário está em Serviços).
     O envio é feito por assets/main.js para /api/contacto. O assunto pode vir no endereço
     (contacto?assunto=…), como no botão «Pedir diagnóstico» da página Serviços."""
+    if sem_php(preview):
+        return page_head("Contacto", "Escreva-nos por email. Respondemos com a maior brevidade.") + f"""
+<section class="section">
+  <div class="wrap">
+    <p class="note">O formulário de contacto está temporariamente indisponível, enquanto o servidor recebe uma atualização de segurança. Escreva-nos para {email_html()}.</p>
+  </div>
+</section>"""
     # Se o envio falhar (servidor em baixo, limite de mensagens), a mensagem de erro indica o email.
     alternativa = f' data-email="{esc(DADOS["email"])}"' if DADOS["email"] else ""
     return page_head("Contacto", "Envie uma mensagem pelo formulário. Respondemos por email.") + f"""
@@ -871,7 +887,24 @@ def auth_views(prefix, lado=True):
     </div>"""
 
 
+def sem_php(preview):
+    """True no site publicado enquanto o alojamento não tiver PHP corrigido (ver SEM_PHP)."""
+    return SEM_PHP and not preview
+
+
+def aviso_sem_php(titulo, texto):
+    return page_head(titulo) + f"""
+<section class="section">
+  <div class="wrap">
+    <p class="note">{texto}</p>
+  </div>
+</section>"""
+
+
 def body_area_cliente(preview):
+    if sem_php(preview):
+        return aviso_sem_php("Área de cliente", "A área de cliente está temporariamente indisponível, enquanto o servidor "
+                             f"recebe uma atualização de segurança. Entretanto, pode contactar-nos por WhatsApp ou para {email_html()}.")
     registo_campos = "\n            ".join([
         field("r-nome", "nome", "Oficina ou empresa", True, extra=' autocomplete="organization" maxlength="120"'),
         field("r-nif", "nif", "NIF", True, extra=' inputmode="numeric" maxlength="20"'),
@@ -991,6 +1024,8 @@ def body_area_cliente(preview):
 
 
 def body_admin(preview):
+    if sem_php(preview):
+        return aviso_sem_php("Administração", "O painel está temporariamente indisponível, enquanto o servidor não tiver o PHP 8 corrigido.")
     return f"""<section class="page-head">
   <div class="wrap"><h1>Administração</h1><p class="lead">Contas das oficinas, tokens e pedidos.</p></div>
 </section>
@@ -1298,15 +1333,7 @@ ErrorDocument 404 /404.html
   # Os preços passaram para a área de cliente (só para contas aprovadas)
   RewriteRule ^precos(\.html)?/?$ /area-cliente#precos [R=301,NE,L]
 
-  # Páginas em PHP (com valores alteráveis no servidor): /servicos mostra servicos.php, e o servicos.html
-  # antigo, se ainda estiver no servidor, leva para /servicos
-  RewriteCond %{DOCUMENT_ROOT}/$1.php -f
-  RewriteRule ^(.+)\.html$ /$1 [R=301,L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME}.php -f
-  RewriteRule ^(.+?)/?$ $1.php [L]
-
+@@REGRAS_PHP@@
   # Endereços sem .html: /contacto mostra contacto.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
@@ -1328,7 +1355,37 @@ ErrorDocument 404 /404.html
   AddType font/woff2 .woff2
   AddType image/svg+xml .svg
 </IfModule>
+@@BLOQUEIO_PHP@@"""
+
+REGRAS_PHP = r"""  # Páginas em PHP (com valores alteráveis no servidor): /servicos mostra servicos.php, e o servicos.html
+  # antigo, se ainda estiver no servidor, leva para /servicos
+  RewriteCond %{DOCUMENT_ROOT}/$1.php -f
+  RewriteRule ^(.+)\.html$ /$1 [R=301,L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.php -f
+  RewriteRule ^(.+?)/?$ $1.php [L]
 """
+
+# Modo sem PHP (SEM_PHP): nenhum ficheiro PHP corre, nem os que tenham ficado no servidor de versões anteriores.
+BLOQUEIO_PHP = r"""
+# Sem PHP até o alojamento ter PHP 8 corrigido (SEM_PHP em build.py)
+<FilesMatch "\.(php[0-9]?|phtml|phar)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+"""
+
+
+def htaccess():
+    sem = SEM_PHP
+    return (HTACCESS.replace("@@REGRAS_PHP@@", "" if sem else REGRAS_PHP)
+            .replace("@@BLOQUEIO_PHP@@", BLOQUEIO_PHP if sem else ""))
 
 
 # Início das páginas em PHP: carrega autosolutions-app/conteudos.php (valores de garc-conteudos/dados.txt e
@@ -1399,7 +1456,7 @@ def build(out_dir, preview):
     for page in PAGES:
         if page.get("oculta") or (preview and page.get("site_only")):
             continue
-        PAGINA_PHP = bool(page.get("php")) and not preview
+        PAGINA_PHP = bool(page.get("php")) and not sem_php(preview) and not preview
         texto = document(page, preview)
         nome = page["file"]
         if PAGINA_PHP:
@@ -1414,16 +1471,25 @@ def build(out_dir, preview):
             (out_dir / antigo).write_text(aviso_mudanca(destino), encoding="utf-8")
         shutil.copytree(SRC / "api", out_dir / "api")
         shutil.copy(SRC / "assets" / "favicon.ico", out_dir / "favicon.ico")  # pedido por omissão dos browsers
-        (out_dir / ".htaccess").write_text(HTACCESS, encoding="utf-8")
+        (out_dir / ".htaccess").write_text(htaccess(), encoding="utf-8")
         (ROOT / "app").mkdir(exist_ok=True)
         (ROOT / "app" / "catalogo.php").write_text(catalogo_php(), encoding="utf-8")
     return list(MISSING), list(OCULTOS)
 
 
 if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == "--com-php":
+        # Site completo, com PHP (para os testes), numa pasta à parte; não mexe em site/ nem em preview/.
+        SEM_PHP = False
+        build(Path(sys.argv[2]), preview=False)
+        print(f"Gerado com PHP: {sys.argv[2]}")
+        sys.exit(0)
     build(ROOT / "preview", preview=True)
     missing, ocultos = build(ROOT / "site", preview=False)
     print("Gerado: site/ e preview/")
+    if SEM_PHP:
+        print("Modo sem PHP ativo (SEM_PHP): site estático, .php recusados, área de cliente e contacto com aviso.")
     if missing:
         print("Por preencher (aparece a amarelo no site):")
         for item in missing:

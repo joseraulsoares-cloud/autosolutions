@@ -16,14 +16,6 @@ ErrorDocument 404 /404.html
   # Os preços passaram para a área de cliente (só para contas aprovadas)
   RewriteRule ^precos(\.html)?/?$ /area-cliente#precos [R=301,NE,L]
 
-  # Páginas em PHP (com valores alteráveis no servidor): /servicos mostra servicos.php, e o servicos.html
-  # antigo, se ainda estiver no servidor, leva para /servicos
-  RewriteCond %{DOCUMENT_ROOT}/$1.php -f
-  RewriteRule ^(.+)\.html$ /$1 [R=301,L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteCond %{REQUEST_FILENAME}.php -f
-  RewriteRule ^(.+?)/?$ $1.php [L]
 
   # Endereços sem .html: /contacto mostra contacto.html
   RewriteCond %{REQUEST_FILENAME} !-f
@@ -46,3 +38,14 @@ ErrorDocument 404 /404.html
   AddType font/woff2 .woff2
   AddType image/svg+xml .svg
 </IfModule>
+
+# Sem PHP até o alojamento ter PHP 8 corrigido (SEM_PHP em build.py)
+<FilesMatch "\.(php[0-9]?|phtml|phar)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
