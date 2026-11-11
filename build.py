@@ -91,6 +91,11 @@ def url(page, anchor=""):
     return ("/" if page == "index" else f"/{page}") + anchor
 
 
+def contacto_url(assunto):
+    """Ligação à página Contacto com o assunto já escrito no formulário (lido por assets/main.js)."""
+    return url("contacto", "?assunto=" + quote(assunto))
+
+
 def asset(path):
     return path if PREVIEW else f"/{path}"
 
@@ -250,15 +255,15 @@ NAV = [
     ("servicos", "", "Serviços", "servicos"),
     ("precos", "", "Preços", "precos"),
     ("noticias", "", "Notícias", "noticias"),
-    ("index", "#sobre", "Sobre", "sobre"),
-    (None, "#contacto", "Contacto", "contacto"),
+    ("sobre", "", "Sobre", "sobre"),
+    ("contacto", "", "Contacto", "contacto"),
 ]
 
 
 def header(active):
     items = []
     for page, anchor, label, key in NAV:
-        href = url(page, anchor) if page else anchor
+        href = url(page, anchor)
         cur = ' aria-current="page"' if key == active else ""
         items.append(f'<li><a href="{href}"{cur}>{label}</a></li>')
     cur = ' aria-current="page"' if active == "area-cliente" else ""
@@ -287,39 +292,15 @@ def form_attrs(endpoint, preview, multipart=False):
     return f' action="{endpoint}" method="post"{enc}'
 
 
-def footer(preview):
-    return f"""<footer class="site-footer" id="contacto">
-  <div class="wrap footer-main">
-    <div>
-      <h2>Envie uma mensagem</h2>
-      <form class="form" id="form-contacto"{form_attrs("/api/contacto", preview)}>
-        <div class="grid-2">
-          <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
-          <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
-          <div class="field"><label for="f-c-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-c-email" name="email" type="email" autocomplete="email" required></div>
-          <div class="field"><label for="f-c-telefone">Telefone</label><input id="f-c-telefone" name="telefone" type="tel" autocomplete="tel"></div>
-        </div>
-        <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
-        <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
-        <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="{url('privacidade')}">política de privacidade</a>.</label></div>
-        <div class="hp" aria-hidden="true"><label for="f-c-site">Não preencher</label><input id="f-c-site" name="website" tabindex="-1" autocomplete="off"></div>
-        <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
-        <p class="status" role="status" aria-live="polite" hidden></p>
-      </form>
-    </div>
-    <div>
-      <h2>Contactos</h2>
-      <dl class="contact-info">
-        <div><dt>WhatsApp</dt><dd>{whatsapp_html()}</dd></div>
-        <div><dt>Email</dt><dd>{email_html()}</dd></div>
-        <div><dt>Horário</dt><dd>{val('horario', 'dias e horas de atendimento')}</dd></div>
-        <div><dt>Prazo de entrega</dt><dd>{val('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
-      </dl>
-    </div>
-  </div>
+def footer(inicio=False):
+    """Rodapé de todas as páginas: só a parte legal. O acesso ao Livro de Reclamações Eletrónico tem de
+    estar sempre visível. A identificação da empresa (sede e registo) não aparece na página inicial,
+    que fica só com as ligações; os contactos estão na página Contacto (formulário)."""
+    ident = "" if inicio else (f"\n      <p>{esc(FIRMA)}. Sede: {val('morada', 'morada da sede')}. "
+                               f"{registo_html(inicio=True)}.</p>")
+    return f"""<footer class="site-footer">
   <div class="footer-legal">
-    <div class="wrap">
-      <p>{esc(FIRMA)}. Sede: {val('morada', 'morada da sede')}. {registo_html(inicio=True)}.</p>
+    <div class="wrap">{ident}
       <ul class="legal-links">
         <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
         <li><a href="{url('privacidade')}">Política de privacidade</a></li>
@@ -371,8 +352,8 @@ def document(page, preview):
         catalogo_script() if page.get("scripts") else "",
         page["body"](preview),
         "</main>",
-        footer_legal() if page["file"] == "index.html" else footer(preview),
-        "" if page["file"] in ("admin.html", "index.html") else whatsapp_flutuante(),
+        footer(inicio=page["file"] == "index.html"),
+        whatsapp_flutuante() if page.get("whatsapp", True) else "",
     ])
     if bare:
         return f"{head}\n{body}\n"
@@ -529,34 +510,23 @@ def body_index(preview):
 </section>"""
 
 
-def footer_legal():
-    """Rodapé da página inicial: só as ligações legais, que têm de estar visíveis em todo o site
-    (o acesso ao Livro de Reclamações Eletrónico, por exemplo). Sem contactos."""
-    return f"""<footer class="site-footer">
-  <div class="footer-legal">
-    <div class="wrap">
-      <ul class="legal-links">
-        <li><a class="lre" href="https://www.livroreclamacoes.pt/" target="_blank" rel="noopener">Livro de Reclamações Eletrónico</a></li>
-        <li><a href="{url('privacidade')}">Política de privacidade</a></li>
-        <li><a href="{url('termos')}">Termos de utilização</a></li>
-      </ul>
-      <p>© {YEAR} {esc(COMPANY)}</p>
-    </div>
-  </div>
-</footer>"""
-
-
-# Reservado: secções que saíram da página inicial (rede de bordo, áreas de serviço e «Sobre»).
+# Reservado: secções que saíram da página inicial (rede de bordo e áreas de serviço).
 # Ficam aqui para serem reaproveitadas quando se definirem as outras páginas.
 def seccoes_reservadas():
     desde = f"No mercado desde {DADOS['desde']}." if DADOS.get("desde") else ""
     return f"""{rede_bordo()}
 <ul class="areas">{areas_html()}</ul>
-<p class="hero-nota">{desde}</p>
-<section class="section" id="sobre">
+<p class="hero-nota">{desde}</p>"""
+
+
+# ---------------------------------------------------------------- sobre e contacto
+
+def body_sobre(preview):
+    """Página «Sobre»: só informação sobre a empresa, sem botões. Texto aprovado para já; o Raul vai revê-lo."""
+    return page_head("Sobre a GARC") + f"""
+<section class="section">
   <div class="wrap about">
     <div class="about-text">
-      <h2>Sobre a GARC</h2>
       <p>A GARC está no mercado desde {DADOS['desde']} e dedica-se hoje à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.</p>
       <p>Conhecemos o motor e a eletrónica por dentro, da teoria à bancada. Quem nos envia uma leitura fala diretamente com quem a vai trabalhar, sem intermediários.</p>
       <p>Cada ficheiro é feito para aquela viatura, aquela ECU e aquela leitura, e é verificado antes de seguir. Ganhar potência não pode custar o motor nem a caixa: trabalhamos dentro dos limites mecânicos de cada conjunto.</p>
@@ -574,14 +544,41 @@ def seccoes_reservadas():
 </section>"""
 
 
+def body_contacto(preview):
+    """Página «Contacto»: só o formulário, sem WhatsApp nem horário (o horário está em Serviços).
+    O envio é feito por assets/main.js para /api/contacto. O assunto pode vir no endereço
+    (contacto?assunto=…), como no botão «Pedir diagnóstico» da página Serviços."""
+    return page_head("Contacto", "Envie uma mensagem pelo formulário. Respondemos por email.") + f"""
+<section class="section">
+  <div class="wrap">
+    <form class="form contacto-form" id="form-contacto"{form_attrs("/api/contacto", preview)}>
+      <div class="grid-2">
+        <div class="field"><label for="f-c-nome">Nome <span class="req" aria-hidden="true">*</span></label><input id="f-c-nome" name="nome" autocomplete="given-name" required></div>
+        <div class="field"><label for="f-c-apelido">Apelido</label><input id="f-c-apelido" name="apelido" autocomplete="family-name"></div>
+        <div class="field"><label for="f-c-email">Email <span class="req" aria-hidden="true">*</span></label><input id="f-c-email" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="f-c-telefone">Telefone</label><input id="f-c-telefone" name="telefone" type="tel" autocomplete="tel"></div>
+      </div>
+      <div class="field"><label for="f-c-assunto">Assunto</label><input id="f-c-assunto" name="assunto"></div>
+      <div class="field"><label for="f-c-mensagem">Mensagem <span class="req" aria-hidden="true">*</span></label><textarea id="f-c-mensagem" name="mensagem" required></textarea></div>
+      <div class="check"><input id="f-c-rgpd" name="privacidade" type="checkbox" value="sim" required><label for="f-c-rgpd">Li a <a href="{url('privacidade')}">política de privacidade</a>.</label></div>
+      <div class="hp" aria-hidden="true"><label for="f-c-site">Não preencher</label><input id="f-c-site" name="website" tabindex="-1" autocomplete="off"></div>
+      <div class="actions"><button class="btn btn-primary" type="submit">Enviar mensagem</button></div>
+      <p class="status" role="status" aria-live="polite" hidden></p>
+    </form>
+  </div>
+</section>"""
+
+
 # ---------------------------------------------------------------- serviços
 
 def body_servicos(preview):
     sub = "".join(f'<a href="#{a}">{t}</a>' for a, t, *_ in GROUPS) + '<a href="#diagnostico">Diagnóstico avançado</a>'
+    # O horário de atendimento aparece só nesta página; Preços e Termos remetem para aqui.
+    horario = f'\n    <p class="horario">Horário de atendimento: <strong>{val("horario", "dias e horas de atendimento")}</strong></p>'
     parts = [page_head(
         "Serviços",
         "Ficheiros por módulo, preparados para a viatura e a ECU de cada pedido, e diagnóstico avançado para oficinas.",
-        f'\n    <nav class="subnav" aria-label="Secções desta página">{sub}</nav>',
+        f'{horario}\n    <nav class="subnav" aria-label="Secções desta página">{sub}</nav>',
     )]
     for anchor, title, intro, keys, emissions in GROUPS:
         items = "\n        ".join(
@@ -611,7 +608,7 @@ def body_servicos(preview):
       <li>Apoio técnico à oficina durante a reparação</li>
     </ul>
     <div class="actions">
-      <button class="btn btn-primary" type="button" data-subject="Diagnóstico avançado">Pedir diagnóstico</button>
+      <a class="btn btn-primary" href="{esc(contacto_url('Diagnóstico avançado'))}">Pedir diagnóstico</a>
       <a class="btn btn-secondary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
     </div>
   </div>
@@ -826,7 +823,7 @@ def body_precos(preview):
       <h2>Sob consulta</h2>
       <p class="note">{esc(SOB_CONSULTA)}: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
       <h2>Prazo de entrega</h2>
-      <p>{val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
+      <p>{val('entrega', 'prazo de entrega dos ficheiros')}. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
       <p>Também pode enviar o ficheiro pelo WhatsApp, desde que tenha tokens na conta.</p>
     </div>
   </div>
@@ -1053,7 +1050,7 @@ def body_loja(preview):
           <h2>{ph(f"produto {i}")}</h2>
           <p class="muted">{ph("descrição curta")}</p>
           <p class="price">{ph("preço")}</p>
-          <button class="btn btn-secondary" type="button" data-subject="Loja: produto {i}">Pedir informação</button>
+          <a class="btn btn-secondary" href="{esc(contacto_url(f'Loja: produto {i}'))}">Pedir informação</a>
         </div>
       </article>""")
     return page_head("Loja", "Produtos para oficinas. Peça informação sobre preço e disponibilidade.") + f"""
@@ -1160,7 +1157,7 @@ def body_termos(preview):
       <li>{esc(SOB_CONSULTA)}: sob consulta.</li>
     </ul>
     <h2>Preços, pagamento e prazos</h2>
-    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por {meios_txt()}, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. Horário: {val('horario', 'dias e horas de atendimento')}.</p>
+    <p>Os preços estão na página <a href="{url('precos')}">Preços</a>. O pagamento faz-se por {meios_txt()}, sempre antes do envio dos ficheiros. Prazo normal de entrega: {val('entrega', 'prazo de entrega dos ficheiros')}. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
     <h2>Responsabilidade</h2>
     <p>A empresa não responde por danos resultantes de leituras incorretas, de escrita interrompida, da utilização do ficheiro noutra viatura ou de avarias mecânicas preexistentes.</p>
     <h2>Reclamações</h2>
@@ -1182,7 +1179,7 @@ def body_404(preview):
 PAGES = [
     {"file": "index.html", "nav": "inicio", "title": COMPANY,
      "desc": "Eletrónica automóvel e diagnóstico para oficinas: ficheiros de calibração entregues em menos de 2 horas, diagnóstico avançado e apoio técnico. GARC – AutoSolutions & Consulting, desde 2001.",
-     "body": body_index},
+     "body": body_index, "whatsapp": False},
     {"file": "servicos.html", "nav": "servicos", "title": f"Serviços | {COMPANY}",
      "desc": "Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.",
      "body": body_servicos},
@@ -1194,7 +1191,7 @@ PAGES = [
      "body": body_area_cliente, "noindex": True, "scripts": ["assets/app.js", "assets/portal.js"]},
     {"file": "admin.html", "nav": "", "title": f"Administração | {COMPANY}",
      "desc": "Painel de administração da área de cliente.",
-     "body": body_admin, "noindex": True, "scripts": ["assets/app.js", "assets/admin.js"]},
+     "body": body_admin, "noindex": True, "scripts": ["assets/app.js", "assets/admin.js"], "whatsapp": False},
     # Loja oculta por agora: a página não é gerada nem aparece no menu. Para a mostrar, tirar "oculta"
     # e voltar a pôr ("loja", "", "Loja", "loja") em NAV.
     {"file": "loja.html", "nav": "loja", "title": f"Loja | {COMPANY}",
@@ -1203,6 +1200,12 @@ PAGES = [
     {"file": "noticias.html", "nav": "noticias", "title": f"Notícias | {COMPANY}",
      "desc": "Notas técnicas para oficinas e novidades da GARC – Soluções Técnicas.",
      "body": body_noticias},
+    {"file": "sobre.html", "nav": "sobre", "title": f"Sobre | {COMPANY}",
+     "desc": "A GARC está no mercado desde 2001 e dedica-se à eletrónica automóvel: ficheiros de calibração, diagnóstico avançado e apoio técnico a oficinas.",
+     "body": body_sobre, "whatsapp": False},
+    {"file": "contacto.html", "nav": "contacto", "title": f"Contacto | {COMPANY}",
+     "desc": "Envie uma mensagem à GARC – Soluções Técnicas pelo formulário de contacto.",
+     "body": body_contacto, "whatsapp": False},
     {"file": "privacidade.html", "nav": "", "title": f"Política de privacidade | {COMPANY}",
      "desc": "Política de privacidade da GARC – Soluções Técnicas.",
      "body": body_privacidade},

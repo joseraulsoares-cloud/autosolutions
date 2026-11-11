@@ -3,7 +3,6 @@
 
   var PREVIEW = !!document.querySelector('meta[name="garc-preview"]');
   var DEMO = PREVIEW && !!document.getElementById('catalogo');
-  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* Preview notice */
   if (PREVIEW) {
@@ -38,17 +37,12 @@
     });
   }
 
-  /* Buttons that prefill the contact subject (shop, diagnosis) */
-  document.addEventListener('click', function (e) {
-    var trigger = e.target.closest('[data-subject]');
-    if (!trigger) return;
-    var subject = document.getElementById('f-c-assunto');
-    if (subject) subject.value = trigger.getAttribute('data-subject');
-    var target = document.getElementById('contacto');
-    if (target) target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    var first = document.getElementById('f-c-nome');
-    if (first) first.focus({ preventScroll: true });
-  });
+  /* Página Contacto: assunto vindo de outra página (contacto?assunto=…, ex.: «Pedir diagnóstico») */
+  var assunto = document.getElementById('f-c-assunto');
+  if (assunto && window.URLSearchParams) {
+    var pedido = new URLSearchParams(window.location.search).get('assunto');
+    if (pedido) assunto.value = pedido.slice(0, 150);
+  }
 
   /* Forms */
   function setStatus(el, kind, msg) {
@@ -97,14 +91,14 @@
     });
   }
 
-  /* Contact form (footer) */
+  /* Formulário da página Contacto */
   var contacto = document.getElementById('form-contacto');
   if (contacto) {
     wireForm(contacto, {
       endpoint: '/api/contacto',
       previewMsg: 'Pré-visualização: a mensagem foi validada, mas não foi enviada.',
       okMsg: 'Mensagem enviada. Respondemos por email.',
-      errMsg: 'Não foi possível enviar a mensagem. Tente de novo ou contacte-nos por telefone.'
+      errMsg: 'Não foi possível enviar a mensagem. Tente de novo mais tarde.'
     });
   }
 })();
