@@ -278,6 +278,20 @@ EMISSIONS_NOTICE = (
 
 EMISSOES = {k for _a, _t, _i, keys, em in GROUPS if em for k in keys}
 
+# Cuidados a ter na leitura, no formulário de pedido (antes eram uma notícia). A oficina confirma-os
+# numa caixa obrigatória, verificada também no servidor.
+CUIDADOS_INTRO = ("Um ficheiro só é tão bom como a leitura de onde parte. "
+                  "Estes cuidados evitam a maior parte dos problemas na escrita.")
+CUIDADOS_LEITURA = [
+    "Guarde sempre o original, em mais de um sítio, antes de qualquer escrita.",
+    "Mantenha a tensão estável durante a leitura e a escrita, com um carregador ou estabilizador ligado à bateria.",
+    "Quando a ferramenta o permite, faça a leitura completa (flash e EEPROM). "
+    "Uma leitura parcial por OBD pode não chegar para todas as alterações.",
+    "Anote as referências de hardware e de software da ECU, a ferramenta e o método usados (OBD, bancada ou boot).",
+    "Envie o ficheiro tal como a ferramenta o gravou, sem mudar a extensão nem o alterar noutros programas.",
+    "Se a viatura tem avarias registadas, indique quais. Um ficheiro não resolve uma avaria mecânica.",
+]
+
 def tokens_txt(n):
     return f"{n} token" if abs(n) == 1 else f"{n} tokens"
 
@@ -722,6 +736,7 @@ def form_novo_pedido():
         '<option value="">Escolher</option><option>OBD</option><option>Bancada</option><option>Boot</option><option>Outro</option>'
         "</select></div>",
     ])
+    cuidados = "\n          ".join(f"<li>{esc(t)}</li>" for t in CUIDADOS_LEITURA)
     return f"""<div class="pedido">
     <form class="form" id="form-pedido">
       <p class="hint">Os campos com <span class="req">*</span> são obrigatórios.</p>
@@ -741,8 +756,16 @@ def form_novo_pedido():
         </div>
       </fieldset>
       <fieldset class="fieldset">
+        <legend>Antes de enviar o ficheiro</legend>
+        <p class="muted">{esc(CUIDADOS_INTRO)}</p>
+        <ul class="checklist">
+          {cuidados}
+        </ul>
+        <div class="confirmacao"><div class="check"><input type="checkbox" id="f-cuidados" name="cuidados" value="sim" required><label for="f-cuidados">Li e segui estes cuidados na leitura do ficheiro. <span class="req" aria-hidden="true">*</span></label></div></div>
+      </fieldset>
+      <fieldset class="fieldset">
         <legend>Ficheiro e observações</legend>
-        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Para correção de checksum ou revisão de mapa, envie o ficheiro modificado e, se tiver o original, junte os dois num .zip. Máximo {MAX_MB} MB.</p></div>
+        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Para correção de checksum ou revisão de mapa, envie o ficheiro modificado e, se tiver o original, junte os dois num .zip. Máximo {MAX_MB} MB.</p></div>
         <div class="field"><label for="f-mensagem">Observações</label><textarea id="f-mensagem" name="observacoes" maxlength="2000" placeholder="Sintomas, peças alteradas, códigos de erro…"></textarea></div>
       </fieldset>
       <fieldset class="fieldset">
@@ -762,15 +785,6 @@ def form_novo_pedido():
       <p class="status" role="status" aria-live="polite" hidden></p>
     </form>
     <aside class="aside">
-      <div class="aside-block">
-        <h2>Antes de enviar</h2>
-        <ul class="checklist">
-          <li>Guarde o ficheiro original em mais de um sítio.</li>
-          <li>Mantenha a tensão estável durante a leitura, com carregador ou estabilizador ligado.</li>
-          <li>Indique a ferramenta e o método usados.</li>
-          <li>Se a viatura tem avarias registadas, refira-as nas observações.</li>
-        </ul>
-      </div>
       <div class="aside-block">
         <h2>Depois do envio</h2>
         <ol class="aside-steps">

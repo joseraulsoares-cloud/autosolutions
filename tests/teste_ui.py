@@ -112,6 +112,12 @@ async def main():
         check((await pg.text_content("#f-enviar")).strip() == "Enviar pedido (5 tokens)", "botão indica os 5 tokens do envio")
         await pg.check("#f-declaracao")
         await pg.set_input_files("#f-ficheiro", leitura)
+        cuidados = await pg.locator("#form-pedido li").all_text_contents()
+        check(len(cuidados) == 6 and cuidados[0].startswith("Guarde sempre o original"), "o formulário mostra os 6 cuidados de leitura")
+        check(await pg.evaluate("!document.getElementById('form-pedido').checkValidity() && "
+                                "document.getElementById('f-cuidados').validity.valueMissing"),
+              "sem o visto nos cuidados de leitura, o pedido não avança")
+        await pg.check("#f-cuidados")
         await pg.screenshot(path=os.path.join(OUT, "ui-novo-pedido.png"), full_page=True)
         await pg.click("#f-enviar")
         await pg.wait_for_function("location.hash === '#pedidos'")

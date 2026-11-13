@@ -115,7 +115,7 @@ def saldo_a():
 
 pedido = {"viatura": "Volkswagen Golf VII", "matricula": "aa 00aa", "motor": "2.0 TDI", "ano": "2017", "ecu": "Bosch EDC17C64",
           "ferramenta": "KESS3", "metodo": "OBD", "modulos": ["STAGE 1/2"], "observacoes": "", "entrega": "email",
-          "whatsapp": "", "declaracao": False, "tamanho": 100000}
+          "whatsapp": "", "declaracao": False, "cuidados": True, "tamanho": 100000}
 r = sa.post(B + "/api/pedidos", json=pedido)
 check(r.status_code == 402 and r.json().get("saldo") == 0 and r.json().get("custo") == 5, "sem saldo: pedido recusado com 402 (mínimo 5, saldo 0)")
 
@@ -135,10 +135,15 @@ r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="AA@00#AA"))
 check(r.status_code == 400 and "matrícula" in r.json()["erro"], "matrícula com carateres inválidos: recusada")
 r = sa.post(B + "/api/pedidos", json=dict(pedido, matricula="A" * 16))
 check(r.status_code == 400, "matrícula com mais de 15 carateres: recusada")
+for valor in (False, "sim", None):
+    r = sa.post(B + "/api/pedidos", json=dict(pedido, cuidados=valor))
+    check(r.status_code == 400 and "cuidados" in r.json()["erro"], f"sem confirmar os cuidados de leitura ({valor!r}): recusado")
+check(saldo_a() == 10, "pedidos recusados não descontam tokens")
 r = sa.post(B + "/api/pedidos", json=dict(pedido, modulos=["STAGE 1/2", "EGR OFF"], declaracao=True))
 j = r.json().get("pedido", {})
 check(r.status_code == 201 and r.json()["saldo"] == 5 and j["tokens"] == 5 and j["pagos"] == 5 and j["custo_definido"] is False,
       "pedido criado: descontados 5 tokens, custo final por definir, saldo 5")
+check(j["cuidados_leitura"] is True, "a confirmação dos cuidados de leitura fica registada no pedido")
 P1 = j["id"]
 check(j["matricula"] == "AA-00-AA", "matrícula portuguesa normalizada: 'aa 00aa' fica AA-00-AA")
 

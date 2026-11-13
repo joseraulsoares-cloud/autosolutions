@@ -62,6 +62,7 @@ function pedido_publico(array $p): array
     }
     $r['modulos'] = json_decode((string) $p['modulos'], true) ?: [];
     $r['declaracao_emissoes'] = (bool) $p['declaracao_emissoes'];
+    $r['cuidados_leitura'] = (bool) ($p['cuidados_leitura'] ?? false);
     return $r;
 }
 
@@ -206,6 +207,9 @@ function api_pedido_criar(): Resposta
     if ($emissoes && ($c['declaracao'] ?? null) !== true) {
         throw new ErroHttp(400, 'Confirme a declaração de uso dos módulos de sistemas de emissões.');
     }
+    if (($c['cuidados'] ?? null) !== true) {
+        throw new ErroHttp(400, 'Confirme que leu e seguiu os cuidados de preparação da leitura.');
+    }
 
     $p = [
         'viatura' => texto($c['viatura'] ?? '', 'marca e modelo', 120, true),
@@ -245,8 +249,8 @@ function api_pedido_criar(): Resposta
         }
         executar(
             'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, personalizado, tokens, pagos,
-             declaracao_emissoes, observacoes, entrega, whatsapp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+             declaracao_emissoes, cuidados_leitura, observacoes, entrega, whatsapp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
             [
                 $oid, $p['viatura'], $p['matricula'], $p['motor'] ?: null, $p['ano'] ?: null, $p['ecu'], $p['ferramenta'] ?: null,
                 $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $p['personalizado'], $custo, $custo, $emissoes ? 1 : 0,

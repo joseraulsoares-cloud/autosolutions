@@ -323,6 +323,7 @@
         entrega: ent,
         whatsapp: ent === 'whatsapp' ? $('f-whatsapp').value : '',
         declaracao: $('f-declaracao').checked,
+        cuidados: $('f-cuidados').checked,
         tamanho: ficheiro.size
       };
       var btn = $('f-enviar');

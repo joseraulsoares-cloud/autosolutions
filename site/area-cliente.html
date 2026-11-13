@@ -159,8 +159,21 @@
         </div>
       </fieldset>
       <fieldset class="fieldset">
+        <legend>Antes de enviar o ficheiro</legend>
+        <p class="muted">Um ficheiro só é tão bom como a leitura de onde parte. Estes cuidados evitam a maior parte dos problemas na escrita.</p>
+        <ul class="checklist">
+          <li>Guarde sempre o original, em mais de um sítio, antes de qualquer escrita.</li>
+          <li>Mantenha a tensão estável durante a leitura e a escrita, com um carregador ou estabilizador ligado à bateria.</li>
+          <li>Quando a ferramenta o permite, faça a leitura completa (flash e EEPROM). Uma leitura parcial por OBD pode não chegar para todas as alterações.</li>
+          <li>Anote as referências de hardware e de software da ECU, a ferramenta e o método usados (OBD, bancada ou boot).</li>
+          <li>Envie o ficheiro tal como a ferramenta o gravou, sem mudar a extensão nem o alterar noutros programas.</li>
+          <li>Se a viatura tem avarias registadas, indique quais. Um ficheiro não resolve uma avaria mecânica.</li>
+        </ul>
+        <div class="confirmacao"><div class="check"><input type="checkbox" id="f-cuidados" name="cuidados" value="sim" required><label for="f-cuidados">Li e segui estes cuidados na leitura do ficheiro. <span class="req" aria-hidden="true">*</span></label></div></div>
+      </fieldset>
+      <fieldset class="fieldset">
         <legend>Ficheiro e observações</legend>
-        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Envie o ficheiro tal como a ferramenta o gravou, sem alterações. Para correção de checksum ou revisão de mapa, envie o ficheiro modificado e, se tiver o original, junte os dois num .zip. Máximo 25 MB.</p></div>
+        <div class="field"><label for="f-ficheiro">Ficheiro original <span class="req" aria-hidden="true">*</span></label><input id="f-ficheiro" name="ficheiro" type="file" required aria-describedby="f-ficheiro-hint"><p class="hint" id="f-ficheiro-hint">Para correção de checksum ou revisão de mapa, envie o ficheiro modificado e, se tiver o original, junte os dois num .zip. Máximo 25 MB.</p></div>
         <div class="field"><label for="f-mensagem">Observações</label><textarea id="f-mensagem" name="observacoes" maxlength="2000" placeholder="Sintomas, peças alteradas, códigos de erro…"></textarea></div>
       </fieldset>
       <fieldset class="fieldset">
@@ -180,15 +193,6 @@
       <p class="status" role="status" aria-live="polite" hidden></p>
     </form>
     <aside class="aside">
-      <div class="aside-block">
-        <h2>Antes de enviar</h2>
-        <ul class="checklist">
-          <li>Guarde o ficheiro original em mais de um sítio.</li>
-          <li>Mantenha a tensão estável durante a leitura, com carregador ou estabilizador ligado.</li>
-          <li>Indique a ferramenta e o método usados.</li>
-          <li>Se a viatura tem avarias registadas, refira-as nas observações.</li>
-        </ul>
-      </div>
       <div class="aside-block">
         <h2>Depois do envio</h2>
         <ol class="aside-steps">

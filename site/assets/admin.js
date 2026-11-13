@@ -158,6 +158,7 @@
       ['Enviado', esc(G.data(p.criado_em))]
     ];
     if (p.declaracao_emissoes) pares.push(['Declaração', 'Uso em competição ou fora da via pública, aceite no envio do pedido']);
+    if (p.cuidados_leitura) pares.push(['Cuidados de leitura', 'Confirmados pela oficina no envio do pedido']);
 
     var carregar = podeCarregar
       ? '<label class="btn btn-primary btn-sm file-pick">' + (p.modificado_nome ? 'Substituir' : 'Carregar ficheiro') +

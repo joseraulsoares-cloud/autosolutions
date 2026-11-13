@@ -524,6 +524,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 }
 .module-group h3 { font-size: 1rem; font-weight: 600; }
 .module-group.emissions { background: var(--warn-bg); border-color: var(--warn-line); }
+.confirmacao { padding: 14px 16px; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; }
 .personalizado { display: grid; gap: 12px; }
 .personalizado textarea { min-height: 96px; }
 .module-group.emissions h3, .module-group.emissions .check, .module-group.emissions p { color: var(--warn-ink); }
