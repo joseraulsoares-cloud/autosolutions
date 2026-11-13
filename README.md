@@ -44,7 +44,7 @@ No servidor, ao lado de `public_html`, há a pasta `garc-conteudos` (criada auto
 2. Selecionar `dados.txt` e carregar em Edit.
 3. Mudar só o que está à direita dos dois pontos e carregar em Save Changes. As alterações aparecem logo no site.
 
-O `dados.txt` tem: preço do token, carregamento mínimo (que é também o número de tokens descontado no envio de cada pedido), carregamentos de exemplo da tabela, IVA, validade dos tokens, unidades sob consulta, prazo de entrega, horário, MB WAY, PayPal.Me e ligação de pagamento por cartão (Stripe). Um meio de pagamento vazio deixa de aparecer. Um valor que não seja válido (por exemplo, letras no preço) é ignorado e o site usa o valor de origem.
+O `dados.txt` tem: preço do token, carregamento mínimo (que é também o número de tokens descontado no envio de cada pedido), IVA, validade dos tokens, unidades sob consulta, prazo de entrega, horário, MB WAY, PayPal.Me e ligação de pagamento por cartão (Stripe). Um meio de pagamento vazio deixa de aparecer. Um valor que não seja válido (por exemplo, letras no preço) é ignorado e o site usa o valor de origem.
 
 Os preços só aparecem na área de cliente, no separador Preços, a contas aprovadas: vêm da API com a sessão e não ficam no HTML de nenhuma página. O endereço antigo `/precos` leva à área de cliente.
 

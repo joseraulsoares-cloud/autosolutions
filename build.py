@@ -77,7 +77,6 @@ def ler_dados(texto):
 VALORES = ler_dados((CONTEUDOS_INICIAIS / "dados.txt").read_text(encoding="utf-8"))
 TOKEN_EUR = float(re.sub(r"[€\s]", "", VALORES["token"]).replace(",", "."))  # preço de 1 token, com IVA
 TOKENS_MINIMO = int(re.match(r"\d+", VALORES["minimo"]).group())  # carregamento mínimo e tokens descontados no envio
-EXEMPLOS_CARREGAMENTO = [int(x) for x in re.findall(r"\d+", VALORES["exemplos"])]  # quantidades na tabela de preços
 SOB_CONSULTA = VALORES["sob_consulta"]
 DADOS.update(horario=VALORES["horario"], entrega=VALORES["entrega"], mbway=VALORES["mbway"],
              stripe=VALORES["cartao"], paypal=VALORES["paypal"], iva=VALORES["iva"],
@@ -828,7 +827,6 @@ def precos_origem():
         pagamentos.append({"tipo": "paypal", "nome": "PayPal", "url": paypal_url(), "valor": paypal_url().removeprefix("https://")})
     return {
         "token": TOKEN_EUR, "token_txt": eur(TOKEN_EUR), "minimo": TOKENS_MINIMO, "minimo_txt": tokens_txt(TOKENS_MINIMO),
-        "tabela": [{"tokens": n, "tokens_txt": tokens_txt(n), "preco_txt": eur(n * TOKEN_EUR)} for n in EXEMPLOS_CARREGAMENTO],
         "iva": DADOS["iva"], "validade": DADOS["validade_tokens"], "sob_consulta": SOB_CONSULTA,
         "entrega": DADOS["entrega"], "meios_txt": meios_txt(), "pagamentos": pagamentos,
     }
@@ -869,18 +867,19 @@ def painel_precos():
           <div class="stack">
             <h3>Tokens</h3>
             <div class="table-wrap"><table class="price-table">
-              <thead><tr><th scope="col">Carregamento</th><th scope="col">Preço</th></tr></thead>
-              <tbody id="p-tabela-precos"></tbody>
+              <tbody><tr><th scope="row">1 token</th><td data-preco="token_txt"></td></tr></tbody>
             </table></div>
-            <p class="small muted">1 token = <span data-preco="token_txt"></span>. Pode carregar qualquer quantidade a partir de <span data-preco="minimo_txt"></span>. <span data-preco="iva"></span>. Validade: <span data-preco="validade"></span>.</p>
+            <p class="small muted">Pode carregar qualquer quantidade a partir de <span data-preco="minimo_txt"></span>. <span data-preco="iva"></span>. Validade: <span data-preco="validade"></span>.</p>
           </div>
           <div class="stack">
             <h3>Quanto custa cada pedido</h3>
             <p>O custo depende da ECU e dos módulos pedidos.</p>
             <ol class="aside-steps">
               <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo.</li>
-              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email. Se for maior, a diferença é descontada do saldo. Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
-              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos. Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email.</li>
+              <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+              <li>Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos.</li>
             </ol>
             <h3>Sob consulta</h3>
             <p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
@@ -1022,7 +1021,7 @@ def body_area_cliente(preview):
           </div>
           <div class="stack">
             <h3>Preços</h3>
-            <p>1 token custa <strong data-preco="token_txt"></strong>. A tabela e as regras estão em <a href="#precos">Preços</a>.</p>
+            <p>1 token custa <strong data-preco="token_txt"></strong>. As regras estão em <a href="#precos">Preços</a>.</p>
           </div>
         </div>
         <h3>Extrato</h3>

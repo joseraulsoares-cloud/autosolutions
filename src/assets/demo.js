@@ -136,7 +136,7 @@
     return { oficina: o, saldo: saldo(o.id), movimentos: movimentosDe(o.id), pedidos: pedidosDe(o.id) };
   }
   // Preços de exemplo (os de origem); no site, chegam pela API com a sessão.
-  function precos() { return catalogo().precosDemo || { minimo: 5, tabela: [], pagamentos: [] }; }
+  function precos() { return catalogo().precosDemo || { minimo: 5, pagamentos: [] }; }
   function sessao() {
     return ADMIN
       ? { email: 'admin@exemplo.pt', admin: true, oficina: null, saldo: 0, precos: precos() }

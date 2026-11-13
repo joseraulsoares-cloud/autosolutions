@@ -545,8 +545,8 @@ pm = {o["email"]: o for o in adm.get(B + "/api/admin/oficinas?filtro=pendente").
 adm.post(B + f"/api/admin/oficinas/{pm['m@teste.pt']['id']}/estado", json={"estado": "aprovada"})
 r = entrar(sm, "m@teste.pt")
 check(r.json().get("precos", {}).get("token_txt") == "6,00 €", "conta aprovada recebe os preços ao entrar")
-check(sm.get(B + "/api/sessao").json().get("precos", {}).get("tabela", [{}])[0].get("preco_txt") == "30,00 €",
-      "e com a sessão (tabela: 5 tokens = 30,00 €)")
+pr = sm.get(B + "/api/sessao").json().get("precos", {})
+check(pr.get("token_txt") == "6,00 €" and "tabela" not in pr, "e com a sessão: só o preço de 1 token, sem tabela de carregamentos")
 check(adm.get(B + "/api/sessao").json().get("precos", {}).get("minimo") == 5, "o administrador recebe o mínimo em vigor")
 if CONT:
     dados = Path(CONT) / "dados.txt"
@@ -558,7 +558,7 @@ if CONT:
                 .replace("cartao:", "cartao: https://buy.stripe.com/teste"))
     dados.write_text(alterado, encoding="utf-8")
     p = sm.get(B + "/api/sessao").json()["precos"]
-    check(p["token_txt"] == "7,50 €" and p["minimo"] == 6 and p["tabela"][0]["preco_txt"] == "37,50 €",
+    check(p["token_txt"] == "7,50 €" and p["minimo"] == 6,
           f"preço do token e mínimo alterados no ficheiro valem logo ({p['token_txt']}, {p['minimo']})")
     check([m["tipo"] for m in p["pagamentos"]] == ["mbway", "cartao"], "PayPal vazio deixa de aparecer; cartão aparece com a ligação")
     check("9h00–18h00" in requests.get(B + "/servicos").text, "horário alterado aparece em Serviços")

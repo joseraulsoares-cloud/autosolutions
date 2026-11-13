@@ -122,23 +122,9 @@ if (!function_exists('garc_dados')) {
         $texto = static function (string $k) use ($v, $origem): string {
             return ($v[$k] ?? '') !== '' ? $v[$k] : ($origem[$k] ?? '');
         };
-        $inteiros = static function (string $lista): array {
-            $r = [];
-            foreach (explode(',', $lista) as $x) {
-                $n = garc_inteiro($x);
-                if ($n !== null) {
-                    $r[] = $n;
-                }
-            }
-            return $r;
-        };
 
         $token = garc_numero($v['token'] ?? '') ?? garc_numero($origem['token'] ?? '') ?? 1.0;
         $minimo = garc_inteiro($v['minimo'] ?? '') ?? garc_inteiro($origem['minimo'] ?? '') ?? 1;
-        $exemplos = $inteiros($v['exemplos'] ?? '');
-        if (!$exemplos) {
-            $exemplos = $inteiros($origem['exemplos'] ?? '');
-        }
         $paypal = trim(preg_replace('#^(https?://)?(www\.)?paypal\.me/#i', '', $v['paypal'] ?? ''), " /@");
         $cartao = trim($v['cartao'] ?? '');
         if ($cartao !== '' && !preg_match('#^https://#i', $cartao)) {
@@ -160,7 +146,6 @@ if (!function_exists('garc_dados')) {
             'token_txt' => garc_eur($token),
             'minimo' => $minimo,
             'minimo_txt' => garc_tokens_txt($minimo),
-            'exemplos' => $exemplos,
             'iva' => $texto('iva'),
             'validade' => $texto('validade'),
             'sob_consulta' => $texto('sob_consulta'),
@@ -203,13 +188,6 @@ if (!function_exists('garc_dados')) {
             'token_txt' => $d['token_txt'],
             'minimo' => $d['minimo'],
             'minimo_txt' => $d['minimo_txt'],
-            'tabela' => array_map(static function (int $n) use ($d): array {
-                return [
-                    'tokens' => $n,
-                    'tokens_txt' => garc_tokens_txt($n),
-                    'preco_txt' => garc_eur($n * $d['token']),
-                ];
-            }, $d['exemplos']),
             'iva' => $d['iva'],
             'validade' => $d['validade'],
             'sob_consulta' => $d['sob_consulta'],

@@ -78,8 +78,14 @@ async def main():
         check(await pg.locator(".nav-list a", has_text="Preços").count() == 0, "a barra pública já não tem Preços")
         await pg.click(".tabs a[data-tab=precos]")
         await pg.wait_for_selector("[data-panel=precos]:not([hidden])")
-        linha = (await pg.text_content("#p-tabela-precos tr")).strip()
-        check("5 tokens" in linha and "30,00 €" in linha, "separador Preços mostra a tabela vinda da API: " + " ".join(linha.split()))
+        celulas = [" ".join(t.split()) for t in await pg.locator("[data-panel=precos] .price-table tr th, [data-panel=precos] .price-table tr td").all_text_contents()]
+        check(celulas == ["1 token", "6,00 €"] and await pg.locator("[data-panel=precos] .price-table tr").count() == 1,
+              "separador Preços mostra só o preço de 1 token, vindo da API: " + " | ".join(celulas))
+        passos = await pg.locator("[data-panel=precos] .aside-steps li").all_text_contents()
+        check(len(passos) == 5 and passos[0].strip() == "No envio do ficheiro descontam-se 5 tokens do saldo."
+              and passos[2].startswith("Se não for possível") and passos[4].startswith("Depois de enviado"),
+              "«Quanto custa cada pedido» tem os 5 passos pela ordem pedida")
+        await pg.screenshot(path=os.path.join(OUT, "ui-precos.png"), full_page=True)
         check((await pg.text_content("[data-panel=precos] [data-preco=token_txt]")).strip() == "6,00 €", "1 token = 6,00 € no separador Preços")
         await pg.click(".tabs a[data-tab=saldo]")
         pagamentos = await pg.text_content("#p-pagamentos")

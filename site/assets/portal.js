@@ -31,9 +31,6 @@
       var v = p[el.getAttribute('data-preco')];
       el.textContent = v == null ? '' : String(v);
     });
-    $('p-tabela-precos').innerHTML = (p.tabela || []).map(function (l) {
-      return '<tr><th scope="row">' + esc(l.tokens_txt) + '</th><td>' + esc(l.preco_txt) + '</td></tr>';
-    }).join('');
     $('p-pagamentos').innerHTML = (p.pagamentos || []).map(function (m) {
       if (m.tipo === 'cartao') {
         return '<div><dt>Cartão</dt><dd><a class="btn btn-secondary btn-sm" href="' + esc(m.url) +

@@ -17,9 +17,6 @@ token: 6,00
 # Carregamento mínimo, que é também o número de tokens descontado no envio de cada pedido
 minimo: 5
 
-# Carregamentos de exemplo na tabela de preços (números de tokens, separados por vírgulas)
-exemplos: 5, 10, 12, 20
-
 # Frase sobre o IVA, por baixo da tabela de preços
 iva: IVA incluído à taxa legal em vigor
 
