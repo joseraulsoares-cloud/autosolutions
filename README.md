@@ -7,7 +7,7 @@ Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: 
 - `build.py` gera todas as páginas. Os dados da empresa (sede, conservatória, NIPC, WhatsApp, email…) estão no dicionário `DADOS`. Os valores que mudam (preços, prazo de entrega, horário, pagamentos) e as notícias alteram-se no servidor, sem mexer no código (ver «Alterar preços, prazos, horário e pagamentos»); os valores de origem estão em `app/conteudos-iniciais/`.
 - `src/assets/` tem os estilos, os scripts, o ícone e as fontes (Barlow e Barlow Condensed, licença SIL Open Font License, em `src/assets/fonts/OFL.txt`). `src/api/` tem a entrada da API em PHP.
 - `site/` é o site gerado, que vai para a pasta `public_html` do alojamento. Não se edita à mão.
-- `app/` é o código do servidor da área de cliente (PHP 8.1 ou mais recente, MySQL), que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`. `app/conteudos.php` lê os valores e as notícias alteráveis (não precisa da base de dados).
+- `app/` é o código do servidor da área de cliente (PHP 7.4 ou mais recente, MySQL), que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`. `app/conteudos.php` lê os valores e as notícias alteráveis (não precisa da base de dados).
 - `preview/` é uma versão de revisão, com a área de cliente em modo de demonstração. Não entra no repositório.
 - `tests/` tem os testes da API e do browser.
 - `ferramentas/logo/` tem o logótipo original (PNG) e os scripts que o passam a vetor.
@@ -68,7 +68,7 @@ Na pasta `garc-conteudos/noticias`, cada ficheiro `.txt` é uma notícia: primei
 ## Instalação no cPanel (Dominios.pt)
 
 1. **Site antigo**: se o `public_html` já tiver outro site, fazer cópia de segurança e esvaziá-lo antes do primeiro Deploy (os ficheiros antigos não são apagados pelo Deploy).
-2. **PHP**: em MultiPHP Manager, PHP 8.1 ou mais recente para o domínio.
+2. **PHP**: em MultiPHP Manager, o PHP mais recente disponível para o domínio (pelo menos 7.4; de preferência 8.2.35, 8.3.36, 8.4.27, 8.5.12 ou mais recente, por causa do PHP2Shell).
 3. **Base de dados**: em MySQL Database Wizard, criar a base de dados e um utilizador com todas as permissões. O cPanel junta o nome da conta como prefixo (por exemplo, `UTILIZADOR_garc`).
 4. **HTTPS**: em SSL/TLS Status, confirmar que o certificado cobre `autosolutions.pt` e `www.autosolutions.pt` (correr o AutoSSL, se faltar). O `.htaccess` redireciona tudo para `https://www.autosolutions.pt`.
 5. **Email**: a conta fileservice@autosolutions.pt (já criada) envia e recebe os emails do site. Confirmar SPF e DKIM em Email Deliverability.
@@ -83,9 +83,10 @@ O `site/.htaccess` trata dos endereços sem `.html` (e sem `.php`, nas páginas 
 
 ## Testes
 
-Com PHP 8.1+, MariaDB ou MySQL e Python 3 (`requests`; `playwright` para o teste no browser):
+Com PHP 7.4 ou mais recente, MariaDB ou MySQL e Python 3 (`requests`; `playwright` para o teste no browser):
 
 1. Criar uma base de dados de teste e um `config.php` de teste com `'dev' => true` (os emails ficam na tabela `emails_dev`).
 2. Gerar o site completo, com PHP, numa pasta à parte: `python3 build.py --com-php <pasta>` (o `site/` pode estar em modo sem PHP). Arrancar o servidor: `GARC_APP=<app> GARC_CONTEUDOS=<pasta-de-conteudos-de-teste> SITE_ROOT=<pasta> php -d upload_max_filesize=32M -d post_max_size=40M -S 127.0.0.1:8790 -t <site> tests/router.php`.
 3. Correr `GARC_TESTE_CONTEUDOS=<a mesma pasta> python3 tests/teste_api.py` e `python3 tests/teste_ui.py <pasta-de-saida>`. A pasta de conteúdos deve começar vazia (o teste confirma que é criada com os valores de origem).
+4. Repetir os passos 2 e 3 com um PHP 7.4, o do alojamento (se esse PHP não conhecer o socket do MySQL, juntar `-d pdo_mysql.default_socket=<socket>`).
 

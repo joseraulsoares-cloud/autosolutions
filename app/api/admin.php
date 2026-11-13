@@ -3,6 +3,15 @@ declare(strict_types=1);
 
 // Painel de administração: oficinas, tokens e pedidos.
 
+// Condição SQL de um filtro das listas; um filtro desconhecido é recusado.
+function filtro_sql(string $filtro, array $condicoes): string
+{
+    if (!array_key_exists($filtro, $condicoes)) {
+        throw new ErroHttp(400, 'Filtro inválido.');
+    }
+    return $condicoes[$filtro];
+}
+
 function pedido_admin(array $p): array
 {
     $r = pedido_publico($p);
@@ -35,15 +44,14 @@ function api_admin_pedidos(): array
 {
     exigir_admin();
     $filtro = (string) ($_GET['filtro'] ?? 'tratar');
-    $onde = match ($filtro) {
+    $onde = filtro_sql($filtro, [
         'tratar' => "p.estado IN ('recebido', 'em_curso')",
         'a_aguardar_ficheiro' => "p.estado = 'a_aguardar_ficheiro'",
         'a_aguardar_saldo' => "p.estado = 'a_aguardar_saldo'",
         'concluido' => "p.estado = 'concluido'",
         'fechado' => "p.estado IN ('recusado', 'cancelado')",
         'todos' => '1 = 1',
-        default => throw new ErroHttp(400, 'Filtro inválido.'),
-    };
+    ]);
     $ordem = $filtro === 'tratar' ? 'p.id ASC' : 'p.id DESC';
     $linhas = todos("SELECT p.*, o.nome AS oficina_nome FROM pedidos p JOIN oficinas o ON o.id = p.oficina_id WHERE $onde ORDER BY $ordem LIMIT 300");
     return ['pedidos' => array_map(
@@ -235,12 +243,11 @@ function api_admin_oficinas(): array
 {
     exigir_admin();
     $filtro = (string) ($_GET['filtro'] ?? 'pendente');
-    $onde = match ($filtro) {
+    $onde = filtro_sql($filtro, [
         'pendente' => "o.estado = 'pendente'",
         'aprovada' => "o.estado = 'aprovada'",
         'todas' => '1 = 1',
-        default => throw new ErroHttp(400, 'Filtro inválido.'),
-    };
+    ]);
     $linhas = todos(
         "SELECT o.*, COALESCE((SELECT SUM(m.tokens) FROM movimentos m WHERE m.oficina_id = o.id), 0) AS saldo
          FROM oficinas o WHERE $onde ORDER BY o.nome LIMIT 500"

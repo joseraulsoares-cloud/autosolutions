@@ -1,18 +1,31 @@
 <?php
 declare(strict_types=1);
 
+// A API corre a partir do PHP 7.4 (o mais recente do alojamento enquanto não houver PHP 8 corrigido):
+// sem match, sem promoção de propriedades no construtor e sem as funções novas do PHP 8.
+
 final class ErroHttp extends Exception
 {
-    public function __construct(public int $status, string $mensagem, public array $extra = [])
+    public int $status;
+    public array $extra;
+
+    public function __construct(int $status, string $mensagem, array $extra = [])
     {
         parent::__construct($mensagem);
+        $this->status = $status;
+        $this->extra = $extra;
     }
 }
 
 final class Resposta
 {
-    public function __construct(public array $dados, public int $status = 200)
+    public array $dados;
+    public int $status;
+
+    public function __construct(array $dados, int $status = 200)
     {
+        $this->dados = $dados;
+        $this->status = $status;
     }
 }
 
@@ -63,7 +76,8 @@ function ler_json(): array
         throw new ErroHttp(413, 'Pedido demasiado grande.');
     }
     $d = json_decode($txt === '' ? '{}' : $txt, true);
-    if (!is_array($d) || ($d !== [] && array_is_list($d))) {
+    // o corpo tem de ser um objeto JSON, não uma lista
+    if (!is_array($d) || ($d !== [] && array_keys($d) === range(0, count($d) - 1))) {
         throw new ErroHttp(400, 'Pedido inválido.');
     }
     return $d;
@@ -184,7 +198,7 @@ function nome_ficheiro(?string $valor): string
 function numero_whatsapp(?string $valor): string
 {
     $d = preg_replace('/\D/', '', (string) $valor);
-    if (str_starts_with($d, '00')) {
+    if (strncmp($d, '00', 2) === 0) {
         $d = substr($d, 2);
     }
     if (strlen($d) === 9) {

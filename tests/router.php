@@ -1,8 +1,8 @@
 <?php
-// Imita o .htaccess do alojamento no servidor embutido do PHP.
+// Imita o .htaccess do alojamento no servidor embutido do PHP (a partir do PHP 7.4, como a API).
 $root = getenv('SITE_ROOT');
 $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/');
-if ($path === '/api' || str_starts_with($path, '/api/')) {
+if ($path === '/api' || strncmp($path, '/api/', 5) === 0) {
     chdir($root . '/api');
     require $root . '/api/index.php';
     return true;

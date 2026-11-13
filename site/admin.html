@@ -16,6 +16,8 @@
 <link rel="preload" href="/assets/fonts/barlow-condensed-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/styles.css">
 <script src="/assets/main.js" defer></script>
+<script src="/assets/app.js" defer></script>
+<script src="/assets/admin.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#conteudo">Saltar para o conteúdo</a>
@@ -38,15 +40,63 @@
   </div>
 </header>
 <main id="conteudo">
-
+<script type="application/json" id="catalogo">{"modulos": {"STAGE 1/2": {"nome": "Stage 1/2", "emissoes": false}, "TCU STAGE 1": {"nome": "TCU Stage 1", "emissoes": false}, "POP & BANGS": {"nome": "Pop & bangs", "emissoes": false}, "TORQUE MONITORING": {"nome": "Torque monitoring", "emissoes": false}, "SPORT DISPLAY CALIBRATION": {"nome": "Sport display", "emissoes": false}, "FLAPS OFF": {"nome": "Flaps off", "emissoes": false}, "EXHAUST FLAP OFF": {"nome": "Exhaust flap off", "emissoes": false}, "TVA OFF": {"nome": "TVA off", "emissoes": false}, "MAF OFF": {"nome": "MAF off", "emissoes": false}, "OIL PRESSURE FIX": {"nome": "Oil pressure fix", "emissoes": false}, "HOT START FIX": {"nome": "Hot start fix", "emissoes": false}, "START STOP OFF": {"nome": "Start-stop off", "emissoes": false}, "DPF OFF": {"nome": "DPF off", "emissoes": true}, "EGR OFF": {"nome": "EGR off", "emissoes": true}, "ADBLUE/SCR OFF": {"nome": "AdBlue/SCR off", "emissoes": true}, "LAMBDA/O2 OFF": {"nome": "Lambda/O2 off", "emissoes": true}, "CHECKSUM": {"nome": "Correção de checksum", "emissoes": false}, "MAP REVIEW": {"nome": "Revisão de mapa", "emissoes": false}}, "maxMb": 25, "urls": {"admin": "/admin", "areaCliente": "/area-cliente"}}</script>
 <section class="page-head">
-  <div class="wrap">
-    <h1>Administração</h1>
-  </div>
+  <div class="wrap"><h1>Administração</h1><p class="lead">Contas das oficinas, tokens e pedidos.</p></div>
 </section>
-<section class="section">
+
+<section class="section portal admin">
   <div class="wrap">
-    <p class="note">O painel está temporariamente indisponível, enquanto o servidor não tiver o PHP 8 corrigido.</p>
+    <p class="muted" id="p-carregar">A carregar…</p>
+    <div class="auth" id="v-entrar" hidden>
+      <div class="auth-card">
+        <h2>Entrar</h2>
+        <form class="form" id="f-entrar-email">
+          <div class="field"><label for="a-email">Email da conta</label><input id="a-email" name="email" type="email" autocomplete="email" required></div>
+          <p class="hint">Enviamos um código de acesso para este email. Não há palavra-passe.</p>
+          <div class="actions"><button class="btn btn-primary" type="submit">Enviar código</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+        <form class="form" id="f-entrar-codigo" hidden>
+          <p>Se <strong data-email-mostra></strong> tiver uma conta ativa, recebe um código de 6 dígitos, válido durante 10 minutos.</p>
+          <div class="field"><label for="a-codigo">Código</label><input id="a-codigo" name="codigo" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div>
+          <div class="actions"><button class="btn btn-primary" type="submit">Entrar</button><button class="btn btn-secondary" type="button" data-outro-email>Usar outro email</button></div>
+          <p class="status" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </div>
+    <div id="v-painel" hidden>
+      <nav class="tabs" aria-label="Secções do painel">
+        <a href="#pedidos" data-tab="pedidos">Pedidos <span class="count" id="a-n-pedidos"></span></a>
+        <a href="#oficinas" data-tab="oficinas">Oficinas <span class="count" id="a-n-oficinas"></span></a>
+        <button class="tab-out" type="button" data-sair>Sair</button>
+      </nav>
+      <div class="panel" data-panel="pedidos">
+        <div class="filters" role="group" aria-label="Filtrar pedidos" id="a-filtro-pedidos">
+          <button type="button" data-filtro="tratar" aria-pressed="true">Por tratar</button>
+          <button type="button" data-filtro="a_aguardar_ficheiro" aria-pressed="false">À espera do ficheiro</button>
+          <button type="button" data-filtro="a_aguardar_saldo" aria-pressed="false">Falta saldo</button>
+          <button type="button" data-filtro="concluido" aria-pressed="false">Concluídos</button>
+          <button type="button" data-filtro="fechado" aria-pressed="false">Recusados e cancelados</button>
+          <button type="button" data-filtro="todos" aria-pressed="false">Todos</button>
+        </div>
+        <div class="split">
+          <div class="list" id="a-pedidos"></div>
+          <div class="detail" id="a-pedido" hidden></div>
+        </div>
+      </div>
+      <div class="panel" data-panel="oficinas" hidden>
+        <div class="filters" role="group" aria-label="Filtrar oficinas" id="a-filtro-oficinas">
+          <button type="button" data-filtro="pendente" aria-pressed="true">Por aprovar</button>
+          <button type="button" data-filtro="aprovada" aria-pressed="false">Aprovadas</button>
+          <button type="button" data-filtro="todas" aria-pressed="false">Todas</button>
+        </div>
+        <div class="split">
+          <div class="list" id="a-oficinas"></div>
+          <div class="detail" id="a-oficina" hidden></div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 </main>

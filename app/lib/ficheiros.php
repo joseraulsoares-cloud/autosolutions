@@ -17,7 +17,7 @@ function ficheiros_dir(): string
 
 function caminho_ficheiro(string $chave): string
 {
-    if ($chave === '' || str_contains($chave, '..') || str_starts_with($chave, '/')) {
+    if ($chave === '' || strpos($chave, '..') !== false || $chave[0] === '/') {
         throw new ErroHttp(400, 'Ficheiro inválido.');
     }
     return ficheiros_dir() . '/' . $chave;
@@ -29,13 +29,8 @@ function bytes_ini(string $valor): int
     if ($valor === '') {
         return 0;
     }
-    $n = (int) $valor;
-    return match (strtolower(substr($valor, -1))) {
-        'g' => $n * 1024 * 1024 * 1024,
-        'm' => $n * 1024 * 1024,
-        'k' => $n * 1024,
-        default => $n,
-    };
+    $multiplicador = ['g' => 1024 * 1024 * 1024, 'm' => 1024 * 1024, 'k' => 1024];
+    return (int) $valor * ($multiplicador[strtolower(substr($valor, -1))] ?? 1);
 }
 
 function max_mb(): int

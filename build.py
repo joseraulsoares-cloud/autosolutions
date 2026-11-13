@@ -85,11 +85,13 @@ DADOS.update(horario=VALORES["horario"], entrega=VALORES["entrega"], mbway=VALOR
 
 # PHP2Shell (CVE-2026-109618 e CVE-2026-109619, outubro de 2026): falhas críticas do PHP, exploradas sem
 # autenticação, corrigidas só no 8.2.35, 8.3.36, 8.4.27 e 8.5.12. O alojamento só tem PHP 7.4, sem correção.
-# Enquanto SEM_PHP for True, o site publicado não corre PHP nenhum: as páginas são estáticas (com os valores
-# de origem), o .htaccess recusa ficheiros .php e a área de cliente e o formulário de contacto ficam
-# indisponíveis, com um aviso. Quando houver PHP 8 corrigido: SEM_PHP = False e python3 build.py.
+# Com SEM_PHP = True, o site publicado não corre PHP nenhum: as páginas são estáticas (com os valores de
+# origem), o .htaccess recusa ficheiros .php e a área de cliente e o formulário de contacto ficam
+# indisponíveis, com um aviso.
+# 13/11/2026: o Raul decidiu abrir a área de cliente e o formulário de contacto com o PHP 7.4 do alojamento
+# (a API corre a partir do 7.4), até haver PHP 8 corrigido. Para voltar a fechar: SEM_PHP = True e python3 build.py.
 # A pré-visualização e os testes (python3 build.py --com-php PASTA) mostram sempre o site completo.
-SEM_PHP = True
+SEM_PHP = False
 
 PREVIEW = False  # definido por build()
 PAGINA_PHP = False  # definido por build() para cada página: True quando a página do site é gerada em PHP
