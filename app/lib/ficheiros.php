@@ -111,6 +111,30 @@ function apagar_ficheiro(?string $chave): void
     }
 }
 
+// Apaga a pasta de um pedido (original e modificado), com tudo o que tiver dentro.
+function apagar_pasta_pedido(int $id): void
+{
+    $pasta = ficheiros_dir() . '/pedidos/' . $id;
+    if (!is_dir($pasta)) {
+        return;
+    }
+    $itens = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($pasta, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($itens as $item) {
+        $caminho = $item->getPathname();
+        if ($item->isLink() || !$item->isDir()) {
+            @unlink($caminho);
+        } else {
+            @rmdir($caminho);
+        }
+    }
+    if (!@rmdir($pasta)) {
+        error_log("GARC: não foi possível apagar toda a pasta $pasta");
+    }
+}
+
 // Anexo para email, se o ficheiro existir e não passar do limite de anexo_max_mb.
 function anexo_se_couber(?string $chave, ?string $nome): ?array
 {

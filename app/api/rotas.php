@@ -29,6 +29,7 @@ const ROTAS = [
     ['POST', '#^/admin/oficinas/(\d+)/estado$#', 'api_admin_oficina_estado'],
     ['POST', '#^/admin/oficinas/(\d+)/tokens$#', 'api_admin_oficina_tokens'],
     ['POST', '#^/admin/oficinas/(\d+)/dados$#', 'api_admin_oficina_dados'],
+    ['POST', '#^/admin/oficinas/(\d+)/apagar$#', 'api_admin_oficina_apagar'],
     ['POST', '#^/contacto$#', 'api_contacto'],
     ['GET', '#^/dev/emails$#', 'api_dev_emails'],
 ];

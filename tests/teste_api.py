@@ -396,6 +396,66 @@ check(r.status_code == 200 and sa.get(B + "/api/sessao").json()["email"] is None
 movs = adm.get(B + f"/api/admin/oficinas/{ID_A}").json()
 check(sum(m["tokens"] for m in movs["movimentos"]) == movs["saldo"], f"extrato soma o saldo ({movs['saldo']} tokens)")
 
+# ---------------------------------------------------------------- apagar conta
+def id_oficina(email):
+    return [o for o in adm.get(B + "/api/admin/oficinas?filtro=todas").json()["oficinas"] if o["email"] == email][0]["id"]
+
+
+# Registo sem histórico (ex.: recusado): apaga-se logo e o email e o NIF ficam livres
+NIF_E = nif("55000000")
+reg_e = dict(reg, email="e@teste.pt", nome="Oficina E", nif=NIF_E)
+check(sessao().post(B + "/api/registo", json=reg_e).status_code == 201, "registo da oficina E (sem histórico)")
+ID_E = id_oficina("e@teste.pt")
+adm.post(B + f"/api/admin/oficinas/{ID_E}/estado", json={"estado": "recusada"})
+j = adm.get(B + f"/api/admin/oficinas/{ID_E}").json()
+check(j["pedidos_total"] == 0 and j["pedidos_por_fechar"] == 0 and j["saldo"] == 0, "ficha indica 0 pedidos, nenhum por fechar e saldo 0")
+s_of = sessao()
+entrar(s_of, "a@teste.pt")
+check(s_of.post(B + f"/api/admin/oficinas/{ID_E}/apagar", json={}).status_code == 403, "uma oficina não apaga contas (403)")
+check(sessao().post(B + f"/api/admin/oficinas/{ID_E}/apagar", json={}).status_code == 401, "sem sessão também não (401)")
+r = adm.post(B + f"/api/admin/oficinas/{ID_E}/apagar", json={})
+check(r.status_code == 200 and r.json()["apagada"] == {"id": ID_E, "nome": "Oficina E", "pedidos": 0, "movimentos": 0},
+      "conta sem histórico apagada")
+check(adm.get(B + f"/api/admin/oficinas/{ID_E}").status_code == 404, "a ficha apagada já não existe (404)")
+check(adm.post(B + f"/api/admin/oficinas/{ID_E}/apagar", json={}).status_code == 404, "apagar outra vez: 404")
+check(sessao().post(B + "/api/registo", json=reg_e).status_code == 201, "depois de apagada, o mesmo email e NIF podem registar-se de novo")
+
+# Conta com pedidos, ficheiros e extrato: só se apaga com saldo 0 e sem pedidos por fechar
+ID_E2 = id_oficina("e@teste.pt")
+adm.post(B + f"/api/admin/oficinas/{ID_E2}/estado", json={"estado": "aprovada"})
+adm.post(B + f"/api/admin/oficinas/{ID_E2}/tokens", json={"tokens": 12, "referencia": "FT teste"})
+se = sessao()
+check(entrar(se, "e@teste.pt").status_code == 200, "oficina E aprovada entra, com 12 tokens")
+PE1 = se.post(B + "/api/pedidos", json=pedido).json()["pedido"]["id"]
+se.post(B + f"/api/pedidos/{PE1}/original", files={"ficheiro": ("e ori.bin", b"o" * 2048)})
+adm.post(B + f"/api/admin/pedidos/{PE1}/modificado", files={"ficheiro": ("e mod.bin", b"m" * 2048)})
+adm.post(B + f"/api/admin/pedidos/{PE1}/estado", json={"acao": "concluir"})
+PE2 = se.post(B + "/api/pedidos", json=pedido).json()["pedido"]["id"]
+j = adm.get(B + f"/api/admin/oficinas/{ID_E2}").json()
+check(j["pedidos_total"] == 2 and j["pedidos_por_fechar"] == 1 and j["saldo"] == 2, "ficha: 2 pedidos, 1 por fechar, saldo 2")
+r = adm.post(B + f"/api/admin/oficinas/{ID_E2}/apagar", json={})
+check(r.status_code == 409 and "saldo" in r.json()["erro"] and "-2" in r.json()["erro"], "com saldo: não apaga e indica o acerto (-2)")
+adm.post(B + f"/api/admin/oficinas/{ID_E2}/tokens", json={"tokens": -2, "referencia": "Acerto para apagar"})
+r = adm.post(B + f"/api/admin/oficinas/{ID_E2}/apagar", json={})
+check(r.status_code == 409 and "1 pedido por fechar" in r.json()["erro"], "com um pedido por fechar: não apaga")
+check(adm.get(B + f"/api/admin/pedidos/{PE1}").status_code == 200 and se.get(B + "/api/sessao").json()["email"] == "e@teste.pt",
+      "as recusas não apagam nada nem terminam a sessão")
+adm.post(B + f"/api/admin/pedidos/{PE2}/estado", json={"acao": "recusar", "nota": "Conta a fechar."})
+adm.post(B + f"/api/admin/oficinas/{ID_E2}/tokens", json={"tokens": -5, "referencia": "Devolução acertada"})
+r = adm.post(B + f"/api/admin/oficinas/{ID_E2}/apagar", json={})
+a = r.json().get("apagada", {})
+check(r.status_code == 200 and a.get("pedidos") == 2 and a.get("movimentos") == 6, f"conta com 2 pedidos e 6 movimentos apagada ({a})")
+check(adm.get(B + f"/api/admin/pedidos/{PE1}").status_code == 404 and adm.get(B + f"/api/admin/pedidos/{PE2}").status_code == 404,
+      "os pedidos da conta apagada já não existem")
+check(se.get(B + "/api/sessao").json()["email"] is None, "a sessão da oficina apagada terminou")
+antes = [e["id"] for e in emails()]
+sessao().post(B + "/api/entrar/codigo", json={"email": "e@teste.pt"})
+check(not [e for e in emails() if e["id"] not in antes], "o email da conta apagada não recebe código nem aviso")
+if PASTA:
+    check(not (Path(PASTA) / "pedidos" / str(PE1)).exists() and not (Path(PASTA) / "pedidos" / str(PE2)).exists(),
+          "as pastas dos ficheiros dos pedidos foram apagadas")
+check(adm.post(B + "/api/admin/oficinas/999999/apagar", json={}).status_code == 404, "oficina inexistente: 404")
+
 # ---------------------------------------------------------------- limites por IP
 # Em desenvolvimento só há limite quando o pedido indica um IP no cabeçalho X-Teste-IP.
 def com_ip(ip):

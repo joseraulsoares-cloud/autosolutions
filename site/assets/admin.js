@@ -376,7 +376,27 @@
       ['Aprovada', esc(o.aprovada_em ? G.data(o.aprovada_em) : 'Ainda não')]
     ]);
     botoesEstado.push('<button class="btn btn-secondary" type="button" data-editar aria-expanded="false" aria-controls="a-form-dados">Editar dados</button>');
+
+    // Apagar a conta: só com o saldo a 0 e sem pedidos por fechar (o servidor confirma).
+    var nPedidos = r.pedidos_total || 0;
+    var pedidosTxt = nPedidos === 1 ? '1 pedido' : nPedidos + ' pedidos';
+    var avisoApagar;
+    if (r.saldo !== 0) {
+      avisoApagar = 'Para apagar a conta, acerte primeiro o saldo para 0, com um carregamento de ' + (-r.saldo) + '.';
+    } else if (r.pedidos_por_fechar) {
+      avisoApagar = 'Para apagar a conta, conclua ou recuse primeiro ' +
+        (r.pedidos_por_fechar === 1 ? 'o pedido por fechar.' : 'os ' + r.pedidos_por_fechar + ' pedidos por fechar.');
+    } else if (nPedidos || r.movimentos.length) {
+      avisoApagar = 'Apagar a conta apaga também ' + (nPedidos ? pedidosTxt + ', os ficheiros e ' : '') + 'o extrato, sem forma de recuperar.';
+    } else {
+      avisoApagar = 'Apagar a conta não tem volta.';
+    }
+    var bloqueada = r.saldo !== 0 || r.pedidos_por_fechar > 0;
+    botoesEstado.push('<button class="btn btn-danger" type="button" data-apagar aria-describedby="a-aviso-apagar"' + (bloqueada ? ' disabled' : '') +
+      ' data-texto-confirmar="' + (nPedidos || r.movimentos.length ? 'Confirmar: apagar tudo' : 'Confirmar: apagar conta') + '">Apagar conta</button>');
+
     h += '<div class="actions">' + botoesEstado.join('') + '</div>';
+    h += '<p class="hint" id="a-aviso-apagar">' + esc(avisoApagar) + '</p>';
     h += formDados(o);
 
     h += '<div class="stack"><h3>Saldo: ' + esc(G.tokens(r.saldo)) + '</h3>' +
@@ -501,6 +521,33 @@
     }).catch(function (err) {
       btn.disabled = false;
       G.status(f.querySelector('.status'), 'err', err.message);
+    });
+  });
+
+  /* Apagar a conta da oficina (dois cliques) */
+  $('a-oficina').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-apagar]');
+    if (!b || b.disabled) return;
+    var painel = this;
+    var id = painel.getAttribute('data-id');
+    G.confirmar(b, b.getAttribute('data-texto-confirmar'), function () {
+      b.disabled = true;
+      G.api('/api/admin/oficinas/' + id + '/apagar', { json: {} }).then(function (r) {
+        var a = r.apagada;
+        var extra = a.pedidos
+          ? ', com ' + (a.pedidos === 1 ? '1 pedido' : a.pedidos + ' pedidos') + ', os ficheiros e o extrato.'
+          : a.movimentos ? ', com o extrato.' : '.';
+        est.oficina = null;
+        painel.removeAttribute('data-id');
+        painel.innerHTML = '<p class="status" role="status" data-kind="ok">' + esc('Conta de ' + a.nome + ' apagada' + extra) + '</p>';
+        // Sai da ficha apagada sem a voltar a pedir ao servidor.
+        if (history.replaceState) history.replaceState(null, '', '#oficinas');
+        carregarOficinas();
+        atualizarContagens();
+      }).catch(function (err) {
+        b.disabled = false;
+        G.status(estadoOficina(), 'err', err.message);
+      });
     });
   });
 

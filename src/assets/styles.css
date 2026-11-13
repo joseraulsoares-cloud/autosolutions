@@ -223,6 +223,10 @@ ul, ol { margin: 0; }
 .btn-secondary { background: transparent; color: var(--ink); border-color: var(--ink); }
 .btn-secondary:hover { background: var(--sheet); }
 .btn:disabled { opacity: 0.6; cursor: progress; }
+.btn-danger { background: transparent; color: var(--err); border-color: var(--err); }
+.btn-danger:hover { background: var(--err-bg); }
+.btn-danger:disabled { cursor: not-allowed; }
+.btn-danger:disabled:hover { background: transparent; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
 
 /* Header */

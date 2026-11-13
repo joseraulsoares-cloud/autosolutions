@@ -267,7 +267,17 @@ function api_admin_oficina(string $id): array
         'saldo' => saldo((int) $o['id']),
         'movimentos' => array_map('movimento_publico', todos('SELECT * FROM movimentos WHERE oficina_id = ? ORDER BY id DESC LIMIT 100', [$o['id']])),
         'pedidos' => array_map('pedido_publico', todos('SELECT * FROM pedidos WHERE oficina_id = ? ORDER BY id DESC LIMIT 50', [$o['id']])),
+        'pedidos_total' => (int) valor('SELECT COUNT(*) FROM pedidos WHERE oficina_id = ?', [$o['id']]),
+        'pedidos_por_fechar' => pedidos_por_fechar((int) $o['id']),
     ];
+}
+
+function pedidos_por_fechar(int $oficinaId): int
+{
+    return (int) valor(
+        "SELECT COUNT(*) FROM pedidos WHERE oficina_id = ? AND estado NOT IN ('concluido', 'recusado', 'cancelado')",
+        [$oficinaId]
+    );
 }
 
 function api_admin_oficina_estado(string $id): array
@@ -453,4 +463,42 @@ function api_admin_oficina_dados(string $id): array
         }
     }
     return api_admin_oficina($id) + ['alterados' => $alterados];
+}
+
+// Apaga de vez a conta de uma oficina: os pedidos e os ficheiros, o extrato, as sessões e os códigos.
+// Só com o saldo a 0 e sem pedidos por fechar, para não se perderem tokens pagos nem trabalho em curso.
+function api_admin_oficina_apagar(string $id): array
+{
+    exigir_admin();
+    [$o, $pedidos, $movimentos] = transacao(function () use ($id) {
+        $o = um('SELECT * FROM oficinas WHERE id = ? FOR UPDATE', [(int) $id]);
+        if (!$o) {
+            throw new ErroHttp(404, 'Oficina não encontrada.');
+        }
+        $oid = (int) $o['id'];
+        $saldo = saldo($oid);
+        if ($saldo !== 0) {
+            throw new ErroHttp(409, 'A oficina tem ' . tokens_txt($saldo) . ' de saldo. Para apagar a conta, acerte primeiro o saldo para 0 '
+                . 'com um carregamento de ' . (-$saldo) . '.');
+        }
+        $abertos = pedidos_por_fechar($oid);
+        if ($abertos > 0) {
+            throw new ErroHttp(409, $abertos === 1
+                ? 'Há 1 pedido por fechar. Conclua-o ou recuse-o antes de apagar a conta.'
+                : "Há $abertos pedidos por fechar. Conclua-os ou recuse-os antes de apagar a conta.");
+        }
+        $pedidos = array_map(fn($p) => (int) $p['id'], todos('SELECT id FROM pedidos WHERE oficina_id = ?', [$oid]));
+        $movimentos = (int) valor('SELECT COUNT(*) FROM movimentos WHERE oficina_id = ?', [$oid]);
+        executar('DELETE FROM movimentos WHERE oficina_id = ?', [$oid]);
+        executar('DELETE FROM pedidos WHERE oficina_id = ?', [$oid]);
+        executar('DELETE FROM sessoes WHERE email = ?', [$o['email']]);
+        executar('DELETE FROM codigos WHERE email = ?', [$o['email']]);
+        executar('DELETE FROM oficinas WHERE id = ?', [$oid]);
+        return [$o, $pedidos, $movimentos];
+    });
+    // Os ficheiros só se apagam depois de a base de dados confirmar o apagamento.
+    foreach ($pedidos as $pid) {
+        apagar_pasta_pedido($pid);
+    }
+    return ['apagada' => ['id' => (int) $o['id'], 'nome' => $o['nome'], 'pedidos' => count($pedidos), 'movimentos' => $movimentos]];
 }

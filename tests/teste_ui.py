@@ -227,6 +227,36 @@ async def main():
         await apt.screenshot(path=os.path.join(OUT, "ui-admin-editar-telemovel.png"), full_page=True)
         await actel.close()
 
+        # ---------------- Apagar conta no painel
+        aviso = (await ap.text_content("#a-aviso-apagar")).strip()
+        check(not await ap.is_disabled("#a-oficina [data-apagar]") and aviso.startswith("Apagar a conta apaga também 1 pedido, os ficheiros e o extrato"),
+              "oficina C (saldo 0, pedido concluído): pode ser apagada e o aviso diz o que se perde")
+        s = requests.Session()
+        s.headers["Origin"] = B
+        base8 = "50700800"
+        soma = sum(int(c) * (9 - i) for i, c in enumerate(base8))
+        nif_z = base8 + str(0 if soma % 11 < 2 else 11 - soma % 11)
+        s.post(B + "/api/registo", json={"nome": "Oficina Zê", "nif": nif_z, "responsavel": "Zé Z", "email": "z@teste.pt",
+                                         "telefone": "917 000 000", "entrega": "portal", "termos": True})
+        zid = [o for o in adm.get(B + "/api/admin/oficinas?filtro=todas").json()["oficinas"] if o["email"] == "z@teste.pt"][0]["id"]
+        adm.post(B + f"/api/admin/oficinas/{zid}/estado", json={"estado": "aprovada"})
+        adm.post(B + f"/api/admin/oficinas/{zid}/tokens", json={"tokens": 3, "referencia": "teste"})
+        await ap.goto(B + f"/admin#oficina-{zid}", wait_until="networkidle")
+        await ap.wait_for_selector("#a-oficina [data-apagar]")
+        check(await ap.is_disabled("#a-oficina [data-apagar]") and "carregamento de -3" in await ap.text_content("#a-aviso-apagar"),
+              "com 3 tokens de saldo: Apagar conta desativado, com a indicação do acerto (-3)")
+        adm.post(B + f"/api/admin/oficinas/{zid}/tokens", json={"tokens": -3, "referencia": "Acerto"})
+        await ap.reload(wait_until="networkidle")
+        await ap.wait_for_selector("#a-oficina [data-apagar]:not([disabled])")
+        await ap.click("#a-oficina [data-apagar]")
+        check((await ap.text_content("#a-oficina [data-apagar]")).strip() == "Confirmar: apagar tudo", "primeiro clique pede confirmação")
+        await ap.screenshot(path=os.path.join(OUT, "ui-admin-apagar.png"), full_page=True)
+        await ap.click("#a-oficina [data-apagar]")
+        await ap.wait_for_selector("#a-oficina > .status[data-kind=ok]")
+        check((await ap.text_content("#a-oficina > .status")).strip() == "Conta de Oficina Zê apagada, com o extrato."
+              and ap.url.endswith("#oficinas"), "segundo clique apaga a conta; o painel confirma e sai da ficha")
+        check(adm.get(B + f"/api/admin/oficinas/{zid}").status_code == 404, "a conta apagada já não existe no servidor")
+
         # Telemóvel
         mctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         await mctx.add_cookies(await ctx.cookies())
