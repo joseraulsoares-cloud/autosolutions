@@ -1014,7 +1014,7 @@ def body_area_cliente(preview):
               <legend>Entrega preferida dos ficheiros</legend>
               {entrega_radios("c-entrega")}
             </fieldset>
-            <p class="hint">Para alterar o nome, o NIF ou o email da conta, contacte-nos.</p>
+            <p class="hint">Para alterar o nome, o NIF, o responsável ou o email da conta, contacte-nos.</p>
             <div class="actions"><button class="btn btn-primary" type="submit">Guardar alterações</button></div>
             <p class="status" role="status" aria-live="polite" hidden></p>
           </form>

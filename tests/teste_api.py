@@ -316,6 +316,78 @@ r = sessao().post(B + "/api/contacto", data={"nome": "Carlos", "apelido": "Teste
 e = ultimo_email("admin@teste.pt", "Contacto do site")
 check(r.status_code == 200 and e is not None, "formulário de contacto entregue ao administrador")
 
+# Dados da oficina: a oficina só altera telefone, WhatsApp e entrega; o resto só o administrador
+r = sa.post(B + "/api/conta", json={"telefone": "910 000 001", "whatsapp": "", "entrega": "portal",
+                                     "nome": "Outro nome", "nif": NIF_B, "responsavel": "Outra", "email": "x@teste.pt"})
+j = r.json().get("oficina", {})
+check(r.status_code == 200 and j.get("telefone") == "910 000 001" and j.get("nome") == "Oficina A, Lda" and j.get("nif") == NIF_A
+      and j.get("responsavel") == "Ana A" and j.get("email") == "a@teste.pt",
+      "na área de cliente, a oficina altera o telefone, mas não o nome, o NIF, o responsável nem o email")
+o_a = adm.get(B + f"/api/admin/oficinas/{ID_A}").json()["oficina"]
+atual = {k: o_a[k] or "" for k in ("nome", "nif", "responsavel", "email", "telefone", "whatsapp", "entrega")}
+r = sa.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=dict(atual, nome="Pirata"))
+check(r.status_code == 403, "a oficina não usa a alteração de dados do painel (403)")
+antes = [e["id"] for e in emails()]
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=atual)
+check(r.status_code == 200 and r.json()["alterados"] == [] and [e["id"] for e in emails()] == antes,
+      "dados iguais: nada muda e não sai nenhum email")
+for alteracao, codigo_http, texto_erro, msg in [
+    ({"nif": "123456788"}, 400, "NIF", "NIF inválido é recusado"),
+    ({"nif": NIF_B}, 409, "NIF", "NIF de outra oficina: 409"),
+    ({"email": "b@teste.pt"}, 409, "email", "email de outra oficina: 409"),
+    ({"email": "ADMIN@teste.pt"}, 400, "administração", "email de administração não pode ficar numa oficina"),
+    ({"email": "sem-arroba"}, 400, "email", "email inválido é recusado"),
+    ({"nome": " "}, 400, "oficina", "nome vazio é recusado"),
+    ({"telefone": ""}, 400, "telefone", "telefone vazio é recusado"),
+    ({"entrega": "pombo"}, 400, "receber", "forma de entrega inválida é recusada"),
+]:
+    r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=dict(atual, **alteracao))
+    check(r.status_code == codigo_http and texto_erro in r.json().get("erro", ""), msg + f" ({r.status_code})")
+r = adm.post(B + "/api/admin/oficinas/999999/dados", json=atual)
+check(r.status_code == 404, "oficina inexistente: 404")
+check(adm.get(B + f"/api/admin/oficinas/{ID_A}").json()["oficina"]["nome"] == "Oficina A, Lda", "alterações recusadas não mudam nada")
+
+NIF_A2 = nif("50100000")
+atual.update(nome="Oficina A Renovada, Lda", nif=NIF_A2, responsavel="Ana Antunes", whatsapp="930 000 000", entrega="whatsapp")
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=atual)
+j = r.json()
+check(r.status_code == 200 and j["oficina"]["nome"] == "Oficina A Renovada, Lda" and j["oficina"]["nif"] == NIF_A2
+      and j["oficina"]["responsavel"] == "Ana Antunes" and j["oficina"]["whatsapp"] == "930 000 000" and j["oficina"]["entrega"] == "whatsapp"
+      and j["alterados"] == ["nome", "nif", "responsavel", "whatsapp", "entrega"],
+      "administrador altera o nome, o NIF, o responsável, o WhatsApp e a entrega")
+e = ultimo_email("a@teste.pt", "Dados da conta atualizados")
+check(e is not None and f"NIF: {NIF_A2}" in e["texto"] and "Entrega preferida: WhatsApp" in e["texto"] and "Telefone" not in e["texto"],
+      "a oficina é avisada por email só com os dados alterados")
+check(sa.get(B + "/api/sessao").json()["oficina"]["nome"] == "Oficina A Renovada, Lda", "sem mudança de email, a sessão continua e já mostra o nome novo")
+lista = {o["id"]: o for o in adm.get(B + "/api/admin/oficinas?filtro=todas").json()["oficinas"]}
+check(lista[ID_A]["nome"] == "Oficina A Renovada, Lda" and lista[ID_A]["nif"] == NIF_A2, "a lista de oficinas mostra o nome e o NIF novos")
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=dict(atual, whatsapp=""))
+check(r.status_code == 200 and r.json()["oficina"]["whatsapp"] is None and r.json()["alterados"] == ["whatsapp"]
+      and "WhatsApp: o mesmo do telefone" in ultimo_email("a@teste.pt", "Dados da conta atualizados")["texto"],
+      "WhatsApp apagado: passa a usar o telefone")
+atual["whatsapp"] = ""
+
+# Mudança de email: o antigo deixa de entrar, as sessões terminam e os dois emails são avisados
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=dict(atual, email=" A2@Teste.pt "))
+check(r.status_code == 200 and r.json()["oficina"]["email"] == "a2@teste.pt" and r.json()["alterados"] == ["email"],
+      "email da oficina alterado (guardado em minúsculas)")
+check(sa.get(B + "/api/sessao").json()["email"] is None, "a mudança de email termina a sessão aberta da oficina")
+e_antigo = ultimo_email("a@teste.pt", "Email de acesso alterado")
+check(e_antigo is not None and "a2@teste.pt" not in e_antigo["texto"], "o email antigo é avisado, sem revelar o email novo")
+check(ultimo_email("a2@teste.pt", "Dados da conta atualizados") is not None, "o email novo recebe o aviso com os dados")
+antes = [e["id"] for e in emails()]
+r = sessao().post(B + "/api/entrar/codigo", json={"email": "a@teste.pt"})
+check(r.status_code == 200 and not [e for e in emails() if e["id"] not in antes], "o email antigo já não recebe código de acesso")
+s_a2 = sessao()
+r = entrar(s_a2, "a2@teste.pt")
+check(r.status_code == 200 and r.json()["oficina"]["id"] == ID_A, "a oficina entra com o email novo e mantém a mesma conta")
+check(s_a2.get(B + "/api/saldo").json()["saldo"] == adm.get(B + f"/api/admin/oficinas/{ID_A}").json()["saldo"], "o saldo da conta mantém-se")
+
+# Repõe o email da oficina A para os testes seguintes
+r = adm.post(B + f"/api/admin/oficinas/{ID_A}/dados", json=dict(atual, email="a@teste.pt"))
+check(r.status_code == 200 and s_a2.get(B + "/api/sessao").json()["email"] is None, "email reposto: a sessão com o email anterior termina")
+check(entrar(sa, "a@teste.pt").status_code == 200, "a oficina volta a entrar com o email reposto")
+
 # Saída
 r = sa.post(B + "/api/sessao/sair", json={})
 check(r.status_code == 200 and sa.get(B + "/api/sessao").json()["email"] is None, "sair termina a sessão")

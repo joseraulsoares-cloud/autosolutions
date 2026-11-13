@@ -316,6 +316,41 @@
     G.api('/api/admin/oficinas/' + id).then(desenharOficina).catch(tratarErro(el));
   }
 
+  // Mensagens da ficha da oficina (o formulário de edição tem a sua própria linha de estado).
+  function estadoOficina() {
+    return $('a-oficina').querySelector(':scope > .status');
+  }
+
+  function campoDados(id, nome, rotulo, valor, tipo, obrigatorio, extra) {
+    return '<div class="field"><label for="' + id + '">' + rotulo + (obrigatorio ? ' <span class="req" aria-hidden="true">*</span>' : '') + '</label>' +
+      '<input id="' + id + '" name="' + nome + '" type="' + tipo + '" value="' + esc(valor || '') + '"' +
+      (obrigatorio ? ' required' : '') + (extra || '') + '></div>';
+  }
+
+  // Formulário para o administrador alterar os dados da oficina, a pedido dela.
+  function formDados(o) {
+    var entregas = Object.keys(G.ENTREGAS).map(function (k) {
+      return '<div class="check"><input type="radio" id="a-d-entrega-' + k + '" name="entrega" value="' + k + '"' + (o.entrega === k ? ' checked' : '') + '>' +
+        '<label for="a-d-entrega-' + k + '">' + esc(G.ENTREGAS[k]) + '</label></div>';
+    }).join('');
+    return '<form class="form" id="a-form-dados" hidden>' +
+      '<h3>Editar dados</h3>' +
+      '<div class="grid-2">' +
+      campoDados('a-d-nome', 'nome', 'Oficina ou empresa', o.nome, 'text', true, ' maxlength="120"') +
+      campoDados('a-d-nif', 'nif', 'NIF', o.nif, 'text', true, ' inputmode="numeric" maxlength="20"') +
+      campoDados('a-d-responsavel', 'responsavel', 'Nome do responsável', o.responsavel, 'text', true, ' maxlength="120"') +
+      campoDados('a-d-email', 'email', 'Email', o.email, 'email', true, ' maxlength="200"') +
+      campoDados('a-d-telefone', 'telefone', 'Telefone', o.telefone, 'tel', true, ' maxlength="30"') +
+      campoDados('a-d-whatsapp', 'whatsapp', 'WhatsApp, se for outro número', o.whatsapp, 'tel', false, ' maxlength="30"') +
+      '</div>' +
+      '<fieldset class="fieldset"><legend>Entrega preferida dos ficheiros</legend><div class="choices">' + entregas + '</div></fieldset>' +
+      '<p class="hint">A oficina é avisada por email das alterações. Se mudar o email, as sessões abertas terminam e a oficina passa a entrar com o email novo.</p>' +
+      '<div class="actions"><button class="btn btn-primary" type="submit">Guardar dados</button>' +
+      '<button class="btn btn-secondary" type="button" data-cancelar-dados>Cancelar</button></div>' +
+      '<p class="status" role="status" aria-live="polite" hidden></p>' +
+      '</form>';
+  }
+
   function desenharOficina(r) {
     var o = r.oficina;
     var el = $('a-oficina');
@@ -340,7 +375,9 @@
       ['Registada', esc(G.data(o.criada_em))],
       ['Aprovada', esc(o.aprovada_em ? G.data(o.aprovada_em) : 'Ainda não')]
     ]);
+    botoesEstado.push('<button class="btn btn-secondary" type="button" data-editar aria-expanded="false" aria-controls="a-form-dados">Editar dados</button>');
     h += '<div class="actions">' + botoesEstado.join('') + '</div>';
+    h += formDados(o);
 
     h += '<div class="stack"><h3>Saldo: ' + esc(G.tokens(r.saldo)) + '</h3>' +
       '<form class="inline-form" id="a-form-tokens">' +
@@ -385,12 +422,12 @@
       b.disabled = true;
       G.api('/api/admin/oficinas/' + id + '/estado', { json: { estado: estado } }).then(function (r) {
         desenharOficina(r);
-        G.status($('a-oficina').querySelector('.status'), 'ok', MSG_ESTADO[estado]);
+        G.status(estadoOficina(), 'ok', MSG_ESTADO[estado]);
         carregarOficinas();
         atualizarContagens();
       }).catch(function (err) {
         b.disabled = false;
-        G.status(painel.querySelector('.status'), 'err', err.message);
+        G.status(estadoOficina(), 'err', err.message);
       });
     }
     if (estado === 'aprovada') executar();
@@ -409,13 +446,61 @@
     btn.disabled = true;
     G.api('/api/admin/oficinas/' + id + '/tokens', { json: { tokens: n, referencia: f.elements.referencia.value } }).then(function (r) {
       desenharOficina(r);
-      G.status($('a-oficina').querySelector('.status'), 'ok', n > 0
+      G.status(estadoOficina(), 'ok', n > 0
         ? 'Carregados ' + G.tokens(n) + '. Saldo: ' + G.tokens(r.saldo) + '. A oficina foi avisada por email.'
         : 'Acerto registado. Saldo: ' + G.tokens(r.saldo) + '.');
       carregarOficinas();
     }).catch(function (err) {
       btn.disabled = false;
-      G.status(painel.querySelector('.status'), 'err', err.message);
+      G.status(estadoOficina(), 'err', err.message);
+    });
+  });
+
+  /* Editar dados da oficina */
+  $('a-oficina').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-editar], [data-cancelar-dados]');
+    if (!b) return;
+    var f = $('a-form-dados');
+    var botao = this.querySelector('[data-editar]');
+    var abrir = b.hasAttribute('data-editar') && f.hidden;
+    if (!abrir) f.reset();
+    f.hidden = !abrir;
+    G.status(f.querySelector('.status'), 'ok', '');
+    botao.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+    if (abrir) f.elements.nome.focus();
+    else botao.focus();
+  });
+
+  $('a-oficina').addEventListener('submit', function (e) {
+    if (e.target.id !== 'a-form-dados') return;
+    e.preventDefault();
+    var f = e.target;
+    if (!f.checkValidity()) { f.reportValidity(); return; }
+    var id = this.getAttribute('data-id');
+    var btn = f.querySelector('button[type="submit"]');
+    var entrega = f.querySelector('input[name="entrega"]:checked');
+    var dados = {
+      nome: f.elements.nome.value,
+      nif: f.elements.nif.value,
+      responsavel: f.elements.responsavel.value,
+      email: f.elements.email.value,
+      telefone: f.elements.telefone.value,
+      whatsapp: f.elements.whatsapp.value,
+      entrega: entrega ? entrega.value : ''
+    };
+    btn.disabled = true;
+    G.api('/api/admin/oficinas/' + id + '/dados', { json: dados }).then(function (r) {
+      var alterados = r.alterados || [];
+      desenharOficina(r);
+      G.status(estadoOficina(), 'ok', !alterados.length
+        ? 'Não houve alterações.'
+        : alterados.indexOf('email') >= 0
+          ? 'Dados guardados. A oficina passa a entrar com o email novo: as sessões abertas terminaram e foi avisada no email antigo e no novo.'
+          : 'Dados guardados. A oficina foi avisada por email.');
+      carregarOficinas();
+    }).catch(function (err) {
+      btn.disabled = false;
+      G.status(f.querySelector('.status'), 'err', err.message);
     });
   });
 

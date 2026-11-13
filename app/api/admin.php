@@ -351,3 +351,106 @@ function api_admin_oficina_tokens(string $id): array
     }
     return api_admin_oficina($id);
 }
+
+// Dados da oficina que só o administrador altera, a pedido da oficina (nome, NIF, responsável e email,
+// e também os contactos). Na área de cliente, a oficina altera apenas o telefone, o WhatsApp e a entrega.
+const CAMPOS_OFICINA = [
+    'nome' => 'Oficina ou empresa',
+    'nif' => 'NIF',
+    'responsavel' => 'Responsável',
+    'email' => 'Email',
+    'telefone' => 'Telefone',
+    'whatsapp' => 'WhatsApp',
+    'entrega' => 'Entrega preferida',
+];
+
+function texto_campo_oficina(string $campo, ?string $valor): string
+{
+    if ($campo === 'whatsapp' && ($valor === null || $valor === '')) {
+        return 'o mesmo do telefone';
+    }
+    if ($campo === 'entrega') {
+        return nome_entrega((string) $valor);
+    }
+    return (string) $valor;
+}
+
+function api_admin_oficina_dados(string $id): array
+{
+    exigir_admin();
+    $c = ler_json();
+    $novo = [
+        'nome' => texto($c['nome'] ?? '', 'oficina ou empresa', 120, true),
+        'nif' => validar_nif($c['nif'] ?? ''),
+        'responsavel' => texto($c['responsavel'] ?? '', 'nome do responsável', 120, true),
+        'email' => normalizar_email($c['email'] ?? ''),
+        'telefone' => telefone($c['telefone'] ?? '', 'telefone', true),
+        'whatsapp' => telefone($c['whatsapp'] ?? '', 'número de WhatsApp'),
+        'entrega' => entrega($c['entrega'] ?? ''),
+    ];
+    if ($novo['whatsapp'] === '') {
+        $novo['whatsapp'] = null;
+    }
+
+    [$o, $alterados] = transacao(function () use ($id, $novo) {
+        $o = um('SELECT * FROM oficinas WHERE id = ? FOR UPDATE', [(int) $id]);
+        if (!$o) {
+            throw new ErroHttp(404, 'Oficina não encontrada.');
+        }
+        $alterados = [];
+        foreach (array_keys(CAMPOS_OFICINA) as $k) {
+            if ((string) $o[$k] !== (string) $novo[$k]) {
+                $alterados[] = $k;
+            }
+        }
+        if (!$alterados) {
+            return [$o, []];
+        }
+        $mudaEmail = in_array('email', $alterados, true);
+        if ($mudaEmail && e_admin($novo['email'])) {
+            throw new ErroHttp(400, 'Esse email é de administração. Indique outro email para a oficina.');
+        }
+        $outra = um('SELECT email, nif FROM oficinas WHERE (email = ? OR nif = ?) AND id <> ?', [$novo['email'], $novo['nif'], $o['id']]);
+        if ($outra) {
+            throw new ErroHttp(409, $outra['email'] === $novo['email']
+                ? 'Já existe outra oficina com este email.'
+                : 'Já existe outra oficina com este NIF.');
+        }
+        try {
+            executar(
+                'UPDATE oficinas SET nome = ?, nif = ?, responsavel = ?, email = ?, telefone = ?, whatsapp = ?, entrega = ? WHERE id = ?',
+                [$novo['nome'], $novo['nif'], $novo['responsavel'], $novo['email'], $novo['telefone'], $novo['whatsapp'], $novo['entrega'], $o['id']]
+            );
+        } catch (PDOException $e) {
+            if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+                throw new ErroHttp(409, 'Já existe outra oficina com este email ou NIF.');
+            }
+            throw $e;
+        }
+        if ($mudaEmail) {
+            // O email antigo deixa de dar acesso: terminam as sessões abertas e os códigos por usar.
+            executar('DELETE FROM sessoes WHERE email = ?', [$o['email']]);
+            executar('DELETE FROM codigos WHERE email = ?', [$o['email']]);
+        }
+        return [$o, $alterados];
+    });
+
+    if ($alterados) {
+        $linhas = array_map(fn($k) => CAMPOS_OFICINA[$k] . ': ' . texto_campo_oficina($k, $novo[$k]), $alterados);
+        notificar(
+            $novo['email'],
+            'Dados da conta atualizados',
+            "Olá {$novo['responsavel']},\n\nAtualizámos os dados da conta de {$novo['nome']} na área de cliente:\n\n"
+            . implode("\n", $linhas) . "\n\nSe não pediu esta alteração, contacte-nos." . assinatura_email()
+        );
+        if (in_array('email', $alterados, true)) {
+            notificar(
+                $o['email'],
+                'Email de acesso alterado',
+                "Olá {$o['responsavel']},\n\nO email de acesso à conta de {$o['nome']} na área de cliente foi alterado. "
+                . "Este endereço deixou de dar acesso à conta.\n\nSe não pediu esta alteração, contacte-nos." . assinatura_email()
+            );
+        }
+    }
+    return api_admin_oficina($id) + ['alterados' => $alterados];
+}

@@ -174,6 +174,59 @@ async def main():
         check(estado == "falta" and await pg.is_disabled("#f-enviar") and "pelo menos 5 tokens" in await pg.text_content("#f-resumo-msg"),
               "saldo 0: envio bloqueado, com aviso de que precisa de pelo menos 5 tokens")
 
+        # ---------------- Editar os dados da oficina no painel (a oficina vê-os na Conta)
+        await ap.goto(B + f"/admin#oficina-{oid}", wait_until="networkidle")
+        await ap.wait_for_selector("#a-oficina [data-editar]")
+        check(await ap.is_hidden("#a-form-dados"), "ficha da oficina: o formulário de edição começa fechado")
+        await ap.click("#a-oficina [data-editar]")
+        check(await ap.is_visible("#a-form-dados") and await ap.input_value("#a-d-nome") == "Oficina Cê"
+              and await ap.input_value("#a-d-email") == "c@teste.pt" and await ap.is_checked("#a-d-entrega-portal"),
+              "Editar dados abre o formulário com os dados atuais")
+        await ap.fill("#a-d-nome", "Nome a descartar")
+        await ap.click("#a-form-dados [data-cancelar-dados]")
+        check(await ap.is_hidden("#a-form-dados"), "Cancelar fecha o formulário")
+        await ap.click("#a-oficina [data-editar]")
+        check(await ap.input_value("#a-d-nome") == "Oficina Cê", "depois de cancelar, o formulário volta aos dados guardados")
+        n_erros = len(erros)
+        await ap.fill("#a-d-nif", "123456788")
+        await ap.click("#a-form-dados button[type=submit]")
+        await ap.wait_for_selector("#a-form-dados .status:not([hidden])")
+        check("NIF" in await ap.text_content("#a-form-dados .status") and await ap.is_visible("#a-form-dados"),
+              "NIF inválido: o erro aparece no formulário, que fica aberto")
+        # A resposta 400 esperada fica registada na consola do browser; não é um erro da página.
+        erros[n_erros:] = [x for x in erros[n_erros:] if "status of 400" not in x]
+        await ap.click("#a-form-dados [data-cancelar-dados]")
+        await ap.click("#a-oficina [data-editar]")
+        await ap.fill("#a-d-nome", "Oficina Cê Renovada")
+        await ap.fill("#a-d-responsavel", "Carla Costa")
+        await ap.fill("#a-d-whatsapp", "936 000 000")
+        await ap.check("#a-d-entrega-whatsapp")
+        await ap.screenshot(path=os.path.join(OUT, "ui-admin-editar.png"), full_page=True)
+        await ap.click("#a-form-dados button[type=submit]")
+        await ap.wait_for_selector("#a-oficina > .status:not([hidden])")
+        ficha = await ap.text_content("#a-oficina .kv")
+        check("Dados guardados" in await ap.text_content("#a-oficina > .status")
+              and (await ap.text_content("#a-oficina h2")).strip() == "Oficina Cê Renovada"
+              and "Carla Costa" in ficha and "936 000 000" in ficha and "Entrega preferidaWhatsApp" in ficha,
+              "dados guardados: a ficha mostra o nome, o responsável, o WhatsApp e a entrega novos")
+        check(await ap.is_hidden("#a-form-dados"), "depois de guardar, o formulário fecha")
+        # A página da oficina já estava aberta: só um novo carregamento vai buscar os dados à sessão.
+        await pg.goto(B + "/area-cliente#conta")
+        await pg.reload(wait_until="networkidle")
+        await pg.wait_for_selector("[data-panel=conta]:not([hidden]) #p-conta-dados dd")
+        conta = await pg.text_content("#p-conta-dados")
+        check("Oficina Cê Renovada" in conta and "Carla Costa" in conta and await pg.input_value("#c-whatsapp") == "936 000 000"
+              and await pg.is_checked("#c-entrega-whatsapp"), "a oficina vê os dados novos na Conta, sem ter de voltar a entrar")
+        actel = await b.new_context(viewport={"width": 390, "height": 844})
+        await actel.add_cookies(await actx.cookies())
+        apt = await actel.new_page()
+        await apt.goto(B + f"/admin#oficina-{oid}", wait_until="networkidle")
+        await apt.click("#a-oficina [data-editar]")
+        larg = await apt.evaluate("document.documentElement.scrollWidth - innerWidth")
+        check(await apt.is_visible("#a-form-dados") and larg <= 0, f"telemóvel: formulário de edição sem deslocamento horizontal ({larg})")
+        await apt.screenshot(path=os.path.join(OUT, "ui-admin-editar-telemovel.png"), full_page=True)
+        await actel.close()
+
         # Telemóvel
         mctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         await mctx.add_cookies(await ctx.cookies())
