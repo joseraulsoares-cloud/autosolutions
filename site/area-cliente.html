@@ -194,13 +194,23 @@
     </form>
     <aside class="aside">
       <div class="aside-block">
-        <h2>Depois do envio</h2>
-        <ol class="aside-steps">
-          <li>Descontam-se <span data-preco="minimo_txt"></span> do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
-          <li>Analisamos a ECU e confirmamos o custo final. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido espera pelo carregamento.</li>
-          <li>Entregamos o ficheiro pela via que escolheu, normalmente em menos de 2 horas. Fica também disponível em Pedidos durante 1 mês.</li>
-          <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
-        </ol>
+        <h2>Quanto custa cada pedido</h2>
+        <p>O custo depende da ECU e dos módulos pedidos.</p>
+            <ol class="aside-steps custo-passos">
+              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo, correspondentes ao serviço mínimo.</li>
+              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email.</li>
+              <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+              <li>Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos.</li>
+            </ol>
+      </div>
+      <div class="aside-block">
+        <h2>Sob consulta</h2>
+        <p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por <a href="https://wa.me/351913027543?text=Ol%C3%A1%21%20Quero%20saber%20o%20custo%20de%20um%20ficheiro%20para%20esta%20ECU%3A" target="_blank" rel="noopener">WhatsApp</a> ou por email.</p>
+      </div>
+      <div class="aside-block">
+        <h2>Prazo de entrega</h2>
+        <p><span data-preco="entrega"></span>. O horário de atendimento está na página <a href="/servicos">Serviços</a>.</p>
       </div>
     </aside>
   </div>
@@ -238,8 +248,8 @@
           <div class="stack">
             <h3>Quanto custa cada pedido</h3>
             <p>O custo depende da ECU e dos módulos pedidos.</p>
-            <ol class="aside-steps">
-              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo.</li>
+            <ol class="aside-steps custo-passos">
+              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo, correspondentes ao serviço mínimo.</li>
               <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email.</li>
               <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
               <li>Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>

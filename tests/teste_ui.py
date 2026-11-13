@@ -81,10 +81,14 @@ async def main():
         celulas = [" ".join(t.split()) for t in await pg.locator("[data-panel=precos] .price-table tr th, [data-panel=precos] .price-table tr td").all_text_contents()]
         check(celulas == ["1 token", "6,00 €"] and await pg.locator("[data-panel=precos] .price-table tr").count() == 1,
               "separador Preços mostra só o preço de 1 token, vindo da API: " + " | ".join(celulas))
-        passos = await pg.locator("[data-panel=precos] .aside-steps li").all_text_contents()
-        check(len(passos) == 5 and passos[0].strip() == "No envio do ficheiro descontam-se 5 tokens do saldo."
+        passos = [" ".join(t.split()) for t in await pg.locator("[data-panel=precos] .custo-passos li").all_text_contents()]
+        check(len(passos) == 5 and passos[0] == "No envio do ficheiro descontam-se 5 tokens do saldo, correspondentes ao serviço mínimo."
               and passos[2].startswith("Se não for possível") and passos[4].startswith("Depois de enviado"),
               "«Quanto custa cada pedido» tem os 5 passos pela ordem pedida")
+        novo = [" ".join(t.split()) for t in await pg.locator("[data-panel=novo] .custo-passos li").all_text_contents()]
+        titulos = [t.strip() for t in await pg.locator("[data-panel=novo] .aside h2").all_text_contents()]
+        check(novo == passos and titulos == ["Quanto custa cada pedido", "Sob consulta", "Prazo de entrega"],
+              "Novo pedido mostra a mesma informação do separador Preços: " + " · ".join(titulos))
         await pg.screenshot(path=os.path.join(OUT, "ui-precos.png"), full_page=True)
         check((await pg.text_content("[data-panel=precos] [data-preco=token_txt]")).strip() == "6,00 €", "1 token = 6,00 € no separador Preços")
         await pg.click(".tabs a[data-tab=saldo]")

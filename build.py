@@ -735,6 +735,8 @@ def form_novo_pedido():
         "</select></div>",
     ])
     cuidados = "\n          ".join(f"<li>{esc(t)}</li>" for t in CUIDADOS_LEITURA)
+    custo_aside = "\n".join(f'      <div class="aside-block">\n        <h2>{t}</h2>\n        {c}\n      </div>'
+                            for t, c in custo_pedido_seccoes())
     return f"""<div class="pedido">
     <form class="form" id="form-pedido">
       <p class="hint">Os campos com <span class="req">*</span> são obrigatórios.</p>
@@ -783,15 +785,7 @@ def form_novo_pedido():
       <p class="status" role="status" aria-live="polite" hidden></p>
     </form>
     <aside class="aside">
-      <div class="aside-block">
-        <h2>Depois do envio</h2>
-        <ol class="aside-steps">
-          <li>Descontam-se <span data-preco="minimo_txt"></span> do saldo. Depois de enviado o ficheiro, o pedido já não pode ser cancelado.</li>
-          <li>Analisamos a ECU e confirmamos o custo final. Se for maior, a diferença é descontada do saldo; se o saldo não chegar, o pedido espera pelo carregamento.</li>
-          <li>Entregamos o ficheiro pela via que escolheu, normalmente em menos de 2 horas. Fica também disponível em Pedidos durante {esc(DADOS['prazo_ficheiros'])}.</li>
-          <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
-        </ol>
-      </div>
+{custo_aside}
     </aside>
   </div>"""
 
@@ -858,11 +852,29 @@ def catalogo_php():
 
 # ---------------------------------------------------------------- preços (só na área de cliente)
 
+def custo_pedido_seccoes():
+    """«Quanto custa cada pedido», «Sob consulta» e «Prazo de entrega»: o mesmo texto no separador Preços e ao lado do
+    formulário Novo pedido (pedido do Raul, 13/11/2026). Lista de (título, HTML); os valores chegam pela API (data-preco)."""
+    wa = (f'<a href="{esc(whatsapp_url("Olá! Quero saber o custo de um ficheiro para esta ECU:"))}" target="_blank" rel="noopener">WhatsApp</a>'
+          if DADOS["whatsapp"] else ph("número de WhatsApp"))
+    return [
+        ("Quanto custa cada pedido", """<p>O custo depende da ECU e dos módulos pedidos.</p>
+            <ol class="aside-steps custo-passos">
+              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo, correspondentes ao serviço mínimo.</li>
+              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email.</li>
+              <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
+              <li>Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
+              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos.</li>
+            </ol>"""),
+        ("Sob consulta", f"""<p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>"""),
+        ("Prazo de entrega", f"""<p><span data-preco="entrega"></span>. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>"""),
+    ]
+
+
 def painel_precos():
     """Separador Preços da área de cliente. Os valores chegam pela API, só com sessão de conta aprovada
     (portal.js preenche os elementos com data-preco), e por isso não ficam no HTML da página."""
-    wa = (f'<a href="{esc(whatsapp_url("Olá! Quero saber o custo de um ficheiro para esta ECU:"))}" target="_blank" rel="noopener">WhatsApp</a>'
-          if DADOS["whatsapp"] else ph("número de WhatsApp"))
+    custo = "\n".join(f"            <h3>{t}</h3>\n            {c}" for t, c in custo_pedido_seccoes())
     return f"""<div class="saldo-grid">
           <div class="stack">
             <h3>Tokens</h3>
@@ -872,19 +884,7 @@ def painel_precos():
             <p class="small muted">Pode carregar qualquer quantidade a partir de <span data-preco="minimo_txt"></span>. <span data-preco="iva"></span>. Validade: <span data-preco="validade"></span>.</p>
           </div>
           <div class="stack">
-            <h3>Quanto custa cada pedido</h3>
-            <p>O custo depende da ECU e dos módulos pedidos.</p>
-            <ol class="aside-steps">
-              <li>No envio do ficheiro descontam-se <span data-preco="minimo_txt"></span> do saldo.</li>
-              <li>Depois de analisarmos a ECU, confirmamos o custo final aqui e por email.</li>
-              <li>Se não for possível fazer o ficheiro, recusamos o pedido e os tokens voltam ao saldo.</li>
-              <li>Se o saldo não chegar, o pedido fica à espera até carregar a diferença.</li>
-              <li>Depois de enviado o ficheiro, o pedido não pode ser cancelado e os tokens não são devolvidos.</li>
-            </ol>
-            <h3>Sob consulta</h3>
-            <p class="note"><span data-preco="sob_consulta"></span>: o custo é dado caso a caso. Fale connosco antes de enviar o ficheiro, por {wa} ou por email.</p>
-            <h3>Prazo de entrega</h3>
-            <p><span data-preco="entrega"></span>. O horário de atendimento está na página <a href="{url('servicos')}">Serviços</a>.</p>
+{custo}
           </div>
         </div>"""
 

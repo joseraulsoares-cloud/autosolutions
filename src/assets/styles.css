@@ -536,11 +536,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px
 
 /* Request page */
 .pedido { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 56px); align-items: start; }
-.aside { display: grid; gap: 28px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 24px); }
+/* Sem position: sticky: com «Quanto custa cada pedido», «Sob consulta» e «Prazo de entrega», o quadro é mais alto do que
+   o ecrã de um portátil e a parte de baixo ficava escondida enquanto se preenchia o formulário. */
+.aside { display: grid; gap: 28px; }
 .aside-block { display: grid; gap: 12px; padding: 18px; background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; }
 .aside-block h2 { font-size: 1.45rem; }
 .aside-steps { padding-left: 1.2em; display: grid; gap: 8px; }
-@media (max-width: 960px) { .pedido { grid-template-columns: minmax(0, 1fr); } .aside { position: static; } }
+@media (max-width: 960px) { .pedido { grid-template-columns: minmax(0, 1fr); } }
 
 /* Shop */
 .products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
