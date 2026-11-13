@@ -1351,6 +1351,11 @@ ErrorDocument 404 /404.html
   <FilesMatch "\.woff2$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
+  # Páginas, estilos e scripts: o browser confirma sempre se há versão nova (depois de cada Deploy
+  # vê logo a versão nova). A API (api/index.php) não entra aqui: manda o seu próprio no-store.
+  <FilesMatch "\.(html|css|js)$|^(servicos|noticias|sobre|termos)\.php$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
 </IfModule>
 
 <IfModule mod_mime.c>
