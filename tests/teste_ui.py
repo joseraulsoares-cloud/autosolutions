@@ -93,6 +93,18 @@ async def main():
         await pg.fill("#f-ano", "2016")
         await pg.fill("#f-ecu", "Bosch EDC17C64")
         await pg.select_option("#f-metodo", "OBD")
+        # Outros pedidos: a descrição só aparece (e só é obrigatória) com o pedido personalizado marcado
+        check(await pg.is_hidden("#f-personalizado-wrap"), "pedido personalizado: a descrição começa escondida")
+        await pg.check("#m-personalizado")
+        check(await pg.is_visible("#f-personalizado-wrap") and await pg.get_attribute("#f-personalizado", "required") is not None
+              and await pg.is_hidden("#decl-wrap"), "ao marcar o personalizado, aparece a descrição, obrigatória, sem declaração")
+        await pg.check("#f-personalizado-emissoes")
+        check(await pg.is_visible("#decl-wrap") and await pg.get_attribute("#f-declaracao", "required") is not None,
+              "personalizado que envolve emissões pede a declaração")
+        await pg.screenshot(path=os.path.join(OUT, "ui-personalizado.png"), full_page=True)
+        await pg.uncheck("#m-personalizado")
+        check(await pg.is_hidden("#f-personalizado-wrap") and await pg.is_hidden("#decl-wrap")
+              and await pg.get_attribute("#f-personalizado", "required") is None, "ao desmarcar, a descrição e a declaração saem")
         await pg.check("#m-stage-1-2")
         await pg.check("#m-dpf-off")
         check(await pg.is_visible("#decl-wrap"), "módulo de emissões mostra a declaração")

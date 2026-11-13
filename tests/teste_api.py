@@ -396,9 +396,46 @@ check(r.status_code == 200 and sa.get(B + "/api/sessao").json()["email"] is None
 movs = adm.get(B + f"/api/admin/oficinas/{ID_A}").json()
 check(sum(m["tokens"] for m in movs["movimentos"]) == movs["saldo"], f"extrato soma o saldo ({movs['saldo']} tokens)")
 
-# ---------------------------------------------------------------- apagar conta
 def id_oficina(email):
     return [o for o in adm.get(B + "/api/admin/oficinas?filtro=todas").json()["oficinas"] if o["email"] == email][0]["id"]
+
+
+# ---------------------------------------------------------------- pedido personalizado
+check(sessao().post(B + "/api/registo", json=dict(reg, email="p@teste.pt", nome="Oficina P", nif=nif("56000000"))).status_code == 201,
+      "registo da oficina P")
+ID_P = id_oficina("p@teste.pt")
+adm.post(B + f"/api/admin/oficinas/{ID_P}/estado", json={"estado": "aprovada"})
+adm.post(B + f"/api/admin/oficinas/{ID_P}/tokens", json={"tokens": 15, "referencia": "FT P"})
+sp = sessao()
+entrar(sp, "p@teste.pt")
+pers = dict(pedido, modulos=["PERSONALIZADO"], personalizado="", personalizado_emissoes=False)
+r = sp.post(B + "/api/pedidos", json=pers)
+check(r.status_code == 400 and "pedido personalizado" in r.json()["erro"], "pedido personalizado sem descrição é recusado")
+r = sp.post(B + "/api/pedidos", json=dict(pers, personalizado="x" * 1001))
+check(r.status_code == 400 and "1000" in r.json()["erro"], "descrição com mais de 1000 caracteres é recusada")
+r = sp.post(B + "/api/pedidos", json=dict(pers, personalizado="  Desativar o código P0420 e ajustar o ralenti para 850 rpm.  "))
+j = r.json().get("pedido", {})
+check(r.status_code == 201 and j.get("modulos") == ["PERSONALIZADO"] and j.get("declaracao_emissoes") is False
+      and j.get("personalizado") == "Desativar o código P0420 e ajustar o ralenti para 850 rpm.",
+      "pedido personalizado aceite, com a descrição guardada e sem declaração de emissões")
+PP1 = j.get("id")
+r = sp.post(B + "/api/pedidos", json=dict(pers, personalizado="NOx off", personalizado_emissoes=True))
+check(r.status_code == 400 and "declaração" in r.json()["erro"], "personalizado que envolve emissões exige a declaração")
+r = sp.post(B + "/api/pedidos", json=dict(pers, personalizado="NOx off", personalizado_emissoes=True, declaracao=True))
+check(r.status_code == 201 and r.json()["pedido"]["declaracao_emissoes"] is True, "com a declaração, o personalizado de emissões é aceite e fica registada")
+r = sp.post(B + "/api/pedidos", json=dict(pedido, personalizado="ignorado", personalizado_emissoes=True))
+check(r.status_code == 201 and r.json()["pedido"]["personalizado"] is None and r.json()["pedido"]["declaracao_emissoes"] is False,
+      "sem o módulo personalizado, a descrição e a caixa de emissões são ignoradas")
+sp.post(B + f"/api/pedidos/{PP1}/original", files={"ficheiro": ("p ori.bin", b"p" * 1024)})
+e = ultimo_email("admin@teste.pt", f"Novo pedido n.º {PP1}")
+check(e is not None and "Módulos: Pedido personalizado" in e["texto"]
+      and "Pedido personalizado:\nDesativar o código P0420" in e["texto"], "o email do novo pedido traz a descrição do personalizado")
+r = adm.get(B + f"/api/admin/pedidos/{PP1}")
+check(r.status_code == 200 and r.json()["pedido"]["personalizado"].startswith("Desativar o código P0420"), "o painel recebe a descrição")
+meus = {p["id"]: p for p in sp.get(B + "/api/pedidos").json()["pedidos"]}
+check(meus[PP1]["personalizado"].startswith("Desativar"), "a oficina vê a descrição nos seus pedidos")
+
+# ---------------------------------------------------------------- apagar conta
 
 
 # Registo sem histórico (ex.: recusado): apaga-se logo e o email e o NIF ficam livres

@@ -129,10 +129,10 @@
       ['Matrícula', esc(p.matricula || '—')],
       ['ECU', esc(p.ecu)],
       ['Custo', custo],
-      ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))],
-      ['Enviado', esc(G.data(p.criado_em))],
-      ['Entrega', esc(G.ENTREGAS[p.entrega] || p.entrega)]
+      ['Módulos', esc(p.modulos.map(G.nomeModulo).join(', '))]
     ];
+    if (p.personalizado) kv.push(['Pedido personalizado', esc(p.personalizado)]);
+    kv.push(['Enviado', esc(G.data(p.criado_em))], ['Entrega', esc(G.ENTREGAS[p.entrega] || p.entrega)]);
     if (p.original_nome) kv.push(['Ficheiro enviado', esc(p.original_nome) + ' <span class="muted">(' + G.tamanho(p.original_tamanho) + ')</span>']);
     if (p.concluido_em) kv.push(['Concluído', esc(G.data(p.concluido_em))]);
     var notas = '';
@@ -217,6 +217,11 @@
     return Array.prototype.slice.call(form.querySelectorAll('input[name="modulos"]:checked'));
   }
 
+  function personalizadoMarcado() {
+    var m = $('m-personalizado');
+    return !!(m && m.checked);
+  }
+
   // No envio desconta-se sempre o mínimo; o custo final depende da ECU e é confirmado depois.
   function custoAtual() {
     return G.CAT.minimo || 5;
@@ -253,7 +258,11 @@
       btn.textContent = 'Enviar pedido (' + G.tokens(custo) + ')';
       btn.disabled = false;
     }
-    var emissoes = !!form.querySelector('input[data-emissions]:checked');
+    // Pedido personalizado: mostra a descrição (obrigatória) e, se envolver emissões, pede a declaração.
+    var pers = personalizadoMarcado();
+    $('f-personalizado-wrap').hidden = !pers;
+    $('f-personalizado').required = pers;
+    var emissoes = !!form.querySelector('input[data-emissions]:checked') || (pers && $('f-personalizado-emissoes').checked);
     $('decl-wrap').hidden = !emissoes;
     $('f-declaracao').required = emissoes;
     if (!emissoes) $('f-declaracao').checked = false;
@@ -308,6 +317,8 @@
         viatura: el.viatura.value, matricula: el.matricula.value, motor: el.motor.value, ano: el.ano.value, ecu: el.ecu.value,
         ferramenta: el.ferramenta.value, metodo: el.metodo.value,
         modulos: marcados().map(function (i) { return i.value; }),
+        personalizado: personalizadoMarcado() ? el.personalizado.value : '',
+        personalizado_emissoes: personalizadoMarcado() && $('f-personalizado-emissoes').checked,
         observacoes: el.observacoes.value,
         entrega: ent,
         whatsapp: ent === 'whatsapp' ? $('f-whatsapp').value : '',

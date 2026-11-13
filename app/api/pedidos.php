@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Pedidos de ficheiro das oficinas.
 
 const CAMPOS_PEDIDO = [
-    'id', 'estado', 'viatura', 'matricula', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'tokens', 'pagos',
+    'id', 'estado', 'viatura', 'matricula', 'motor', 'ano', 'ecu', 'ferramenta', 'metodo', 'personalizado', 'tokens', 'pagos',
     'observacoes', 'entrega', 'whatsapp', 'original_nome', 'original_tamanho', 'modificado_nome', 'modificado_tamanho',
     'nota', 'criado_em', 'recebido_em', 'concluido_em',
 ];
@@ -197,6 +197,12 @@ function api_pedido_criar(): Resposta
         }
         $emissoes = $emissoes || $cat[$k]['emissoes'];
     }
+    // Pedido personalizado: a descrição é obrigatória e, se mexer em sistemas de emissões, leva a mesma declaração.
+    $personalizado = null;
+    if (in_array('PERSONALIZADO', $mods, true)) {
+        $personalizado = texto($c['personalizado'] ?? '', 'descrição do pedido personalizado', 1000, true);
+        $emissoes = $emissoes || ($c['personalizado_emissoes'] ?? null) === true;
+    }
     if ($emissoes && ($c['declaracao'] ?? null) !== true) {
         throw new ErroHttp(400, 'Confirme a declaração de uso dos módulos de sistemas de emissões.');
     }
@@ -212,6 +218,7 @@ function api_pedido_criar(): Resposta
         'observacoes' => texto($c['observacoes'] ?? '', 'observações', 2000),
         'entrega' => entrega($c['entrega'] ?? $o['entrega']),
         'whatsapp' => telefone($c['whatsapp'] ?? '', 'número de WhatsApp'),
+        'personalizado' => $personalizado,
     ];
     if ($p['ano'] !== '' && !preg_match('/^\d{4}$/', $p['ano'])) {
         throw new ErroHttp(400, 'Indique o ano com 4 dígitos.');
@@ -237,11 +244,12 @@ function api_pedido_criar(): Resposta
             );
         }
         executar(
-            'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, tokens, pagos, declaracao_emissoes, observacoes, entrega, whatsapp)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO pedidos (oficina_id, viatura, matricula, motor, ano, ecu, ferramenta, metodo, modulos, personalizado, tokens, pagos,
+             declaracao_emissoes, observacoes, entrega, whatsapp)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 $oid, $p['viatura'], $p['matricula'], $p['motor'] ?: null, $p['ano'] ?: null, $p['ecu'], $p['ferramenta'] ?: null,
-                $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $custo, $custo, $emissoes ? 1 : 0,
+                $p['metodo'] ?: null, json_encode($mods, JSON_UNESCAPED_UNICODE), $p['personalizado'], $custo, $custo, $emissoes ? 1 : 0,
                 $p['observacoes'] ?: null, $p['entrega'], $p['whatsapp'] ?: null,
             ]
         );
@@ -292,6 +300,7 @@ function api_pedido_original_enviar(string $id): array
         "Oficina: {$o['nome']}\nViatura: {$p['viatura']}" . ($p['motor'] ? " ({$p['motor']})" : '')
         . "\nMatrícula: " . ($p['matricula'] ?: '-')
         . "\nECU: {$p['ecu']}\nMódulos: " . nomes_modulos($p) . "\nTokens descontados: {$p['pagos']} (defina o custo final no painel depois de analisar a ECU)\nEntrega: " . nome_entrega($p['entrega'])
+        . ($p['personalizado'] ? "\n\nPedido personalizado:\n{$p['personalizado']}" : '')
         . ($p['observacoes'] ? "\n\nObservações:\n{$p['observacoes']}" : '')
         . "\n\nAbrir no painel:\n" . site_url() . "/admin#pedido-{$p['id']}"
         . ($anexo ? '' : "\n\nO ficheiro original está no painel (grande demais para seguir em anexo)."),

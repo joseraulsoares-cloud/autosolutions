@@ -251,6 +251,8 @@ MODULES = {
     "LAMBDA/O2 OFF": ("Lambda/O2 off", "Desativação da monitorização das sondas lambda (O2)."),
     "CHECKSUM": ("Correção de checksum", "Correção do checksum de um ficheiro já modificado, para que a centralina o aceite na escrita."),
     "MAP REVIEW": ("Revisão de mapa", "Revisão de um ficheiro já modificado, por outro preparador ou pela oficina, à procura de erros nos mapas alterados."),
+    # Fora de GROUPS: só aparece no formulário de pedido, em «Outros pedidos», com a descrição da oficina.
+    "PERSONALIZADO": ("Pedido personalizado", "Trabalho que não está na lista ou feito à medida, descrito pela oficina no pedido."),
 }
 
 # (âncora, título, introdução, módulos, é de emissões)
@@ -691,6 +693,20 @@ def form_novo_pedido():
         note = '<p class="small">Uso exclusivo em competição ou fora da via pública.</p>' if emissions else ""
         cls = "module-group emissions" if emissions else "module-group"
         groups_html.append(f'<div class="{cls}"><h3>{title}</h3>{note}{"".join(checks)}</div>')
+    # Outros pedidos: um só módulo, com a descrição escrita pela oficina (obrigatória quando marcado).
+    groups_html.append(
+        '<div class="module-group"><h3>Outros pedidos</h3>'
+        '<p class="small muted">Para trabalhos que não estão na lista ou feitos à medida.</p>'
+        '<div class="check mod"><input type="checkbox" id="m-personalizado" name="modulos" value="PERSONALIZADO" aria-controls="f-personalizado-wrap">'
+        f'<label for="m-personalizado"><span>{esc(MODULES["PERSONALIZADO"][0])}</span></label></div>'
+        '<div class="personalizado" id="f-personalizado-wrap" hidden>'
+        '<div class="field"><label for="f-personalizado">Descreva o que precisa <span class="req" aria-hidden="true">*</span></label>'
+        '<textarea id="f-personalizado" name="personalizado" maxlength="1000" '
+        'placeholder="ex.: desativar um código de erro, ajuste do ralenti, launch control"></textarea></div>'
+        '<div class="check"><input type="checkbox" id="f-personalizado-emissoes" name="personalizado_emissoes" value="sim">'
+        '<label for="f-personalizado-emissoes">Envolve sistemas de emissões (DPF, EGR, AdBlue/SCR, lambda ou outros)</label></div>'
+        '</div></div>'
+    )
     modules = "\n          ".join(groups_html)
 
     vehicle = "\n          ".join([

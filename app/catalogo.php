@@ -22,5 +22,6 @@ return [
         'LAMBDA/O2 OFF' => ['nome' => 'Lambda/O2 off', 'emissoes' => true],
         'CHECKSUM' => ['nome' => 'Correção de checksum', 'emissoes' => false],
         'MAP REVIEW' => ['nome' => 'Revisão de mapa', 'emissoes' => false],
+        'PERSONALIZADO' => ['nome' => 'Pedido personalizado', 'emissoes' => false],
     ],
 ];

@@ -173,6 +173,7 @@
         '<button class="btn btn-secondary" type="button" data-custo>Definir custo</button></div></div>';
     }
     if (p.ficheiros_apagados) h += '<p class="note">Os ficheiros deste pedido foram apagados automaticamente, um mês depois de o pedido ser fechado.</p>';
+    if (p.personalizado) h += '<div class="stack"><h3>Pedido personalizado</h3><p class="note">' + esc(p.personalizado) + '</p></div>';
     if (p.observacoes) h += '<div class="stack"><h3>Observações da oficina</h3><p class="note">' + esc(p.observacoes) + '</p></div>';
     h += '<div class="stack"><h3>Ficheiros</h3>' + linhaFicheiro('Original', p, 'original') + linhaFicheiro('Modificado', p, 'modificado', carregar) + '</div>';
 
