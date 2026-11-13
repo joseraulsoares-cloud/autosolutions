@@ -32,7 +32,7 @@ sob_consulta: SID321, SID212, SID213 e outras unidades posteriores a 2018
 
 # ------------------------------------------------------- PRAZO E HORÁRIO
 
-# Prazo de entrega dos ficheiros (aparece em Sobre, nos Termos e na área de cliente)
+# Prazo de entrega dos ficheiros (aparece nos Termos e na área de cliente)
 entrega: Até 2 horas; em média, 30 a 45 minutos, dentro do horário de atendimento
 
 # Horário de atendimento (aparece só na página Serviços)

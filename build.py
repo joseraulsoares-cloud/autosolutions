@@ -593,7 +593,6 @@ def body_sobre(preview):
     <dl class="spec">
       <div><dt>Empresa</dt><dd>{esc(FIRMA)}</dd></div>
       <div><dt>No mercado</dt><dd>{desde_html()}</dd></div>
-      <div><dt>Entrega</dt><dd>{dado('entrega', 'prazo de entrega dos ficheiros')}</dd></div>
       <div><dt>Clientes</dt><dd>Oficinas e profissionais do setor automóvel</dd></div>
       <div><dt>Leituras</dt><dd>OBD, bancada e boot</dd></div>
     </dl>
