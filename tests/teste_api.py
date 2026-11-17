@@ -440,6 +440,19 @@ check(r.status_code == 200 and r.json()["pedido"]["personalizado"].startswith("D
 meus = {p["id"]: p for p in sp.get(B + "/api/pedidos").json()["pedidos"]}
 check(meus[PP1]["personalizado"].startswith("Desativar"), "a oficina vê a descrição nos seus pedidos")
 
+# Serviços por ficheiro (grupo novo do formulário): pedem-se como os outros módulos, sem declaração
+adm.post(B + f"/api/admin/oficinas/{ID_P}/tokens", json={"tokens": 5, "referencia": "FT P2"})
+por_ficheiro = ["CHECKSUM", "MAP REVIEW", "RECUPERACAO SOFTWARE", "CLONAGEM DADOS", "AIRBAG RESET",
+                "DADOS QUADRANTE", "DADOS IMOBILIZADOR"]
+r = sp.post(B + "/api/pedidos", json=dict(pedido, modulos=por_ficheiro))
+j = r.json().get("pedido", {})
+check(r.status_code == 201 and j.get("modulos") == por_ficheiro and j.get("declaracao_emissoes") is False and j.get("tokens") == 5,
+      f"pedido com os 7 serviços por ficheiro aceite, sem declaração e com o desconto normal ({r.status_code})")
+sp.post(B + f"/api/pedidos/{j.get('id')}/original", files={"ficheiro": ("airbag.bin", b"a" * 1024)})
+e = ultimo_email("admin@teste.pt", f"Novo pedido n.º {j.get('id')}")
+check(e is not None and "Reset de airbag após reparação" in e["texto"] and "Dados de imobilizador para módulo usado" in e["texto"]
+      and "Revisão de mapas ORI/MOD" in e["texto"], "o email do novo pedido traz os nomes dos serviços por ficheiro")
+
 # ---------------------------------------------------------------- apagar conta
 
 
@@ -530,7 +543,13 @@ check(ks == [200] * 10 + [429], f"códigos de entrada: 10 em 15 minutos por IP, 
 # Precisa da pasta usada pelo servidor de teste: GARC_TESTE_CONTEUDOS=<a mesma pasta de GARC_CONTEUDOS>.
 CONT = os.environ.get("GARC_TESTE_CONTEUDOS")
 r = requests.get(B + "/servicos")
-check(r.status_code == 200 and "Horário de atendimento: <strong>8h30–17h00</strong>" in r.text, "Serviços mostra o horário do ficheiro de dados")
+check(r.status_code == 200 and "<strong>Horário de atendimento:</strong> 8h30–17h00" in r.text, "Serviços mostra o horário do ficheiro de dados")
+temas = re.findall(r'<section class="tema" id="([a-z-]+)"', r.text)
+check(temas == ["chiptuning", "admissao-escape", "correcoes", "emissoes", "ecu", "modulos", "airbag", "quadrantes",
+                "imobilizadores", "verificacao", "diagnostico", "profissionais"], f"Serviços tem os 12 temas do texto, cada um com endereço ({len(temas)})")
+check("DPF off" not in r.text and "Limpeza e recuperação de filtros." in r.text
+      and "Uso exclusivo em competição" not in r.text, "emissões com o texto novo (diagnóstico e reparação), sem o aviso de competição")
+check("Soluções técnicas para oficinas e profissionais." in r.text and "particulares" not in r.text, "fecho: «para oficinas e profissionais»")
 r = requests.get(B + "/precos", allow_redirects=False)
 check(r.status_code == 301 and r.headers.get("Location") == "/area-cliente#precos", "/precos leva à área de cliente (301)")
 r = requests.get(B + "/servicos.html", allow_redirects=False)

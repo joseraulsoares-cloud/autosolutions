@@ -5,6 +5,7 @@ Site da GARC – Soluções Técnicas, Unipessoal Lda, em www.autosolutions.pt: 
 ## Estrutura
 
 - `build.py` gera todas as páginas. Os dados da empresa (sede, conservatória, NIPC, WhatsApp, email…) estão no dicionário `DADOS`. Os valores que mudam (preços, prazo de entrega, horário, pagamentos) e as notícias alteram-se no servidor, sem mexer no código (ver «Alterar preços, prazos, horário e pagamentos»); os valores de origem estão em `app/conteudos-iniciais/`.
+- `src/servicos.md` tem o texto da página Serviços. Cada `## ` é um tema da página; `{horario}` é substituído pelo horário de atendimento em vigor. Depois de alterar o texto, correr `python3 build.py`.
 - `src/assets/` tem os estilos, os scripts, o ícone e as fontes (Barlow e Barlow Condensed, licença SIL Open Font License, em `src/assets/fonts/OFL.txt`). `src/api/` tem a entrada da API em PHP.
 - `site/` é o site gerado, que vai para a pasta `public_html` do alojamento. Não se edita à mão.
 - `app/` é o código do servidor da área de cliente (PHP 7.4 ou mais recente, MySQL), que fica fora de `public_html`. O ficheiro `app/catalogo.php` é gerado pelo `build.py`. `app/conteudos.php` lê os valores e as notícias alteráveis (não precisa da base de dados).

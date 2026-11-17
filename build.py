@@ -96,6 +96,7 @@ PREVIEW = False  # definido por build()
 PAGINA_PHP = False  # definido por build() para cada página: True quando a página do site é gerada em PHP
 MISSING = []     # campos por preencher encontrados na geração
 OCULTOS = []     # opções que não aparecem no site enquanto o campo estiver vazio
+AVISOS = []      # avisos da geração (ex.: tema da página Serviços sem nome curto)
 
 
 def esc(text):
@@ -249,33 +250,32 @@ MODULES = {
     "ADBLUE/SCR OFF": ("AdBlue/SCR off", "Desativação do sistema de redução catalítica seletiva (SCR/AdBlue)."),
     "LAMBDA/O2 OFF": ("Lambda/O2 off", "Desativação da monitorização das sondas lambda (O2)."),
     "CHECKSUM": ("Correção de checksum", "Correção do checksum de um ficheiro já modificado, para que a centralina o aceite na escrita."),
-    "MAP REVIEW": ("Revisão de mapa", "Revisão de um ficheiro já modificado, por outro preparador ou pela oficina, à procura de erros nos mapas alterados."),
+    "MAP REVIEW": ("Revisão de mapas ORI/MOD", "Revisão de um ficheiro já modificado, por outro preparador ou pela oficina, à procura de erros nos mapas alterados."),
+    "RECUPERACAO SOFTWARE": ("Recuperação de software e reposição ORI", "Recuperação do software original e reposição do ficheiro ORI da unidade."),
+    "CLONAGEM DADOS": ("Clonagem e transferência de dados FLASH/EEPROM", "Clonagem de unidades e transferência dos dados FLASH e EEPROM entre a unidade original e a de substituição."),
+    "AIRBAG RESET": ("Reset de airbag após reparação", "Limpeza dos dados de colisão do módulo de airbag, depois de reparado o sistema e substituídos os componentes acionados."),
+    "DADOS QUADRANTE": ("Dados de quadrante para módulo usado", "Preparação dos dados do quadrante para adaptar uma unidade usada ou de substituição, com a quilometragem real da viatura."),
+    "DADOS IMOBILIZADOR": ("Dados de imobilizador para módulo usado", "Preparação dos dados do imobilizador para adaptar um módulo usado à viatura e às chaves existentes."),
     # Fora de GROUPS: só aparece no formulário de pedido, em «Outros pedidos», com a descrição da oficina.
     "PERSONALIZADO": ("Pedido personalizado", "Trabalho que não está na lista ou feito à medida, descrito pela oficina no pedido."),
 }
 
-# (âncora, título, introdução, módulos, é de emissões)
+# Grupos de módulos do formulário de pedido: (título, nota por baixo do título, módulos, é de emissões).
+# Os grupos de emissões levam sempre a nota «Uso exclusivo em competição ou fora da via pública.»
 GROUPS = [
-    ("chiptuning", "Chiptuning", "Recalibração do software do motor e da caixa automática.",
+    ("Chiptuning", None,
      ["STAGE 1/2", "TCU STAGE 1", "POP & BANGS", "TORQUE MONITORING", "SPORT DISPLAY CALIBRATION"], False),
-    ("admissao-escape", "Admissão e escape", "Gestão de componentes de admissão e escape na centralina.",
-     ["FLAPS OFF", "EXHAUST FLAP OFF", "TVA OFF", "MAF OFF"], False),
-    ("correcoes", "Correções", "Correções de calibração para problemas conhecidos.",
-     ["OIL PRESSURE FIX", "HOT START FIX", "START STOP OFF"], False),
-    ("emissoes", "Sistemas de emissões", None,
-     ["DPF OFF", "EGR OFF", "ADBLUE/SCR OFF", "LAMBDA/O2 OFF"], True),
-    ("verificacao", "Verificação de ficheiros",
-     "Para ficheiros já modificados pela oficina ou por outro preparador, com custo à parte.",
-     ["CHECKSUM", "MAP REVIEW"], False),
+    ("Admissão e escape", None, ["FLAPS OFF", "EXHAUST FLAP OFF", "TVA OFF", "MAF OFF"], False),
+    ("Correções", None, ["OIL PRESSURE FIX", "HOT START FIX", "START STOP OFF"], False),
+    ("Sistemas de emissões", None, ["DPF OFF", "EGR OFF", "ADBLUE/SCR OFF", "LAMBDA/O2 OFF"], True),
+    # Serviços feitos a partir da leitura da unidade; as reparações com envio do módulo pedem-se em «Outros pedidos».
+    ("Serviços por ficheiro",
+     "Feitos a partir da leitura da unidade. As reparações com envio do módulo pedem-se em «Outros pedidos».",
+     ["CHECKSUM", "MAP REVIEW", "RECUPERACAO SOFTWARE", "CLONAGEM DADOS", "AIRBAG RESET",
+      "DADOS QUADRANTE", "DADOS IMOBILIZADOR"], False),
 ]
 
-EMISSIONS_NOTICE = (
-    "Os módulos de desativação de sistemas de emissões destinam-se a veículos de competição "
-    "ou a uso fora da via pública. Ao pedir um destes módulos, o cliente declara essa finalidade "
-    "e assume a responsabilidade pela utilização do ficheiro."
-)
-
-EMISSOES = {k for _a, _t, _i, keys, em in GROUPS if em for k in keys}
+EMISSOES = {k for _t, _n, keys, em in GROUPS if em for k in keys}
 
 # Cuidados a ter na leitura, no formulário de pedido (antes eram uma notícia). A oficina confirma-os
 # numa caixa obrigatória, verificada também no servidor.
@@ -635,49 +635,148 @@ def body_contacto(preview):
 
 # ---------------------------------------------------------------- serviços
 
+# Texto da página Serviços, escrito pelo Raul: src/servicos.md. Formato: «## » abre um tema; uma linha toda em
+# **negrito** é um subtítulo (antes dos temas, a primeira é a frase por baixo do título); «- » são itens de lista;
+# «---» separa o fecho da página; uma linha toda em *itálico* é uma nota. {horario} é o horário de atendimento,
+# que vem do dados.txt (no servidor, garc-conteudos/dados.txt), e não fica escrito no texto.
+SERVICOS_MD = SRC / "servicos.md"
+
+# Endereço (ex.: /servicos#ecu) e nome curto na lista de temas, pelo título do tema no texto. Os endereços que já
+# existiam na página antiga mantêm-se. Um tema que não esteja aqui usa o título e um endereço feito a partir dele,
+# e o build avisa.
+TEMAS_SERVICOS = {
+    "Chiptuning & Reprogramação": ("chiptuning", "Chiptuning"),
+    "Admissão, Escape & Gestão do Motor": ("admissao-escape", "Admissão e escape"),
+    "Correções & Otimização de Software": ("correcoes", "Correções de software"),
+    "Sistemas de Emissões – DPF / FAP / EGR / SCR": ("emissoes", "Sistemas de emissões"),
+    "ECU – Clonagem, Reparação & Programação": ("ecu", "ECU"),
+    "Módulos Eletrónicos & Unidades de Carroçaria": ("modulos", "Módulos de carroçaria"),
+    "Airbag / SRS – Reparação & Recuperação": ("airbag", "Airbag / SRS"),
+    "Quadrantes & Painéis de Instrumentos": ("quadrantes", "Quadrantes"),
+    "Imobilizadores, Chaves & Sistemas de Acesso": ("imobilizadores", "Imobilizadores e chaves"),
+    "Verificação & Preparação de Ficheiros": ("verificacao", "Verificação de ficheiros"),
+    "Diagnóstico Avançado & Apoio Técnico a Oficinas": ("diagnostico", "Diagnóstico avançado"),
+    "Serviços Profissionais B2B – Oficinas & Preparadores": ("profissionais", "Serviços B2B"),
+}
+LISTA_EM_COLUNAS = 6  # listas com tantos itens ou mais ficam em duas colunas, quando há largura para isso
+
+
+def ler_servicos(texto):
+    """Divide o texto da página Serviços em abertura, temas e fecho. Cada parte é uma lista de blocos (tipo,
+    conteúdo): «par» (parágrafo), «destaque» (linha toda em negrito), «nota» (linha toda em itálico) e «lista»."""
+    abertura, temas, fecho = [], [], []
+    blocos, anterior = abertura, None  # anterior: tipo da linha antes desta, para juntar linhas do mesmo bloco
+    for linha in texto.lstrip("\ufeff").splitlines():
+        t = linha.strip()
+        if not t:
+            anterior = None
+        elif t.startswith("## "):
+            temas.append((t[3:].strip(), []))
+            blocos, anterior = temas[-1][1], None
+        elif t.startswith("# "):
+            anterior = None  # título da página: é sempre «Serviços»
+        elif re.fullmatch(r"-{3,}", t):
+            blocos, anterior = fecho, None
+        elif t.startswith("- "):
+            if anterior != "lista":
+                blocos.append(("lista", []))
+            blocos[-1][1].append(t[2:].strip())
+            anterior = "lista"
+        elif re.fullmatch(r"\*\*[^*]+\*\*", t):
+            blocos.append(("destaque", t[2:-2].strip()))
+            anterior = None
+        elif re.fullmatch(r"\*[^*]+\*", t):
+            blocos.append(("nota", t[1:-1].strip()))
+            anterior = None
+        elif anterior == "par":
+            blocos[-1] = ("par", blocos[-1][1] + " " + t)
+        else:
+            blocos.append(("par", t))
+            anterior = "par"
+    return abertura, temas, fecho
+
+
+def servicos_inline(texto):
+    """Negrito e itálico dentro de uma linha; {horario} passa a ser o horário de atendimento do dados.txt."""
+    t = esc(texto)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", t)
+    t = re.sub(r"\*(.+?)\*", r"<em>\1</em>", t)
+    return t.replace("{horario}", dado("horario", "dias e horas de atendimento"))
+
+
+def servicos_blocos(blocos, subtitulos=True, recuo="          "):
+    partes = []
+    for tipo, conteudo in blocos:
+        if tipo == "lista":
+            cls = "svc-lista svc-colunas" if len(conteudo) >= LISTA_EM_COLUNAS else "svc-lista"
+            itens = "".join(f"\n{recuo}  <li>{servicos_inline(i)}</li>" for i in conteudo)
+            partes.append(f'<ul class="{cls}">{itens}\n{recuo}</ul>')
+        elif tipo == "destaque":
+            partes.append(f"<h3>{servicos_inline(conteudo)}</h3>" if subtitulos
+                          else f'<p class="svc-assinatura"><strong>{servicos_inline(conteudo)}</strong></p>')
+        elif tipo == "nota":
+            partes.append(f'<p class="small muted"><em>{servicos_inline(conteudo)}</em></p>')
+        elif "{horario}" in conteudo:
+            partes.append(f'<p class="horario" id="horario">{servicos_inline(conteudo)}</p>')
+        else:
+            partes.append(f"<p>{servicos_inline(conteudo)}</p>")
+    return f"\n{recuo}".join(partes)
+
+
 def body_servicos(preview):
-    sub = "".join(f'<a href="#{a}">{t}</a>' for a, t, *_ in GROUPS) + '<a href="#diagnostico">Diagnóstico avançado</a>'
-    # O horário de atendimento aparece só nesta página; Preços e Termos remetem para aqui.
-    horario = f'\n    <p class="horario">Horário de atendimento: <strong>{dado("horario", "dias e horas de atendimento")}</strong></p>'
-    parts = [page_head(
-        "Serviços",
-        "Ficheiros por módulo, preparados para a viatura e a ECU de cada pedido, e diagnóstico avançado para oficinas.",
-        f'{horario}\n    <nav class="subnav" aria-label="Secções desta página">{sub}</nav>',
-    )]
-    for anchor, title, intro, keys, emissions in GROUPS:
-        items = "\n        ".join(
-            f"<div><dt>{esc(MODULES[k][0])}</dt><dd>{esc(MODULES[k][1])}</dd></div>" for k in keys
-        )
-        intro_html = f'<p class="muted">{intro}</p>' if intro else ""
-        notice = (
-            f'\n    <div class="notice" role="note"><strong>Uso exclusivo em competição ou fora da via pública.</strong>'
-            f"<p>{EMISSIONS_NOTICE}</p></div>"
-            if emissions else ""
-        )
-        parts.append(f"""<section class="section svc-section" id="{anchor}">
-  <div class="wrap">
-    <div class="section-head"><h2>{title}</h2>{intro_html}</div>{notice}
-    <dl class="mod-list">
-        {items}
-    </dl>
+    """Página Serviços: o texto de src/servicos.md, com um tema de cada vez (assets/main.js). Sem JavaScript,
+    os temas ficam todos seguidos e a lista serve de índice."""
+    abertura, temas, fecho = ler_servicos(SERVICOS_MD.read_text(encoding="utf-8"))
+    i_lead = next((i for i, (tipo, _c) in enumerate(abertura) if tipo == "destaque"), None)
+    lead = servicos_inline(abertura.pop(i_lead)[1]) if i_lead is not None else None
+    intro = f'\n    <div class="svc-intro">\n      {servicos_blocos(abertura, recuo="      ")}\n    </div>' if abertura else ""
+
+    lista, paineis, usados = [], [], set()
+    for titulo, blocos in temas:
+        if titulo in TEMAS_SERVICOS:
+            tid, curto = TEMAS_SERVICOS[titulo]
+        else:
+            tid = re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", titulo).encode("ascii", "ignore")
+                         .decode().lower()).strip("-") or "tema"
+            curto = titulo
+            aviso = f"Tema «{titulo}» de src/servicos.md sem nome curto em TEMAS_SERVICOS (endereço #{tid})"
+            if aviso not in AVISOS:
+                AVISOS.append(aviso)
+        assert tid not in usados, f"Dois temas da página Serviços com o mesmo endereço: #{tid}"
+        usados.add(tid)
+        lista.append(f'<li><a href="#{tid}" data-tema-link>{esc(curto)}</a></li>')
+        paineis.append(f"""<section class="tema" id="{tid}" aria-labelledby="{tid}-titulo" data-tema>
+          <h2 id="{tid}-titulo" tabindex="-1">{servicos_inline(titulo)}</h2>
+          {servicos_blocos(blocos)}
+        </section>""")
+    lista_html = "\n        ".join(lista)
+    paineis_html = "\n        ".join(paineis)
+    fecho_html = f"""
+
+<section class="section svc-fecho-sec">
+  <div class="wrap svc-fecho">
+    {servicos_blocos(fecho, subtitulos=False, recuo="    ")}
   </div>
-</section>""")
-    parts.append(f"""<section class="section svc-section" id="diagnostico">
-  <div class="wrap stack">
-    <div class="section-head"><h2>Diagnóstico avançado</h2><p class="lead">Para as avarias que pedem mais do que uma leitura de erros.</p></div>
-    <ul class="checklist">
-      <li>Avarias intermitentes e falhas de comunicação entre módulos</li>
-      <li>Sistemas de pós-tratamento: EGR, DPF e SCR</li>
-      <li>Sensores e atuadores, com análise de valores reais</li>
-      <li>Apoio técnico à oficina durante a reparação</li>
-    </ul>
-    <div class="actions">
-      <a class="btn btn-primary" href="{esc(contacto_url('Diagnóstico avançado'))}">Pedir diagnóstico</a>
-      <a class="btn btn-secondary" href="{url('area-cliente', '#novo')}">Enviar ficheiro</a>
+</section>""" if fecho else ""
+    return f"""{page_head("Serviços", lead, intro)}
+
+<section class="section">
+  <div class="wrap temas" data-temas>
+    <nav class="temas-lista" aria-label="Temas desta página">
+      <ol>
+        {lista_html}
+      </ol>
+    </nav>
+    <div class="temas-conteudo">
+        {paineis_html}
+        <nav class="temas-passos" aria-label="Mudar de tema" data-temas-passos hidden>
+          <a class="btn btn-secondary" data-anterior><span aria-hidden="true">←</span> Anterior</a>
+          <span class="temas-contador" data-contador></span>
+          <a class="btn btn-secondary" data-seguinte>Seguinte <span aria-hidden="true">→</span></a>
+        </nav>
     </div>
   </div>
-</section>""")
-    return "\n\n".join(parts)
+</section>{fecho_html}"""
 
 
 # ---------------------------------------------------------------- pedido de ficheiro
@@ -693,7 +792,7 @@ def field(fid, name, label, required=False, kind="text", placeholder="", extra="
 def form_novo_pedido():
     """Formulário de novo pedido da área de cliente. O envio é feito por assets/portal.js."""
     groups_html = []
-    for anchor, title, _intro, keys, emissions in GROUPS:
+    for title, nota, keys, emissions in GROUPS:
         checks = []
         for k in keys:
             mid = "m-" + slug(k)
@@ -702,7 +801,10 @@ def form_novo_pedido():
                 f'<div class="check mod"><input type="checkbox" id="{mid}" name="modulos" value="{esc(k)}"{em}>'
                 f'<label for="{mid}"><span>{esc(MODULES[k][0])}</span></label></div>'
             )
-        note = '<p class="small">Uso exclusivo em competição ou fora da via pública.</p>' if emissions else ""
+        if emissions:
+            note = '<p class="small">Uso exclusivo em competição ou fora da via pública.</p>'
+        else:
+            note = f'<p class="small muted">{esc(nota)}</p>' if nota else ""
         cls = "module-group emissions" if emissions else "module-group"
         groups_html.append(f'<div class="{cls}"><h3>{title}</h3>{note}{"".join(checks)}</div>')
     # Outros pedidos: um só módulo, com a descrição escrita pela oficina (obrigatória quando marcado).
@@ -1310,7 +1412,7 @@ PAGES = [
      "desc": "Eletrónica automóvel e diagnóstico para oficinas: ficheiros de calibração entregues em menos de 2 horas, diagnóstico avançado e apoio técnico. GARC – AutoSolutions & Consulting, desde 2001.",
      "body": body_index, "whatsapp": False},
     {"file": "servicos.html", "nav": "servicos", "title": f"Serviços | {COMPANY}",
-     "desc": "Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.",
+     "desc": "Programação, clonagem e reparação de módulos, ficheiros ECU/TCU e diagnóstico avançado, para oficinas e profissionais de eletrónica automóvel.",
      "body": body_servicos, "php": True},
     {"file": "area-cliente.html", "nav": "area-cliente", "title": f"Área de cliente | {COMPANY}",
      "desc": "Envie ficheiros, acompanhe pedidos e consulte o saldo de tokens.",
@@ -1484,6 +1586,7 @@ def build(out_dir, preview):
     PREVIEW = preview
     MISSING.clear()
     OCULTOS.clear()
+    AVISOS.clear()
     if out_dir.exists():
         shutil.rmtree(out_dir)
     # O modo de demonstração (demo.js) só existe na pré-visualização.
@@ -1533,3 +1636,5 @@ if __name__ == "__main__":
         print("Oculto no site até ser preenchido:")
         for item in ocultos:
             print("  -", item)
+    for aviso in AVISOS:
+        print("Aviso:", aviso)

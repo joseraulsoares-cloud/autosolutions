@@ -456,33 +456,60 @@ ul, ol { margin: 0; }
 .horario { color: var(--ink-2); }
 .horario strong { color: var(--ink); font-weight: 600; }
 .contacto-form { max-width: 46rem; }
-.subnav { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-.subnav a {
-  flex: none; padding: 6px 12px;
-  border: 1px solid var(--line); border-radius: 999px;
-  color: var(--ink); text-decoration: none; font-weight: 500; font-size: 0.92rem;
-  background: var(--paper);
+/* Página Serviços: os temas do texto em separadores. Sem JavaScript ficam todos seguidos e a lista serve de
+   índice; com JavaScript (.temas-ativos) vê-se um tema de cada vez, com Anterior e Seguinte por baixo. */
+.svc-intro { display: grid; gap: 12px; max-width: 46em; }
+.temas {
+  display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: clamp(28px, 4vw, 56px); align-items: start;
 }
-.subnav a:hover { border-color: var(--ink); }
-
-/* Services page */
-.svc-section { scroll-margin-top: calc(var(--header-h) + 24px); }
-.mod-list { margin: 0; border-bottom: 1px solid var(--line); }
-.mod-list div {
-  display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
-  gap: 4px 32px; padding-block: 16px;
-  border-top: 1px solid var(--line);
+.temas-lista { position: sticky; top: calc(var(--header-h) + 24px); }
+.temas-lista ol { list-style: none; padding: 0; display: grid; border-left: 1px solid var(--line); }
+.temas-lista a {
+  display: block; padding: 8px 14px; margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--ink-2); text-decoration: none; font-weight: 500; line-height: 1.3;
 }
-.mod-list dt { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; line-height: 1.15; }
-.mod-list dd { margin: 0; color: var(--ink-2); max-width: 42em; }
-@media (max-width: 760px) { .mod-list div { grid-template-columns: minmax(0, 1fr); } }
-.notice {
-  display: grid; gap: 6px;
-  padding: 14px 16px; margin-bottom: 20px;
-  background: var(--warn-bg); color: var(--warn-ink);
-  border: 1px solid var(--warn-line); border-radius: 6px;
+.temas-lista a:hover { color: var(--ink); }
+.temas-lista a[aria-current="true"] { color: var(--ink); border-left-color: var(--ink); font-weight: 600; }
+.temas-conteudo { min-width: 0; }
+.tema { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.tema + .tema { margin-top: 48px; padding-top: 48px; border-top: 1px solid var(--line); }
+.temas-ativos .tema + .tema { margin-top: 0; padding-top: 0; border-top: 0; }
+.tema h2[tabindex="-1"]:focus { outline: none; }
+.tema h3 { font-family: var(--font-display); font-size: 1.4rem; margin-top: 8px; }
+.tema p { max-width: 46em; }
+.svc-lista { list-style: none; padding: 0; display: grid; gap: 8px; }
+.svc-lista li { position: relative; padding-left: 20px; }
+.svc-lista li::before {
+  content: ""; position: absolute; left: 2px; top: 0.62em;
+  width: 7px; height: 7px; background: var(--accent);
 }
-.notice strong { font-weight: 600; }
+.svc-lista:not(.svc-colunas) { max-width: 46em; }
+.svc-colunas { display: block; columns: 2 17rem; column-gap: 40px; }
+.svc-colunas li { break-inside: avoid; margin-bottom: 8px; }
+.temas-passos {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line);
+}
+.temas-passos .btn:not([href]) { visibility: hidden; }
+.temas-contador { color: var(--ink-2); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.svc-fecho-sec { padding-block: clamp(32px, 4vw, 48px); }
+.svc-fecho { display: grid; gap: 8px; }
+.svc-fecho p { max-width: 52em; }
+.svc-assinatura { font-family: var(--font-display); font-size: 1.4rem; line-height: 1.2; }
+.svc-assinatura strong { font-weight: 600; }
+@media (max-width: 860px) {
+  .temas { grid-template-columns: minmax(0, 1fr); }
+  .temas-lista { position: static; }
+  .temas-lista ol { display: flex; flex-wrap: wrap; gap: 8px; border-left: 0; }
+  .temas-lista a {
+    margin-left: 0; padding: 6px 12px;
+    border: 1px solid var(--line); border-radius: 999px;
+    background: var(--sheet); color: var(--ink); font-size: 0.95rem;
+  }
+  .temas-lista a[aria-current="true"] { background: var(--btn); border-color: var(--btn); color: var(--btn-fg); }
+}
 .checklist { list-style: none; padding: 0; display: grid; gap: 10px; }
 .checklist li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; }
 .checklist li::before {

@@ -29,9 +29,9 @@ function garc_v($chave, $padrao)
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Serviços | GARC – Soluções Técnicas</title>
-<meta name="description" content="Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.">
+<meta name="description" content="Programação, clonagem e reparação de módulos, ficheiros ECU/TCU e diagnóstico avançado, para oficinas e profissionais de eletrónica automóvel.">
 <meta property="og:title" content="Serviços | GARC – Soluções Técnicas">
-<meta property="og:description" content="Chiptuning, admissão e escape, correções, sistemas de emissões e diagnóstico avançado para oficinas.">
+<meta property="og:description" content="Programação, clonagem e reparação de módulos, ficheiros ECU/TCU e diagnóstico avançado, para oficinas e profissionais de eletrónica automóvel.">
 <meta property="og:locale" content="pt_PT">
 <link rel="icon" href="/assets/favicon.ico" sizes="32x32">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -66,84 +66,271 @@ function garc_v($chave, $padrao)
 <section class="page-head">
   <div class="wrap">
     <h1>Serviços</h1>
-    <p class="lead">Ficheiros por módulo, preparados para a viatura e a ECU de cada pedido, e diagnóstico avançado para oficinas.</p>
-    <p class="horario">Horário de atendimento: <strong><?= garc_v('horario', '8h30–17h00') ?></strong></p>
-    <nav class="subnav" aria-label="Secções desta página"><a href="#chiptuning">Chiptuning</a><a href="#admissao-escape">Admissão e escape</a><a href="#correcoes">Correções</a><a href="#emissoes">Sistemas de emissões</a><a href="#verificacao">Verificação de ficheiros</a><a href="#diagnostico">Diagnóstico avançado</a></nav>
-  </div>
-</section>
-
-<section class="section svc-section" id="chiptuning">
-  <div class="wrap">
-    <div class="section-head"><h2>Chiptuning</h2><p class="muted">Recalibração do software do motor e da caixa automática.</p></div>
-    <dl class="mod-list">
-        <div><dt>Stage 1/2</dt><dd>Stage 1: recalibração do software com o motor de série (binário, pressão do turbo, injeção e limitadores). Stage 2: calibração feita para alterações físicas já montadas, como admissão, intercooler ou escape.</dd></div>
-        <div><dt>TCU Stage 1</dt><dd>Recalibração da caixa automática: limites de binário, pontos de passagem e pressões, de acordo com o novo binário do motor.</dd></div>
-        <div><dt>Pop &amp; bangs</dt><dd>Estalos no escape em desaceleração, com intensidade e regime configuráveis. Para motores a gasolina.</dd></div>
-        <div><dt>Torque monitoring</dt><dd>Ajuste da monitorização de binário, para que a centralina não entre em modo de emergência depois da reprogramação.</dd></div>
-        <div><dt>Sport display</dt><dd>Calibração das leituras do ecrã desportivo (potência, binário e pressão do turbo) para os valores depois da reprogramação.</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="section svc-section" id="admissao-escape">
-  <div class="wrap">
-    <div class="section-head"><h2>Admissão e escape</h2><p class="muted">Gestão de componentes de admissão e escape na centralina.</p></div>
-    <dl class="mod-list">
-        <div><dt>Flaps off</dt><dd>Desativação das borboletas de turbulência (swirl flaps) do coletor de admissão, sem erros na centralina.</dd></div>
-        <div><dt>Exhaust flap off</dt><dd>Desativação ou controlo da válvula de escape.</dd></div>
-        <div><dt>TVA off</dt><dd>Desativação do atuador da borboleta de admissão (TVA) em motores diesel.</dd></div>
-        <div><dt>MAF off</dt><dd>Funcionamento sem o medidor de massa de ar, com o ar admitido calculado por modelo.</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="section svc-section" id="correcoes">
-  <div class="wrap">
-    <div class="section-head"><h2>Correções</h2><p class="muted">Correções de calibração para problemas conhecidos.</p></div>
-    <dl class="mod-list">
-        <div><dt>Oil pressure fix</dt><dd>Correção de erros relacionados com o controlo da pressão de óleo.</dd></div>
-        <div><dt>Hot start fix</dt><dd>Correção da calibração de arranque em motores com dificuldade em pegar a quente.</dd></div>
-        <div><dt>Start-stop off</dt><dd>Desativação permanente do sistema Start &amp; Stop.</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="section svc-section" id="emissoes">
-  <div class="wrap">
-    <div class="section-head"><h2>Sistemas de emissões</h2></div>
-    <div class="notice" role="note"><strong>Uso exclusivo em competição ou fora da via pública.</strong><p>Os módulos de desativação de sistemas de emissões destinam-se a veículos de competição ou a uso fora da via pública. Ao pedir um destes módulos, o cliente declara essa finalidade e assume a responsabilidade pela utilização do ficheiro.</p></div>
-    <dl class="mod-list">
-        <div><dt>DPF off</dt><dd>Desativação do filtro de partículas (DPF/FAP) na gestão do motor.</dd></div>
-        <div><dt>EGR off</dt><dd>Desativação da recirculação dos gases de escape (EGR).</dd></div>
-        <div><dt>AdBlue/SCR off</dt><dd>Desativação do sistema de redução catalítica seletiva (SCR/AdBlue).</dd></div>
-        <div><dt>Lambda/O2 off</dt><dd>Desativação da monitorização das sondas lambda (O2).</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="section svc-section" id="verificacao">
-  <div class="wrap">
-    <div class="section-head"><h2>Verificação de ficheiros</h2><p class="muted">Para ficheiros já modificados pela oficina ou por outro preparador, com custo à parte.</p></div>
-    <dl class="mod-list">
-        <div><dt>Correção de checksum</dt><dd>Correção do checksum de um ficheiro já modificado, para que a centralina o aceite na escrita.</dd></div>
-        <div><dt>Revisão de mapa</dt><dd>Revisão de um ficheiro já modificado, por outro preparador ou pela oficina, à procura de erros nos mapas alterados.</dd></div>
-    </dl>
-  </div>
-</section>
-
-<section class="section svc-section" id="diagnostico">
-  <div class="wrap stack">
-    <div class="section-head"><h2>Diagnóstico avançado</h2><p class="lead">Para as avarias que pedem mais do que uma leitura de erros.</p></div>
-    <ul class="checklist">
-      <li>Avarias intermitentes e falhas de comunicação entre módulos</li>
-      <li>Sistemas de pós-tratamento: EGR, DPF e SCR</li>
-      <li>Sensores e atuadores, com análise de valores reais</li>
-      <li>Apoio técnico à oficina durante a reparação</li>
-    </ul>
-    <div class="actions">
-      <a class="btn btn-primary" href="/contacto?assunto=Diagn%C3%B3stico%20avan%C3%A7ado">Pedir diagnóstico</a>
-      <a class="btn btn-secondary" href="/area-cliente#novo">Enviar ficheiro</a>
+    <p class="lead">Programação, clonagem, reparação de módulos, ficheiros ECU/TCU e diagnóstico avançado.</p>
+    <div class="svc-intro">
+      <p>Soluções técnicas de eletrónica automóvel para oficinas, preparadores e profissionais do setor, com serviços especializados em unidades de controlo eletrónico, reprogramação de software e recuperação de módulos.</p>
+      <p>Trabalhamos com ficheiros preparados individualmente para cada viatura, referência de hardware e versão de software, assegurando a compatibilidade e a validação técnica de cada intervenção.</p>
+      <p>Disponibilizamos também serviços de reparação e programação de módulos enviados por oficinas de todo o país.</p>
+      <p class="horario" id="horario"><strong>Horário de atendimento:</strong> <?= garc_v('horario', '8h30–17h00') ?></p>
     </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap temas" data-temas>
+    <nav class="temas-lista" aria-label="Temas desta página">
+      <ol>
+        <li><a href="#chiptuning" data-tema-link>Chiptuning</a></li>
+        <li><a href="#admissao-escape" data-tema-link>Admissão e escape</a></li>
+        <li><a href="#correcoes" data-tema-link>Correções de software</a></li>
+        <li><a href="#emissoes" data-tema-link>Sistemas de emissões</a></li>
+        <li><a href="#ecu" data-tema-link>ECU</a></li>
+        <li><a href="#modulos" data-tema-link>Módulos de carroçaria</a></li>
+        <li><a href="#airbag" data-tema-link>Airbag / SRS</a></li>
+        <li><a href="#quadrantes" data-tema-link>Quadrantes</a></li>
+        <li><a href="#imobilizadores" data-tema-link>Imobilizadores e chaves</a></li>
+        <li><a href="#verificacao" data-tema-link>Verificação de ficheiros</a></li>
+        <li><a href="#diagnostico" data-tema-link>Diagnóstico avançado</a></li>
+        <li><a href="#profissionais" data-tema-link>Serviços B2B</a></li>
+      </ol>
+    </nav>
+    <div class="temas-conteudo">
+        <section class="tema" id="chiptuning" aria-labelledby="chiptuning-titulo" data-tema>
+          <h2 id="chiptuning-titulo" tabindex="-1">Chiptuning &amp; Reprogramação</h2>
+          <p>Recalibração e otimização de software de gestão do motor e transmissão, através de análise e edição dos mapas de controlo.</p>
+          <h3>Stage 1 / Stage 2</h3>
+          <ul class="svc-lista">
+            <li>Stage 1: otimização da calibração original, incluindo gestão de binário, pressão de turbo, injeção e limitadores.</li>
+            <li>Stage 2: calibração específica para configurações mecânicas modificadas, considerando os componentes instalados e os respetivos limites técnicos.</li>
+          </ul>
+          <h3>TCU / TCM – Reprogramação de caixas automáticas</h3>
+          <ul class="svc-lista">
+            <li>TCU Stage 1.</li>
+            <li>Ajustamento de gestão de binário.</li>
+            <li>Otimização dos pontos de passagem de caixa.</li>
+            <li>Gestão de pressões e estratégias de funcionamento.</li>
+            <li>Adaptação da transmissão à calibração do motor.</li>
+          </ul>
+          <h3>Torque Monitoring</h3>
+          <p>Análise e calibração dos modelos de binário e respetivos limitadores, assegurando a coerência entre os valores calculados, solicitados e efetivamente produzidos pelo motor, preservando as proteções funcionais.</p>
+          <h3>Sport Display</h3>
+          <p>Configuração e adaptação das indicações de potência, binário e pressão de turbo nos sistemas de visualização desportiva.</p>
+        </section>
+        <section class="tema" id="admissao-escape" aria-labelledby="admissao-escape-titulo" data-tema>
+          <h2 id="admissao-escape-titulo" tabindex="-1">Admissão, Escape &amp; Gestão do Motor</h2>
+          <p>Diagnóstico, parametrização e calibração dos sistemas de admissão, gestão de ar e escape.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Swirl Flaps: diagnóstico, adaptação e parametrização das borboletas de turbulência.</li>
+            <li>Exhaust Flap: diagnóstico e configuração da válvula de escape.</li>
+            <li>TVA: diagnóstico e adaptação do atuador da borboleta de admissão.</li>
+            <li>MAF: diagnóstico e calibração da gestão de massa de ar.</li>
+            <li>MAP: análise e calibração dos parâmetros de pressão.</li>
+            <li>Sensores e atuadores: diagnóstico, verificação de sinais e adaptação após substituição.</li>
+          </ul>
+          <p>Intervenções orientadas para o correto funcionamento dos componentes e compatibilidade entre hardware e software.</p>
+        </section>
+        <section class="tema" id="correcoes" aria-labelledby="correcoes-titulo" data-tema>
+          <h2 id="correcoes-titulo" tabindex="-1">Correções &amp; Otimização de Software</h2>
+          <p>Análise e correção de problemas de calibração, parametrização e funcionamento identificados em determinadas versões de software.</p>
+          <h3>Oil Pressure Fix</h3>
+          <p>Diagnóstico e correção de problemas relacionados com a gestão e monitorização da pressão de óleo, após verificação da origem da anomalia.</p>
+          <h3>Hot Start Fix</h3>
+          <p>Análise e correção de problemas de arranque a quente, com revisão dos parâmetros de arranque e injeção.</p>
+          <h3>Start-Stop</h3>
+          <p>Diagnóstico, configuração e adaptação dos parâmetros de funcionamento do sistema Start &amp; Stop, de acordo com as funcionalidades e requisitos aplicáveis ao veículo.</p>
+          <h3>Software Recovery</h3>
+          <ul class="svc-lista">
+            <li>Recuperação de software original.</li>
+            <li>Reposição de ficheiros ORI.</li>
+            <li>Recuperação de unidades com programação interrompida.</li>
+            <li>Correção de incompatibilidades de software.</li>
+            <li>Recuperação de unidades bloqueadas, quando tecnicamente possível.</li>
+          </ul>
+        </section>
+        <section class="tema" id="emissoes" aria-labelledby="emissoes-titulo" data-tema>
+          <h2 id="emissoes-titulo" tabindex="-1">Sistemas de Emissões – DPF / FAP / EGR / SCR</h2>
+          <p>Diagnóstico avançado, análise de parâmetros, recuperação e reparação de sistemas de controlo de emissões e pós-tratamento dos gases de escape.</p>
+          <h3>DPF / FAP – Filtro de partículas</h3>
+          <ul class="svc-lista svc-colunas">
+            <li>Diagnóstico de saturação e contrapressão.</li>
+            <li>Análise de pressão diferencial.</li>
+            <li>Verificação de sensores e temperaturas.</li>
+            <li>Diagnóstico de falhas de regeneração.</li>
+            <li>Regeneração assistida.</li>
+            <li>Limpeza e recuperação de filtros.</li>
+            <li>Adaptação e parametrização após intervenção.</li>
+          </ul>
+          <h3>EGR – Recirculação dos gases de escape</h3>
+          <ul class="svc-lista">
+            <li>Diagnóstico de válvulas EGR.</li>
+            <li>Verificação de comandos e posições.</li>
+            <li>Análise de valores reais e funcionamento.</li>
+            <li>Limpeza, reparação e substituição.</li>
+            <li>Adaptação e parametrização após substituição.</li>
+          </ul>
+          <h3>SCR / AdBlue</h3>
+          <ul class="svc-lista svc-colunas">
+            <li>Diagnóstico do sistema de redução catalítica seletiva.</li>
+            <li>Análise de bombas e sistemas de dosagem.</li>
+            <li>Diagnóstico de sensores NOx.</li>
+            <li>Verificação de injetores e circuitos AdBlue.</li>
+            <li>Reparação e substituição de componentes.</li>
+            <li>Inicialização e parametrização após reparação.</li>
+          </ul>
+          <h3>Lambda / O2</h3>
+          <ul class="svc-lista">
+            <li>Diagnóstico de sondas lambda.</li>
+            <li>Análise de sinais e valores de funcionamento.</li>
+            <li>Verificação dos circuitos de aquecimento.</li>
+            <li>Adaptação e calibração após substituição.</li>
+          </ul>
+        </section>
+        <section class="tema" id="ecu" aria-labelledby="ecu-titulo" data-tema>
+          <h2 id="ecu-titulo" tabindex="-1">ECU – Clonagem, Reparação &amp; Programação</h2>
+          <p>Serviços especializados em unidades de controlo eletrónico do motor e transmissão.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Clonagem de ECU.</li>
+            <li>Transferência de dados entre unidades.</li>
+            <li>Leitura e escrita de memórias FLASH e EEPROM.</li>
+            <li>Recuperação de dados e software.</li>
+            <li>Recuperação de ECU bloqueadas.</li>
+            <li>Reparação eletrónica de unidades de controlo.</li>
+            <li>Programação e reprogramação.</li>
+            <li>Adaptação de unidades novas e usadas.</li>
+            <li>Inicialização e parametrização.</li>
+            <li>Recuperação de comunicação e falhas de programação.</li>
+          </ul>
+          <p><strong>Famílias de unidades:</strong> Bosch, Siemens/Continental, Delphi, Denso, Marelli, Valeo e outras.</p>
+        </section>
+        <section class="tema" id="modulos" aria-labelledby="modulos-titulo" data-tema>
+          <h2 id="modulos-titulo" tabindex="-1">Módulos Eletrónicos &amp; Unidades de Carroçaria</h2>
+          <p>Clonagem, reparação, programação, transferência de dados e adaptação de módulos eletrónicos de diferentes fabricantes.</p>
+          <h3>Módulos abrangidos:</h3>
+          <ul class="svc-lista svc-colunas">
+            <li>BSI – Body Systems Interface.</li>
+            <li>BSM – Boîtier de Servitude Moteur.</li>
+            <li>UCH – Unidade de Controlo do Habitáculo.</li>
+            <li>BCM – Body Control Module.</li>
+            <li>CAS – Car Access System.</li>
+            <li>FEM / BDC – Módulos de eletrónica de carroçaria.</li>
+            <li>SAM – Signal Acquisition Module.</li>
+            <li>EWS – Electronic Immobilizer.</li>
+            <li>EZS / ESL – Sistemas de ignição e bloqueio da direção.</li>
+            <li>Outros módulos de controlo e distribuição eletrónica.</li>
+          </ul>
+          <p>Serviços de clonagem, transferência de dados, recuperação, programação e configuração de módulos.</p>
+        </section>
+        <section class="tema" id="airbag" aria-labelledby="airbag-titulo" data-tema>
+          <h2 id="airbag-titulo" tabindex="-1">Airbag / SRS – Reparação &amp; Recuperação</h2>
+          <p>Diagnóstico e intervenção em módulos de controlo dos sistemas de retenção e segurança passiva.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Diagnóstico de módulos Airbag / SRS.</li>
+            <li>Recuperação de unidades eletrónicas.</li>
+            <li>Reset e reposição de dados após reparação e verificação do sistema.</li>
+            <li>Clonagem e transferência de dados.</li>
+            <li>Programação de módulos de substituição.</li>
+            <li>Diagnóstico de sensores de impacto.</li>
+            <li>Análise de circuitos e comunicação.</li>
+            <li>Adaptação e parametrização de unidades.</li>
+          </ul>
+        </section>
+        <section class="tema" id="quadrantes" aria-labelledby="quadrantes-titulo" data-tema>
+          <h2 id="quadrantes-titulo" tabindex="-1">Quadrantes &amp; Painéis de Instrumentos</h2>
+          <p>Reparação, clonagem, programação e recuperação de dados de painéis de instrumentos.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Clonagem de quadrantes.</li>
+            <li>Transferência de dados EEPROM e FLASH.</li>
+            <li>Recuperação de software.</li>
+            <li>Reparação eletrónica de quadrantes.</li>
+            <li>Diagnóstico de falhas de comunicação.</li>
+            <li>Programação e configuração de unidades de substituição.</li>
+            <li>Adaptação e sincronização com os restantes módulos do veículo.</li>
+          </ul>
+        </section>
+        <section class="tema" id="imobilizadores" aria-labelledby="imobilizadores-titulo" data-tema>
+          <h2 id="imobilizadores-titulo" tabindex="-1">Imobilizadores, Chaves &amp; Sistemas de Acesso</h2>
+          <p>Diagnóstico, programação e adaptação de sistemas de autorização de arranque e acesso ao veículo.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Programação e adaptação de chaves.</li>
+            <li>Configuração de comandos.</li>
+            <li>Recuperação de dados de imobilizador.</li>
+            <li>Sincronização ECU / BSI / UCH / BCM.</li>
+            <li>Clonagem de módulos de imobilizador.</li>
+            <li>Adaptação de módulos usados.</li>
+            <li>Diagnóstico de sistemas CAS, FEM, BDC, EWS e EZS.</li>
+          </ul>
+        </section>
+        <section class="tema" id="verificacao" aria-labelledby="verificacao-titulo" data-tema>
+          <h2 id="verificacao-titulo" tabindex="-1">Verificação &amp; Preparação de Ficheiros</h2>
+          <p>Serviço destinado a oficinas e preparadores que necessitam de análise técnica de ficheiros originais ou previamente modificados.</p>
+          <h3>Correção de Checksum</h3>
+          <p>Verificação e correção dos algoritmos de integridade dos ficheiros, de acordo com a unidade de controlo e versão de software.</p>
+          <h3>Revisão de Mapas</h3>
+          <ul class="svc-lista">
+            <li>Análise de ficheiros ORI e MOD.</li>
+            <li>Verificação de mapas modificados.</li>
+            <li>Identificação de alterações e incoerências.</li>
+            <li>Análise de limitadores e parâmetros de gestão.</li>
+            <li>Verificação da compatibilidade entre versões de software.</li>
+          </ul>
+          <h3>Preparação de Ficheiros</h3>
+          <ul class="svc-lista">
+            <li>Identificação de ECU e software.</li>
+            <li>Preparação individualizada por hardware e software.</li>
+            <li>Leitura, comparação e análise de ficheiros.</li>
+            <li>Preparação de ficheiros para programação.</li>
+            <li>Validação técnica antes da escrita.</li>
+          </ul>
+          <p>Os ficheiros são preparados de acordo com os dados específicos de cada pedido, evitando soluções genéricas ou ficheiros não identificados.</p>
+        </section>
+        <section class="tema" id="diagnostico" aria-labelledby="diagnostico-titulo" data-tema>
+          <h2 id="diagnostico-titulo" tabindex="-1">Diagnóstico Avançado &amp; Apoio Técnico a Oficinas</h2>
+          <p>Para situações em que uma simples leitura de avarias não é suficiente.</p>
+          <ul class="svc-lista svc-colunas">
+            <li>Avarias intermitentes e falhas de comunicação entre módulos.</li>
+            <li>Problemas de sincronização entre unidades eletrónicas.</li>
+            <li>Diagnóstico de sistemas de gestão do motor.</li>
+            <li>Sistemas de pós-tratamento: DPF, EGR e SCR.</li>
+            <li>Análise de sensores e atuadores através de valores reais.</li>
+            <li>Diagnóstico de falhas elétricas e eletrónicas.</li>
+            <li>Recuperação de módulos sem comunicação.</li>
+            <li>Análise de parâmetros e funcionamento de sistemas.</li>
+            <li>Apoio técnico durante processos de reparação.</li>
+            <li>Assistência na identificação de avarias complexas.</li>
+          </ul>
+        </section>
+        <section class="tema" id="profissionais" aria-labelledby="profissionais-titulo" data-tema>
+          <h2 id="profissionais-titulo" tabindex="-1">Serviços Profissionais B2B – Oficinas &amp; Preparadores</h2>
+          <p>A GARC disponibiliza uma estrutura de apoio técnico especializada para oficinas, eletricistas auto e profissionais de eletrónica automóvel.</p>
+          <h3>Serviços para profissionais:</h3>
+          <ul class="svc-lista svc-colunas">
+            <li>Preparação e fornecimento de ficheiros ECU/TCU.</li>
+            <li>Clonagem e reparação de módulos.</li>
+            <li>Programação e adaptação de unidades eletrónicas.</li>
+            <li>Recuperação de ECU e módulos bloqueados.</li>
+            <li>Verificação de ficheiros de terceiros.</li>
+            <li>Análise de software e identificação de mapas.</li>
+            <li>Diagnóstico eletrónico especializado.</li>
+            <li>Apoio técnico em situações complexas.</li>
+          </ul>
+          <h3>Receção de módulos e ficheiros a nível nacional.</h3>
+          <p>As oficinas podem enviar as unidades eletrónicas para análise e intervenção, recebendo posteriormente os módulos reparados ou programados, acompanhados da respetiva informação técnica.</p>
+        </section>
+        <nav class="temas-passos" aria-label="Mudar de tema" data-temas-passos hidden>
+          <a class="btn btn-secondary" data-anterior><span aria-hidden="true">←</span> Anterior</a>
+          <span class="temas-contador" data-contador></span>
+          <a class="btn btn-secondary" data-seguinte>Seguinte <span aria-hidden="true">→</span></a>
+        </nav>
+    </div>
+  </div>
+</section>
+
+<section class="section svc-fecho-sec">
+  <div class="wrap svc-fecho">
+    <p class="svc-assinatura"><strong>GARC – Soluções Técnicas</strong></p>
+    <p>Eletrónica automóvel | ECU &amp; TCU | Clonagem | Reparação | Programação | Diagnóstico avançado</p>
+    <p>Soluções técnicas para oficinas e profissionais.</p>
+    <p class="small muted"><em>Todas as intervenções são realizadas no respeito pelas especificações técnicas, requisitos de homologação, segurança e legislação aplicável. As alterações de calibração e características dos veículos estão sujeitas aos procedimentos de aprovação legalmente exigíveis.</em></p>
   </div>
 </section>
 </main>

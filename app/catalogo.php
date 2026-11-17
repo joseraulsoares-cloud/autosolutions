@@ -21,7 +21,12 @@ return [
         'ADBLUE/SCR OFF' => ['nome' => 'AdBlue/SCR off', 'emissoes' => true],
         'LAMBDA/O2 OFF' => ['nome' => 'Lambda/O2 off', 'emissoes' => true],
         'CHECKSUM' => ['nome' => 'Correção de checksum', 'emissoes' => false],
-        'MAP REVIEW' => ['nome' => 'Revisão de mapa', 'emissoes' => false],
+        'MAP REVIEW' => ['nome' => 'Revisão de mapas ORI/MOD', 'emissoes' => false],
+        'RECUPERACAO SOFTWARE' => ['nome' => 'Recuperação de software e reposição ORI', 'emissoes' => false],
+        'CLONAGEM DADOS' => ['nome' => 'Clonagem e transferência de dados FLASH/EEPROM', 'emissoes' => false],
+        'AIRBAG RESET' => ['nome' => 'Reset de airbag após reparação', 'emissoes' => false],
+        'DADOS QUADRANTE' => ['nome' => 'Dados de quadrante para módulo usado', 'emissoes' => false],
+        'DADOS IMOBILIZADOR' => ['nome' => 'Dados de imobilizador para módulo usado', 'emissoes' => false],
         'PERSONALIZADO' => ['nome' => 'Pedido personalizado', 'emissoes' => false],
     ],
 ];

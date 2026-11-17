@@ -103,6 +103,15 @@ async def main():
         await pg.fill("#f-ano", "2016")
         await pg.fill("#f-ecu", "Bosch EDC17C64")
         await pg.select_option("#f-metodo", "OBD")
+        # Grupo «Serviços por ficheiro», antes de «Outros pedidos»; os outros grupos ficam como estavam
+        grupos = [t.strip() for t in await pg.locator("#form-pedido .module-group h3").all_text_contents()]
+        check(grupos == ["Chiptuning", "Admissão e escape", "Correções", "Sistemas de emissões", "Serviços por ficheiro", "Outros pedidos"],
+              f"formulário: grupo «Serviços por ficheiro» antes de «Outros pedidos» {grupos}")
+        por_ficheiro = pg.locator("#form-pedido .module-group", has=pg.locator("h3", has_text="Serviços por ficheiro"))
+        nomes = [t.strip() for t in await por_ficheiro.locator("label").all_text_contents()]
+        check(len(nomes) == 7 and nomes[2] == "Recuperação de software e reposição ORI" and nomes[4] == "Reset de airbag após reparação"
+              and "«Outros pedidos»" in await por_ficheiro.locator("p").text_content(),
+              f"«Serviços por ficheiro» com 7 serviços e a indicação das reparações com envio do módulo ({len(nomes)})")
         # Outros pedidos: a descrição só aparece (e só é obrigatória) com o pedido personalizado marcado
         check(await pg.is_hidden("#f-personalizado-wrap"), "pedido personalizado: a descrição começa escondida")
         await pg.check("#m-personalizado")
@@ -165,8 +174,10 @@ async def main():
               "custo 15 com saldo 7: pedido à espera de saldo, sem botão de concluir")
         await ap.screenshot(path=os.path.join(OUT, "ui-admin-falta-saldo.png"), full_page=True)
 
-        # A oficina vê a falta de saldo
-        await pg.goto(B + "/area-cliente#pedidos", wait_until="networkidle")
+        # A oficina vê a falta de saldo. A página já estava aberta e mudar só o # não a recarrega: sem o reload,
+        # o cartão podia ser lido antes de chegarem os dados novos (falhava às vezes com o PHP 7.4, mais lento).
+        await pg.goto(B + "/area-cliente#pedidos")
+        await pg.reload(wait_until="networkidle")
         await pg.wait_for_selector(".order")
         cartao = await pg.text_content(".order")
         check("Falta saldo" in cartao and "Faltam 10 tokens" in cartao, "oficina vê o pedido à espera de saldo: faltam 10 tokens")
@@ -285,6 +296,71 @@ async def main():
               and ap.url.endswith("#oficinas"), "segundo clique apaga a conta; o painel confirma e sai da ficha")
         check(adm.get(B + f"/api/admin/oficinas/{zid}").status_code == 404, "a conta apagada já não existe no servidor")
 
+        # ---------------- Página Serviços: um tema de cada vez, com endereço próprio
+        sctx = await b.new_context(viewport={"width": 1280, "height": 900})
+        sp = await sctx.new_page()
+        sp.on("console", lambda m: erros.append("serviços: " + m.text) if m.type == "error" else None)
+        sp.on("pageerror", lambda e: erros.append("serviços: " + str(e)))
+        await sp.goto(B + "/servicos", wait_until="networkidle")
+        visiveis = await sp.eval_on_selector_all("[data-tema]", "ps => ps.filter(p => !p.hidden).map(p => p.id)")
+        check(visiveis == ["chiptuning"] and await sp.locator("[data-tema-link]").count() == 12
+              and await sp.get_attribute("[data-tema-link][href='#chiptuning']", "aria-current") == "true",
+              f"Serviços: 12 temas na lista e só o primeiro à vista ({visiveis})")
+        check((await sp.text_content("[data-contador]")).strip() == "1 de 12" and not await sp.is_visible("[data-anterior]")
+              and await sp.get_attribute("[data-seguinte]", "aria-label") == "Seguinte: Admissão e escape",
+              "contador 1 de 12, sem Anterior no primeiro tema e Seguinte para Admissão e escape")
+        check("Horário de atendimento: 8h30–17h00" in await sp.text_content(".svc-intro") and await sp.locator("text=Uso exclusivo").count() == 0,
+              "horário do dados.txt na abertura e sem o aviso de competição")
+        await sp.screenshot(path=os.path.join(OUT, "ui-servicos.png"), full_page=True)
+        await sp.click("[data-seguinte]")
+        check(sp.url.endswith("/servicos#admissao-escape") and await sp.is_visible("#admissao-escape") and await sp.is_hidden("#chiptuning")
+              and (await sp.text_content("[data-contador]")).strip() == "2 de 12"
+              and await sp.evaluate("document.activeElement.id") == "admissao-escape-titulo",
+              "Seguinte: tema 2, com endereço próprio e o foco no título")
+        await sp.click("[data-tema-link][href='#ecu']")
+        check(sp.url.endswith("#ecu") and await sp.is_visible("#ecu") and (await sp.text_content("[data-contador]")).strip() == "5 de 12"
+              and await sp.get_attribute("[data-tema-link][href='#ecu']", "aria-current") == "true", "lista: ECU abre o tema 5 de 12")
+        colunas = await sp.eval_on_selector_all("#ecu .svc-colunas li", "ls => [...new Set(ls.map(l => Math.round(l.getBoundingClientRect().left)))].length")
+        check(colunas == 2, f"lista comprida (10 itens) em duas colunas no computador ({colunas})")
+        await sp.screenshot(path=os.path.join(OUT, "ui-servicos-ecu.png"))
+        await sp.go_back()
+        await sp.wait_for_function("location.hash === '#admissao-escape'")
+        check(await sp.is_visible("#admissao-escape") and await sp.is_hidden("#ecu"), "Retroceder do browser volta ao tema anterior")
+        sp2 = await sctx.new_page()  # página nova: o endereço com tema é aberto de raiz, como numa ligação
+        sp2.on("pageerror", lambda e: erros.append("serviços: " + str(e)))
+        await sp2.goto(B + "/servicos#profissionais", wait_until="networkidle")
+        await sp2.wait_for_timeout(150)
+        topo = await sp2.evaluate("document.getElementById('profissionais').getBoundingClientRect().top")
+        check(await sp2.is_visible("#profissionais") and not await sp2.is_visible("[data-seguinte]")
+              and (await sp2.text_content("[data-contador]")).strip() == "12 de 12" and 0 <= topo < 300,
+              f"endereço /servicos#profissionais abre o último tema, à vista e sem Seguinte (topo a {topo:.0f} px)")
+        await sctx.close()
+
+        # Telemóvel: lista dos temas em cima, conteúdo numa só coluna
+        stel = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
+        st = await stel.new_page()
+        await st.goto(B + "/servicos#ecu", wait_until="networkidle")
+        await st.wait_for_timeout(100)
+        geo = await st.evaluate("""() => {
+            const lista = document.querySelector('.temas-lista').getBoundingClientRect();
+            const tema = document.getElementById('ecu').getBoundingClientRect();
+            const xs = [...document.querySelectorAll('#ecu .svc-colunas li')].map(l => Math.round(l.getBoundingClientRect().left));
+            return {acima: lista.bottom <= tema.top, colunas: new Set(xs).size, larg: document.documentElement.scrollWidth - innerWidth};
+        }""")
+        check(geo["acima"] and geo["colunas"] == 1 and geo["larg"] <= 0 and await st.is_visible("#ecu"),
+              f"telemóvel: lista em cima, listas numa coluna e sem deslocamento horizontal {geo}")
+        await st.evaluate("window.scrollTo(0, 0)")
+        await st.screenshot(path=os.path.join(OUT, "ui-servicos-telemovel.png"), full_page=True)
+        await stel.close()
+
+        # Sem JavaScript: todos os temas seguidos e a lista como índice
+        snj = await b.new_context(viewport={"width": 1280, "height": 900}, java_script_enabled=False)
+        sn = await snj.new_page()
+        await sn.goto(B + "/servicos")
+        n_vis = await sn.locator("[data-tema]:visible").count()
+        check(n_vis == 12 and not await sn.is_visible("[data-temas-passos]"), f"sem JavaScript: os 12 temas seguidos, sem Anterior/Seguinte ({n_vis})")
+        await snj.close()
+
         # Telemóvel
         mctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme="dark")
         await mctx.add_cookies(await ctx.cookies())
@@ -301,3 +377,4 @@ async def main():
 
 
 asyncio.run(main())
+sys.exit(0 if RES and all(RES) else 1)

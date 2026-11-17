@@ -37,6 +37,89 @@
     });
   }
 
+  /* Página Serviços: um tema de cada vez, com endereço próprio (ex.: /servicos#ecu) e Anterior/Seguinte.
+     Sem JavaScript, os temas ficam todos seguidos e a lista serve de índice. */
+  var temas = document.querySelector('[data-temas]');
+  var passos = temas && temas.querySelector('[data-temas-passos]');
+  if (temas && passos) {
+    var paineis = Array.prototype.slice.call(temas.querySelectorAll('[data-tema]'));
+    var ligacoes = Array.prototype.slice.call(temas.querySelectorAll('[data-tema-link]'));
+    var anterior = passos.querySelector('[data-anterior]');
+    var seguinte = passos.querySelector('[data-seguinte]');
+    var contador = passos.querySelector('[data-contador]');
+    var ids = paineis.map(function (p) { return p.id; });
+    var atual = -1;
+
+    var indiceDe = function (hash) {
+      var id = (hash || '').replace(/^#/, '');
+      try { id = decodeURIComponent(id); } catch (err) { /* endereço mal formado: não é nenhum tema */ }
+      return ids.indexOf(id);
+    };
+
+    // Sem tema antes ou depois, o botão fica sem destino e escondido (ver .temas-passos no CSS).
+    var ligarPasso = function (el, i, texto) {
+      if (i < 0 || i >= ids.length) {
+        el.removeAttribute('href');
+        el.removeAttribute('aria-label');
+        el.removeAttribute('title');
+        return;
+      }
+      var nome = ligacoes[i] ? ligacoes[i].textContent : ids[i];
+      el.setAttribute('href', '#' + ids[i]);
+      el.setAttribute('aria-label', texto + ': ' + nome);
+      el.title = nome;
+    };
+
+    var mostrar = function (i, levar) {
+      atual = i;
+      paineis.forEach(function (p, j) { p.hidden = j !== i; });
+      ligacoes.forEach(function (a, j) {
+        if (j === i) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+      contador.textContent = (i + 1) + ' de ' + ids.length;
+      ligarPasso(anterior, i - 1, 'Anterior');
+      ligarPasso(seguinte, i + 1, 'Seguinte');
+      if (!levar) return;
+      // Leva ao início do tema quando ficou fora de vista (ex.: «Seguinte» no fim de um tema comprido)
+      // e passa-lhe o foco, para os leitores de ecrã lerem o título.
+      var p = paineis[i];
+      var margem = parseFloat(window.getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      var topo = p.getBoundingClientRect().top;
+      if (topo < margem || topo > window.innerHeight * 0.6) p.scrollIntoView();
+      var titulo = p.querySelector('h2');
+      if (titulo) titulo.focus({ preventScroll: true });
+    };
+
+    temas.classList.add('temas-ativos');
+    passos.hidden = false;
+    var inicial = indiceDe(window.location.hash);
+    mostrar(inicial < 0 ? 0 : inicial, false);
+    if (inicial >= 0) {
+      // Endereço com tema: os outros temas acabaram de ser escondidos, por isso leva-se ao tema pedido.
+      window.requestAnimationFrame(function () { paineis[inicial].scrollIntoView(); });
+    }
+
+    temas.addEventListener('click', function (e) {
+      var a = e.target.closest('a[href^="#"]');
+      if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      var i = indiceDe(a.getAttribute('href'));
+      if (i < 0) return;
+      e.preventDefault();
+      if (i !== atual && window.history.pushState) window.history.pushState(null, '', '#' + ids[i]);
+      mostrar(i, true);
+    });
+
+    // Retroceder e Avançar do browser, ou outro tema escrito no endereço
+    var seguirEndereco = function () {
+      var i = indiceDe(window.location.hash);
+      if (i >= 0 && i !== atual) mostrar(i, true);
+      else if (!window.location.hash && atual !== 0) mostrar(0, false);
+    };
+    window.addEventListener('popstate', seguirEndereco);
+    window.addEventListener('hashchange', seguirEndereco);
+  }
+
   /* Página Contacto: assunto vindo de outra página (contacto?assunto=…, ex.: «Pedir diagnóstico») */
   var assunto = document.getElementById('f-c-assunto');
   if (assunto && window.URLSearchParams) {
